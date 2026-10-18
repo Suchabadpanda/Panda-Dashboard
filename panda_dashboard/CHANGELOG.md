@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1
+- Merge the energy tracker CSV correctly
+
 ## 0.3.0
 - Renamed to Panda Dashboard (add-on slug `panda_dashboard`).
 
