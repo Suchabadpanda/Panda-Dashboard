@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+- Count only post-install days in the install month
+
 ## 0.3.1
 - Merge the energy tracker CSV correctly
 
