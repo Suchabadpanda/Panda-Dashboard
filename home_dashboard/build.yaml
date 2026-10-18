@@ -1,0 +1,4 @@
+build_from:
+  aarch64: nginx:1.27-alpine
+  amd64: nginx:1.27-alpine
+  armv7: nginx:1.27-alpine

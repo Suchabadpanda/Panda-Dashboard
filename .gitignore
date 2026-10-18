@@ -1,0 +1,8 @@
+# Personal energy history stays out of the repo
+data/*.csv
+data/config.js
+!data/energy_monthly.example.csv
+dist/
+.DS_Store
+Thumbs.db
+__pycache__/

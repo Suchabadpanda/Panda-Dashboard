@@ -1,0 +1,40 @@
+# Bumps the add-on version whenever the dashboard changes on main,
+# so Home Assistant offers the update (Settings → Add-ons).
+name: Release add-on
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'home_dashboard/www/**'
+      - 'home_dashboard/Dockerfile'
+      - 'home_dashboard/nginx.conf'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: "!contains(github.event.head_commit.message, '[release]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump patch version and changelog
+        id: bump
+        run: |
+          current=$(sed -n 's/^version: "\(.*\)"/\1/p' home_dashboard/config.yaml)
+          IFS=. read -r major minor patch <<< "$current"
+          next="$major.$minor.$((patch + 1))"
+          sed -i "s/^version: \".*\"/version: \"$next\"/" home_dashboard/config.yaml
+          msg=$(git log -1 --format=%s)
+          { echo "# Changelog"; echo; echo "## $next"; echo "- $msg"; tail -n +2 home_dashboard/CHANGELOG.md; } > /tmp/cl && mv /tmp/cl home_dashboard/CHANGELOG.md
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Release ${{ steps.bump.outputs.version }} [release]"
+          git push
