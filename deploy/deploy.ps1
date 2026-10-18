@@ -8,16 +8,16 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$app = Join-Path $root 'home_dashboard\www'
+$app = Join-Path $root 'panda_dashboard\www'
 $items = @("$app\index.html", "$app\css", "$app\js")
 if ((Test-Path "$root\data\energy_monthly.csv") -or (Test-Path "$root\data\config.js")) { $items += "$root\data" }
 
 if ($Ssh) {
-  ssh $SshHost 'mkdir -p /config/www/home-dashboard'
-  foreach ($i in $items) { scp -r "$i" "${SshHost}:/config/www/home-dashboard/" }
+  ssh $SshHost 'mkdir -p /config/www/panda-dashboard'
+  foreach ($i in $items) { scp -r "$i" "${SshHost}:/config/www/panda-dashboard/" }
 } else {
-  $dest = Join-Path $Share 'www\home-dashboard'
+  $dest = Join-Path $Share 'www\panda-dashboard'
   New-Item -ItemType Directory -Force -Path $dest | Out-Null
   foreach ($i in $items) { Copy-Item -Recurse -Force "$i" $dest }
 }
-Write-Host 'Open http://homeassistant.local:8123/local/home-dashboard/index.html'
+Write-Host 'Open http://homeassistant.local:8123/local/panda-dashboard/index.html'

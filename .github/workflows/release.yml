@@ -6,9 +6,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'home_dashboard/www/**'
-      - 'home_dashboard/Dockerfile'
-      - 'home_dashboard/nginx.conf'
+      - 'panda_dashboard/www/**'
+      - 'panda_dashboard/Dockerfile'
+      - 'panda_dashboard/nginx.conf'
   workflow_dispatch:
 
 permissions:
@@ -24,12 +24,12 @@ jobs:
       - name: Bump patch version and changelog
         id: bump
         run: |
-          current=$(sed -n 's/^version: "\(.*\)"/\1/p' home_dashboard/config.yaml)
+          current=$(sed -n 's/^version: "\(.*\)"/\1/p' panda_dashboard/config.yaml)
           IFS=. read -r major minor patch <<< "$current"
           next="$major.$minor.$((patch + 1))"
-          sed -i "s/^version: \".*\"/version: \"$next\"/" home_dashboard/config.yaml
+          sed -i "s/^version: \".*\"/version: \"$next\"/" panda_dashboard/config.yaml
           msg=$(git log -1 --format=%s)
-          { echo "# Changelog"; echo; echo "## $next"; echo "- $msg"; tail -n +2 home_dashboard/CHANGELOG.md; } > /tmp/cl && mv /tmp/cl home_dashboard/CHANGELOG.md
+          { echo "# Changelog"; echo; echo "## $next"; echo "- $msg"; tail -n +2 panda_dashboard/CHANGELOG.md; } > /tmp/cl && mv /tmp/cl panda_dashboard/CHANGELOG.md
           echo "version=$next" >> "$GITHUB_OUTPUT"
 
       - name: Commit

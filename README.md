@@ -1,4 +1,4 @@
-# Home Dashboard
+# Panda Dashboard
 
 A wall-tablet dashboard for the house, built on Home Assistant. The house is drawn as a
 cross-section — roof panels, three floors of rooms, battery and grid on one side, heat pump
@@ -27,26 +27,26 @@ This repo is a Home Assistant add-on repository. Installed as an add-on, the das
 own sidebar entry, sits behind your HA login, and updates from GitHub.
 
 1. **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, add
-   `https://github.com/Suchabadpanda/Home-Dashboard`. While the repo is private, add it as
-   `https://<token>@github.com/Suchabadpanda/Home-Dashboard` using a fine-grained token with
+   `https://github.com/Suchabadpanda/Panda-Dashboard`. While the repo is private, add it as
+   `https://<token>@github.com/Suchabadpanda/Panda-Dashboard` using a fine-grained token with
    read-only *Contents* access to this repo.
-2. Close the dialog, refresh, and open **Home Dashboard** in the store. Click **Install**
+2. Close the dialog, refresh, and open **Panda Dashboard** in the store. Click **Install**
    (the first build takes a minute or two).
 3. Turn on **Start on boot**, **Show in sidebar** and **Auto update**, then **Start**.
-4. Open **Home Dashboard** from the sidebar.
+4. Open **Panda Dashboard** from the sidebar.
 
 **Updates:** push to `main`. The *Release add-on* GitHub Action bumps the version in
-`home_dashboard/config.yaml` and adds a changelog line. HA picks it up on its next store check
+`panda_dashboard/config.yaml` and adds a changelog line. HA picks it up on its next store check
 (or **Add-on Store → ⋮ → Check for updates**) and installs it if Auto update is on. Put
 `[release]` in a commit message to skip the bump.
 
 **Tracker CSV:** copy `energy_monthly.csv` into the add-on's config folder,
-`\\homeassistant.local\addon_configs\<id>_home_dashboard\` over Samba.
+`\\homeassistant.local\addon_configs\<id>_panda_dashboard\` over Samba.
 
 ### Option 1b — copy into /config/www
 
-`deploy/deploy.ps1` (Samba) or `deploy/deploy.sh` (SSH) copies the app into `/config/www/home-dashboard`;
-open `http://homeassistant.local:8123/local/home-dashboard/index.html`. No sidebar entry or
+`deploy/deploy.ps1` (Samba) or `deploy/deploy.sh` (SSH) copies the app into `/config/www/panda-dashboard`;
+open `http://homeassistant.local:8123/local/panda-dashboard/index.html`. No sidebar entry or
 auto-update; useful for testing a change before pushing.
 
 ### Option 2 — on the NAS with Docker
@@ -67,7 +67,7 @@ http:
 
 ### Option 3 — demo
 
-Open `home_dashboard/www/index.html?demo`, or run `python3 tools/build_preview.py` for a single-file
+Open `panda_dashboard/www/index.html?demo`, or run `python3 tools/build_preview.py` for a single-file
 `dist/preview.html`. Demo mode uses a snapshot of the real house taken on 18 Oct 2026
 (states, today's power curves, 30 days of daily energy, monthly totals since April, 24 h of room
 temperatures). Light toggles work locally in the demo.
@@ -79,13 +79,13 @@ browsers). On an iPad, *Add to Home Screen* gives a full-screen app.
 
 ## Configure
 
-The repo ships an **example** config, [`home_dashboard/www/js/config.js`](home_dashboard/www/js/config.js),
+The repo ships an **example** config, [`panda_dashboard/www/js/config.js`](panda_dashboard/www/js/config.js),
 that matches the demo snapshot. Your own settings — rooms per floor, entity IDs, names, tariffs,
 system cost — go in a separate `config.js` that never enters git:
 
 | Running as | Put your `config.js` in |
 |---|---|
-| Add-on | `\\homeassistant.local\addon_configs\<id>_home_dashboard\` |
+| Add-on | `\\homeassistant.local\addon_configs\<id>_panda_dashboard\` |
 | `/config/www` copy | `data\config.js` in your local clone (the deploy scripts copy it) |
 
 Start from a copy of the example file and edit it. It loads after the example and replaces it,
@@ -136,8 +136,8 @@ HA_TOKEN=... python3 tools/ha_energy_export.py --out data/energy_monthly.csv
 
 ```
 repository.yaml           marks the repo as an HA add-on repository
-home_dashboard/           the add-on: config.yaml, Dockerfile, nginx.conf, docs, icon
-home_dashboard/www/       the dashboard itself
+panda_dashboard/           the add-on: config.yaml, Dockerfile, nginx.conf, docs, icon
+panda_dashboard/www/       the dashboard itself
   index.html              page shell + settings dialog
   css/app.css             all styles; light/dark tokens at the top
   js/config.js            rooms, entities, tariffs, ROI settings

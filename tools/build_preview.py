@@ -9,7 +9,7 @@ import pathlib
 import re
 
 repo = pathlib.Path(__file__).resolve().parent.parent
-root = repo / "home_dashboard" / "www"
+root = repo / "panda_dashboard" / "www"
 html = (root / "index.html").read_text()
 
 css = (root / "css/app.css").read_text()

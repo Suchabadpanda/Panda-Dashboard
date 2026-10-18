@@ -9,7 +9,7 @@ Updated for the SigenStor sensors and priced hour-by-hour against a
 time-of-use tariff (off-peak 00:00–06:00), so import cost reflects how much of the
 grid import landed in the cheap window.
 
-The Home Dashboard reads HA statistics directly and doesn't need this script.
+The Panda Dashboard reads HA statistics directly and doesn't need this script.
 Use it to keep the standalone energy tracker / Excel ROI sheet fed, or to bake
 months into data/energy_monthly.csv.
 

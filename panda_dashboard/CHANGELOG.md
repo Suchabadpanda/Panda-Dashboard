@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.0
+- Renamed to Panda Dashboard (add-on slug `panda_dashboard`).
+
 ## 0.2.0
 - Personal settings now load from `config.js` in the add-on's config folder; the repo ships an example config and a demo with generic names.
 

@@ -1,17 +1,17 @@
 /*
- * Home Dashboard — example configuration
+ * Panda Dashboard — example configuration
  *
  * This file ships with the repo and matches the demo snapshot. Don't put your own
  * settings here: copy this file to config.js in the add-on's config folder
- * (\\homeassistant.local\addon_configs\<id>_home_dashboard\) and edit that copy.
+ * (\\homeassistant.local\addon_configs\<id>_panda_dashboard\) and edit that copy.
  * It loads after this one and replaces it, and updates never overwrite it.
  */
 window.HD = window.HD || {};
 
 HD.config = {
-  title: 'Home',
+  title: 'Panda Dashboard',
   // Leave blank when the dashboard is served by Home Assistant itself
-  // (/config/www/home-dashboard → http://homeassistant.local:8123/local/home-dashboard/).
+  // (/config/www/panda-dashboard → http://homeassistant.local:8123/local/panda-dashboard/).
   // Set it when you host the dashboard elsewhere (NAS / Docker) — see README.
   haUrl: '',
 
