@@ -145,6 +145,8 @@ window.HD = window.HD || {};
         }
         row.actual = row.importCost - row.exportCredit;
         row.saving = row.baseline != null ? row.baseline - row.actual : null;
+        // Install month: only the days after install count
+        if (key === startKey && row.saving != null) row.saving *= (daysInMonth(startKey) - install.getDate() + 1) / daysInMonth(startKey);
       }
       months.push(row);
     }
