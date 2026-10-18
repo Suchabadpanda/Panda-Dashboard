@@ -186,7 +186,7 @@ HD.config = {
     priceRise: 0.055,          // ONS long-run average; 8–10% for the elevated scenario
     horizonYears: 25,
     // Monthly history from the energy tracker (label,import_kwh,export_kwh,import_cost,export_credit,standing_charge).
-    // Either path is tried; the first that loads wins. Months it covers override HA estimates.
+    // Either path is tried; the first that loads wins. It fills months before HA started recording.
     csvUrls: ['data/energy_monthly.csv', '/local/energy-export.csv'],
   },
 };

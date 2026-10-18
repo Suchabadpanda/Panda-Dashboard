@@ -6,8 +6,9 @@
  *   baseline  = what the household load would have cost with no system
  *   actual    = import cost − export credit           (standing charge cancels out)
  *   saving    = baseline − actual
- * Baseline is, in order of preference: the same calendar month before install
- * from the tracker CSV, else load kWh × roi.baselineRate.
+ * HA statistics win for every month they cover; the tracker CSV fills earlier months.
+ * Baseline: household load kWh × roi.baselineRate where HA measured the load,
+ * else the same calendar month before install from the tracker CSV.
  */
 window.HD = window.HD || {};
 
@@ -106,11 +107,7 @@ window.HD = window.HD || {};
       const firstHaMonth = statsStart && ym(statsStart) === key && new Date(statsStart).getDate() > 1;
       const row = { key, label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }), partial: key === nowKey || key === startKey || firstHaMonth, estimated: false };
 
-      if (c && c.importCost != null) {
-        row.source = 'tracker';
-        row.importCost = c.importCost; row.exportCredit = c.exportCredit || 0;
-        row.import = c.import; row.export = c.export; row.load = h ? h.load : null;
-      } else if (h) {
+      if (h) {
         row.source = 'ha';
         row.import = h.import; row.export = h.export; row.load = h.load;
         if (impByMonth[key]) {
@@ -124,16 +121,27 @@ window.HD = window.HD || {};
           row.exportCredit = h.export * t.export;
           row.estimated = true;
         }
+      } else if (c && c.importCost != null) {
+        // Tracker month (before HA recorded). Export credit is accrued from kWh at the
+        // export rate: the CSV's credit column holds E.ON's lump payments, which land
+        // months after the export happened.
+        row.source = 'tracker';
+        row.import = c.import; row.export = c.export; row.load = null;
+        row.importCost = c.importCost;
+        row.exportCredit = c.export ? c.export * tariffAt(new Date(key + '-15')).export : (c.exportCredit || 0);
       } else {
         row.source = 'none';
       }
 
       if (row.source !== 'none') {
-        const before = csv && (csv[`${+key.slice(0, 4) - 1}${key.slice(4)}`] || csv[`${+key.slice(0, 4) - 2}${key.slice(4)}`]);
-        if (before && before.importCost != null && new Date(`${+key.slice(0, 4) - 1}${key.slice(4)}-01`) < install) {
-          row.baseline = before.importCost; row.baselineFrom = 'same month before install';
-        } else if (row.load != null) {
+        // Prefer measured household load (captures the heat pump and EV the old bills didn't have);
+        // fall back to the same calendar month before install from the tracker CSV.
+        const y = +key.slice(0, 4); const mm = key.slice(4);
+        const before = csv && [csv[`${y - 1}${mm}`], csv[`${y - 2}${mm}`]].find((b, i) => b && b.importCost != null && new Date(`${y - 1 - i}${mm}-01`) < install);
+        if (row.load != null) {
           row.baseline = row.load * r.baselineRate; row.baselineFrom = `load × ${(r.baselineRate * 100).toFixed(1)}p`;
+        } else if (before) {
+          row.baseline = before.importCost; row.baselineFrom = 'same month before install';
         }
         row.actual = row.importCost - row.exportCredit;
         row.saving = row.baseline != null ? row.baseline - row.actual : null;

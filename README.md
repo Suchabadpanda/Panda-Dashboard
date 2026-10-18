@@ -109,8 +109,10 @@ saving   = baseline − actual
 
 - **Import cost** is priced hour by hour from HA's hourly statistics against the time-of-use
   tariff, so it reflects how much import landed in the 00:00–06:00 window.
-- **Baseline** is the same calendar month before install from the tracker CSV when available,
-  otherwise household load × `roi.baselineRate` (23p, the pre-install average unit price).
+- **Baseline** is household load × `roi.baselineRate` (the pre-install average unit price) for
+  months HA measured, otherwise the same calendar month before install from the tracker CSV.
+- **Tracker months** use the CSV's import cost; export credit is accrued from export kWh at the
+  export rate, since the CSV's credit column records lump payments that arrive months later.
 - Months before HA started recording come from the tracker CSV; without
   it they are filled with the tracked monthly average and shown in italics as estimated.
   Partial months (install month, HA's first month, the current month) are left out of the average.
