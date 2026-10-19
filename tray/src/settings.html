@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>Panda Tray settings</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="settings">
+  <h1>Panda Tray</h1>
+  <p class="lead">Connects to Home Assistant and uses Panda Dashboard's own settings: its entities, Shortcuts and tariffs.</p>
+
+  <form id="form" autocomplete="off">
+    <div class="field">
+      <label for="url">Home Assistant address</label>
+      <input type="text" id="url" placeholder="http://homeassistant.local:8123" required>
+      <small>At home. Plain http:// is only accepted on your home network.</small>
+    </div>
+    <div class="field">
+      <label for="away">Away address (optional)</label>
+      <input type="text" id="away" placeholder="https://homeassistant.your-tailnet.ts.net">
+      <small>Tried when the home address doesn't answer, e.g. your Tailscale address.</small>
+    </div>
+    <div class="field">
+      <label for="token">Long-lived access token</label>
+      <input type="password" id="token" placeholder="Paste a new token, or leave blank to keep the saved one">
+      <small>In Home Assistant: your profile → Security → Long-lived access tokens → Create token.
+        <button type="button" class="link" id="token-page">Open that page</button></small>
+      <small>It's stored encrypted for your Windows account and only ever sent to the addresses above.</small>
+    </div>
+    <div class="field">
+      <label for="size">Dashboard window</label>
+      <select id="size"><option value="wide">Wide (like a monitor)</option><option value="compact">Compact (like a phone)</option></select>
+    </div>
+    <label class="check"><input type="checkbox" id="hide"> Hide the dashboard when I click away</label>
+    <label class="check"><input type="checkbox" id="start"> Start with Windows</label>
+    <div class="actions">
+      <button class="btn primary" type="submit" id="save">Save and connect</button>
+      <button class="btn" type="button" id="close">Close</button>
+    </div>
+  </form>
+  <div class="status" id="status">Not connected yet.</div>
+  <p class="note" id="version"></p>
+  <script src="settings.js"></script>
+</body>
+</html>

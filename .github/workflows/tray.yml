@@ -1,0 +1,55 @@
+# Builds the Windows installer for Panda Tray (tray/) and publishes it as a GitHub release.
+# Release a new version: bump "version" in tray/package.json, commit, then push a tag
+# named v<version> (e.g. v1.0.1). The app updates itself from these releases.
+name: Panda Tray
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths: ['tray/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: tray
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tray/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Check the tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          want="v$(node -p "require('./package.json').version")"
+          [ "$want" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} but package.json says $want"; exit 1; }
+
+      - name: Build and publish the installer
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npx electron-builder --win nsis --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build only (no release)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: npx electron-builder --win nsis --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panda-tray-installer
+          path: tray/dist/*.exe
+          if-no-files-found: error

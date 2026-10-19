@@ -1,0 +1,43 @@
+{
+  "name": "panda-tray",
+  "productName": "Panda Tray",
+  "version": "1.0.0",
+  "description": "Windows tray companion for Panda Dashboard (Home Assistant): quick panel, shortcuts and the dashboard one click away",
+  "main": "src/main.js",
+  "author": "Suchabadpanda",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder --win nsis --publish never",
+    "release": "electron-builder --win nsis --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.16.1"
+  },
+  "build": {
+    "appId": "io.github.suchabadpanda.pandatray",
+    "productName": "Panda Tray",
+    "artifactName": "Panda-Tray-Setup-${version}.${ext}",
+    "directories": { "output": "dist" },
+    "files": ["src/**/*", "assets/**/*", "package.json"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Panda Tray"
+    },
+    "publish": [{ "provider": "github", "owner": "Suchabadpanda", "repo": "Panda-Dashboard", "releaseType": "release" }]
+  }
+}
