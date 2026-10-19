@@ -162,7 +162,7 @@ window.HD = window.HD || {};
     dlg.innerHTML = `
       <div class="live-head"><h2>${esc(c.name || 'Front door')}</h2><button class="btn ghost" data-doorbell-close>Close</button></div>
       <div class="live-body"><video id="door-video" playsinline muted autoplay controls poster="${esc(pictureUrl() || '')}"></video>
-      <p class="sub" id="live-status">Waking the doorbell — this takes a few seconds and uses a little of its battery.</p></div>`;
+      <p class="sub" id="live-status">Connecting… (about 20 seconds — the doorbell has to wake up). Streaming uses a little of its battery.</p></div>`;
     dlg.showModal();
     if (S().mode !== 'live') { dlg.querySelector('#live-status').textContent = 'Live view needs a connection to Home Assistant.'; return; }
     const video = dlg.querySelector('#door-video');
@@ -181,17 +181,35 @@ window.HD = window.HD || {};
       if (!dlg.open) return;
       if (!url) throw lastErr || new Error('the doorbell did not start streaming');
       const src = `${HD.ha.baseUrl()}${url}`;
+      // First video arrives ~20 s after waking (HA retries the stream after a fixed 10 s),
+      // so be patient: generous loader timeouts, retry network errors, only say "Live" once frames move.
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        let tries = 0;
+        video.addEventListener('error', () => { if (dlg.open && tries++ < 5) setTimeout(() => { video.src = src; video.play().catch(() => {}); }, 3000); });
         video.src = src;
       } else {
         if (!window.Hls) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js');
-        hls = new window.Hls({ liveSyncDurationCount: 2 });
+        if (!dlg.open) return;
+        let retries = 0;
+        hls = new window.Hls({
+          liveSyncDurationCount: 2,
+          manifestLoadingTimeOut: 30000, manifestLoadingMaxRetry: 6, manifestLoadingRetryDelay: 2000,
+          levelLoadingTimeOut: 30000, levelLoadingMaxRetry: 6,
+          fragLoadingTimeOut: 30000, fragLoadingMaxRetry: 6,
+        });
         hls.loadSource(src); hls.attachMedia(video);
-        hls.on(window.Hls.Events.ERROR, (_, d) => { if (d.fatal) status.textContent = 'The stream stopped. Close and try again.'; });
+        hls.on(window.Hls.Events.ERROR, (_, d) => {
+          if (!d.fatal || !hls) return;
+          if (d.type === window.Hls.ErrorTypes.NETWORK_ERROR && retries++ < 5) { setTimeout(() => hls && hls.startLoad(), 3000); return; }
+          if (d.type === window.Hls.ErrorTypes.MEDIA_ERROR) { hls.recoverMediaError(); return; }
+          status.textContent = 'The stream stopped. Close and try again.';
+        });
       }
-      let playing = false;
-      video.addEventListener('playing', () => { playing = true; status.textContent = 'Live. Close this when you’re done to save the doorbell’s battery.'; }, { once: true });
-      setTimeout(() => { if (!playing && dlg.open) startSnapshotFallback(dlg, status); }, 20000);
+      let live = false;
+      video.addEventListener('timeupdate', () => {
+        if (!live && video.currentTime > 0) { live = true; status.textContent = 'Live. Close this when you’re done to save the doorbell’s battery.'; }
+      });
+      setTimeout(() => { if (!live && dlg.open) { status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 45000);
     } catch (e) {
       status.textContent = `Couldn't start live video (${e.message}).`;
       startSnapshotFallback(dlg, status);
