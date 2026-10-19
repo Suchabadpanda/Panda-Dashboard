@@ -613,4 +613,36 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .plan-key .k-lit { background: linear-gradient(135deg, #ffd27a, #e79a3c); }
 .plan-key .k-here { border: 2px solid var(--s-solar); border-radius: 50%; }
 .plan-key .k-door { background: var(--accent); border-radius: 50%; }
-@media (prefers-reduced-motion: reduce) { .pr .pulse, .doorcam.ringing circle { animation: none; } }
+.plan-key .k-sel { background: color-mix(in oklab, var(--accent) 38%, var(--room)); border: 2px solid var(--accent); }
+.plan-key .k-robot { background: var(--ink); border-radius: 50%; }
+.plan-key .k-active { border: 2px dashed var(--s-load); }
+
+.info-tile-link { color: inherit; text-decoration: none; display: contents; }
+
+/* Robot vacuum on the plan */
+.robot { pointer-events: none; }
+.robot circle { fill: var(--ink); stroke: var(--bg); stroke-width: 3; }
+.robot .eye { fill: var(--accent); stroke: none; }
+.robot path { fill: none; stroke: var(--bg); stroke-width: 3; stroke-linecap: round; }
+.robot .halo { fill: var(--accent); stroke: none; opacity: 0; }
+.robot.cleaning .halo { animation: plan-pulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.robot.error circle:not(.halo):not(.eye) { fill: var(--bad, #e5484d); }
+.pr.vac-active polygon { stroke: var(--s-load); stroke-dasharray: 14 9; animation: vac-march 1.2s linear infinite; }
+@keyframes vac-march { to { stroke-dashoffset: -23; } }
+.pr.vac-room:not(.vac-sel) polygon { stroke: color-mix(in oklab, var(--accent) 45%, var(--bg)); }
+.pr.vac-sel polygon { stroke: var(--accent); }
+.pr.vac-sel .rn { fill: var(--ink); }
+
+/* Vacuum panel under the plan */
+.vac { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); align-items: start; }
+.vac-state { margin: 0 0 6px; font-size: 16px; }
+.vac .eyebrow-label { margin: 14px 0 6px; }
+.vac-rooms { margin-top: 0; padding-top: 0; }
+.vac-rooms .chip.on { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.vac-rooms .chip.busy { border-style: dashed; border-color: var(--s-load); }
+.vac-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.vac-map { margin: 0; background: var(--room); border-radius: var(--r-sm); min-height: 180px; display: grid; place-items: center; overflow: hidden; }
+.vac-map img { width: 100%; height: auto; max-height: 420px; object-fit: contain; display: block; }
+.vac-map p { padding: 16px; text-align: center; }
+@media (max-width: 760px) { .vac { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .pr .pulse, .doorcam.ringing circle, .robot .halo, .pr.vac-active polygon { animation: none; } }

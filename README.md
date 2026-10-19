@@ -15,7 +15,7 @@ Home Assistant over its WebSocket API.
 | View | What's on it |
 |---|---|
 | **Home** | House cross-section with room temperature/humidity, presence, lights, AC and TV; live solar, battery, grid, heat pump and EV flows; current tariff rate; today's kWh and £; front door camera; alerts |
-| **Rooms** | Floor plan that switches between lights/presence (tap a room to switch its lights) and temperatures; balance spread (target 1–1.5°), 24 h room temperatures, hot-water tank, AC mode controls |
+| **Rooms** | Floor plan that switches between lights/presence (tap a room to switch its lights), temperatures, and the robot vacuum (where it is, rooms being cleaned, tap rooms to clean them, plus the live Dreame map); balance spread (target 1–1.5°), 24 h room temperatures, hot-water tank, AC mode controls |
 | **Energy** | Power through the day with the off-peak window shaded; battery charge; 30 days of grid import/export and solar vs use |
 | **Car** | Charge-now gauge for the tariff and spare solar, Wall Connector details, 30 days of charging |
 | **Devices** | Every light and smart plug, TVs, washer, SigenStor hardware, HA backups |

@@ -156,7 +156,17 @@ HD.config = {
           { id: 'hall', name: 'Hall', lights: ['switch.entrance_light'], occupancy: 'binary_sensor.downstair_corridor_motion_sensor_occupancy', points: '230,170 310,170 310,310 230,310' },
           { id: 'wc', name: 'WC', kind: 'wet', lights: ['switch.ground_floor_toilet'], points: '310,170 390,170 390,310 310,310' },
         ],
-        doorbell: { x: 270, y: 310, facing: 'down' },
+        // Robot vacuum (Dreame Vacuum integration). Everything is optional: the vacuum and its
+  // map camera are found automatically, and Dreame room names are matched to the floor
+  // plan by name. Use `rooms` when a name doesn't match, e.g. { 'Dining area': 'family' }
+  // (Dreame room name or id → floor-plan room id). Set vacuum: false to hide it.
+  vacuum: {
+    // entity: 'vacuum.my_dreame',
+    // map: 'camera.my_dreame_map',
+    rooms: {},
+  },
+
+  doorbell: { x: 270, y: 310, facing: 'down' },
       },
       {
         name: 'First floor', viewBox: '0 0 400 330',

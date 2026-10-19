@@ -252,6 +252,6 @@ window.HD = window.HD || {};
     keepAwake();
   }
 
-  HD.app = { start, toast };
+  HD.app = { start, toast, refresh: () => { const v = HD.views[current]; if (v) v.update(); } };
   document.addEventListener('DOMContentLoaded', start);
 })();

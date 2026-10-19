@@ -200,6 +200,16 @@ HD.views = HD.views || {};
     return `<div class="info-tile ${cls}">${icon(icon_)}<strong>${value}</strong><span>${label}</span></div>`;
   }
 
+  // Robot vacuum: Dreame state and room when the integration is set up, else the dock socket's power
+  function vacTile(plugW) {
+    if (!(HD.vacuum && HD.vacuum.configured())) return tile('gauge', plugW == null ? '–' : plugW > 5 ? 'Charging' : 'Docked', 'Robot vacuum');
+    const v = HD.vacuum.info();
+    const room = v.current ? (HD.vacuum.rooms().find((r) => r.id === v.current) || {}).name : null;
+    const text = { cleaning: room ? `Cleaning ${room}` : 'Cleaning', returning: 'Returning', docked: 'Docked', paused: 'Paused', idle: 'Idle', error: 'Needs attention' }[v.state] || (v.available ? HD.u.cap(v.state) : 'Offline');
+    const label = `Robot vacuum${v.battery != null ? ` · ${Math.round(v.battery)}%` : ''}`;
+    return `<a class="info-tile-link" href="#rooms" data-plan-goto="vac">${tile('gauge', esc(text), label, v.state === 'error' ? 'warn' : v.state === 'cleaning' ? 'good' : '')}</a>`;
+  }
+
   function tilesHtml() {
     const d = HD.config.devices; const hp = HD.config.heatPump;
     const ppl = HD.config.people.map((p) => ({ n: p.name, home: S().state(p.id) === 'home' }));
@@ -209,7 +219,7 @@ HD.views = HD.views || {};
     const tank = S().num(hp.tankTemp);
     return `<section class="around"><h2>Around the house</h2><div class="info-tiles">
       ${tile('motion', esc(presence), 'People', home.length ? 'good' : '')}
-      ${tile('gauge', vac == null ? '–' : vac > 5 ? 'Charging' : 'Docked', 'Robot vacuum')}
+      ${vacTile(vac)}
       ${tile('flame', temp(tank), tank != null && tank < 40 ? 'Hot water · low' : 'Hot water', tank != null && tank < 40 ? 'warn' : '')}
     </div></section>`;
   }

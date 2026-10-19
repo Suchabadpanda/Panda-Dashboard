@@ -135,6 +135,14 @@ window.HD = window.HD || {};
 
   const WEATHER = { state: 'cloudy', attributes: { friendly_name: 'Forecast Home', temperature: 8.5, temperature_unit: '°C', humidity: 90, wind_speed: 12.05, wind_speed_unit: 'mph', cloud_coverage: 100, pressure: 1026.6 } };
 
+  // Stand-in for the Dreame map picture: coloured rooms, the robot's path and the dock
+  const DEMO_MAP = 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+    <rect width="400" height="300" fill="#0f1720"/>
+    <path d="M30 30h230v150H30z" fill="#4c7fd1"/><path d="M260 30h110v110H260z" fill="#e0a23d"/>
+    <path d="M30 180h150v90H30z" fill="#4fae7d"/><path d="M180 180h60v90h-60z" fill="#b06ccc"/>
+    <path d="M45 45h200M245 60H45M45 75h200M245 90H45M45 105h120" stroke="#fff" stroke-opacity=".55" stroke-width="2" fill="none"/>
+    <circle cx="165" cy="105" r="9" fill="#fff"/><rect x="196" y="258" width="16" height="10" rx="2" fill="#9fb3c8"/></svg>`);
+
   function buildStates() {
     const states = {};
     const ts = new Date(SNAP).toISOString();
@@ -145,6 +153,12 @@ window.HD = window.HD || {};
       states[id] = { entity_id: id, state, attributes, last_changed: ts, last_updated: ts };
     });
     states['weather.forecast_home'] = { entity_id: 'weather.forecast_home', ...WEATHER, last_changed: ts, last_updated: ts };
+    // Dreame robot vacuum, part-way through cleaning the kitchen
+    states['vacuum.dreame_vacuum'] = { entity_id: 'vacuum.dreame_vacuum', state: 'cleaning', last_changed: ts, last_updated: ts,
+      attributes: { friendly_name: 'Dreame vacuum', battery: 74, status: 'sweeping', current_segment: 1, active_segments: [1, 4],
+        selected_map: 'Ground floor', rooms: { 'Ground floor': [{ id: 1, name: 'Kitchen' }, { id: 2, name: 'Office' }, { id: 3, name: 'Hall' }, { id: 4, name: 'Dining area' }] } } };
+    states['camera.dreame_vacuum_map'] = { entity_id: 'camera.dreame_vacuum_map', state: 'idle', last_changed: ts, last_updated: ts,
+      attributes: { friendly_name: 'Dreame vacuum map', entity_picture: DEMO_MAP } };
     return states;
   }
 
@@ -259,6 +273,13 @@ window.HD = window.HD || {};
         if (service === 'turn_on') s.state = 'on';
         else if (service === 'turn_off') s.state = 'off';
         else if (service === 'select_option') s.state = data.option;
+        else if (domain === 'dreame_vacuum' || domain === 'vacuum') {
+          const segs = [].concat(data.segments || []);
+          if (service === 'vacuum_clean_segment') Object.assign(s.attributes, { active_segments: segs, current_segment: segs[0] });
+          if (service === 'start') s.attributes.active_segments = (s.attributes.rooms['Ground floor'] || []).map((r) => r.id);
+          s.state = { vacuum_clean_segment: 'cleaning', start: 'cleaning', pause: 'paused', return_to_base: 'returning' }[service] || s.state;
+          if (s.state !== 'cleaning') s.attributes.active_segments = [];
+        }
         HD.store.emit(id);
       }
       return Promise.resolve();

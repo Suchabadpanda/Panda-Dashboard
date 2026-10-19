@@ -56,9 +56,29 @@ HD.views = HD.views || {};
     }).join('');
   }
 
+  // Ray-casting point-in-polygon
+  function inside(poly, x, y) {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i]; const [xj, yj] = poly[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  }
+
+  // Robot vacuum marker: a disc with a bumper line; pulses while cleaning
+  function robot(x, y, fs, state) {
+    const r = fs * 0.85;
+    return `<g class="robot ${state}" aria-label="Robot vacuum, ${state}"><circle class="halo" cx="${x}" cy="${y}" r="${r * 1.6}"/>
+      <circle cx="${x}" cy="${y}" r="${r}"/><circle class="eye" cx="${x}" cy="${y - r * 0.35}" r="${r * 0.28}"/>
+      <path d="M${x - r * 0.62},${y + r * 0.35} A${r * 0.72},${r * 0.72} 0 0 0 ${x + r * 0.62},${y + r * 0.35}" /></g>`;
+  }
+
   function floorSvg(f, mode, idx) {
     const vb = f.viewBox.split(/\s+/).map(Number);
     const fs = vb[2] / 24;
+    const vac = HD.vacuum && HD.vacuum.configured() ? HD.vacuum.info() : null;
+    let bots = '';   // drawn last so later rooms don't cover them
     const rooms = f.rooms.map((r) => {
       const p = pts(r.points); const b = bbox(p);
       const kind = r.kind || 'room';
@@ -70,9 +90,16 @@ HD.views = HD.views || {};
       if (d && mode === 'temp' && d.t != null) fill = tempFill(d.t);
       if (d && mode === 'live' && d.lit) { fill = `url(#glow${idx})`; cls += ' lit'; }
       if (d && d.here && mode === 'live') cls += ' here';
+      const seg = vac ? HD.vacuum.segmentFor(r.id) : null;
+      if (vac && vac.state === 'cleaning' && vac.activePlan.includes(r.id) && mode !== 'temp') cls += ' vac-active';
+      if (mode === 'vac') {
+        if (seg != null) cls += ' vac-room';
+        if (seg != null && HD.vacuum.selected.has(seg)) { cls += ' vac-sel'; fill = 'color-mix(in oklab, var(--accent) 38%, var(--room))'; }
+      }
       const cx = (b.x0 + b.x1) / 2; const cy = (b.y0 + b.y1) / 2;
       const small = (b.x1 - b.x0) < fs * 6 || (b.y1 - b.y0) < fs * 3;
       const tappable = d && d.lights.length && mode === 'live';
+      const vacTap = mode === 'vac' && seg != null;
       const label = kind === 'stairs' ? '' : `<text class="rn" x="${b.x0 + fs * 0.6}" y="${b.y0 + fs * 1.4}" font-size="${small ? fs * 0.7 : fs}">${esc(r.name)}</text>`;
       let big = '';
       if (d && d.t != null && !small) {
@@ -81,8 +108,17 @@ HD.views = HD.views || {};
       }
       const here = d && d.here && mode === 'live' ? `<circle class="pulse" cx="${cx}" cy="${cy + (big ? fs * 1.8 : 0)}" r="${fs * 0.55}"/>` : '';
       const devs = d && mode === 'live' && !small ? deviceButtons(r, d, b, fs) : '';
+      const showBot = vac && vac.currentPlan === r.id && mode !== 'temp' && (vac.state !== 'docked' || mode === 'vac');
+      if (showBot) {
+        // Beside the temperature, nudged until it's inside the room's outline
+        const spots = [[cx + fs * 3.7, cy], [cx - fs * 3.7, cy], [cx, cy + fs * 2.4], [cx, cy - fs * 2.4], [cx, cy]];
+        const [x, y] = spots.find(([sx, sy]) => inside(p, sx, sy) && inside(p, sx + fs, sy + fs) && inside(p, sx - fs, sy - fs)) || [cx, cy];
+        bots += robot(x, y, fs, vac.state);
+      }
       const title = `${r.name}${d && d.t != null ? `, ${temp(d.t)}` : ''}${d && d.lit ? ', light on' : ''}${d && d.here ? ', someone here' : ''}`;
-      return `<g class="${cls}" ${tappable ? `data-plan-room="${esc(r.id)}" role="button" tabindex="0"` : ''} aria-label="${esc(title)}">
+      const tap = vacTap ? `data-vac="room" data-seg="${seg}" role="button" tabindex="0" aria-pressed="${HD.vacuum.selected.has(seg)}"`
+        : tappable ? `data-plan-room="${esc(r.id)}" role="button" tabindex="0"` : '';
+      return `<g class="${cls}" ${tap} aria-label="${esc(title)}">
         <polygon points="${r.points}" style="fill:${fill}"/>${label}${big}${here}</g>${devs}`;
     }).join('');
 
@@ -101,7 +137,7 @@ HD.views = HD.views || {};
           <pattern id="hatch${idx}" width="${fs * 0.6}" height="${fs * 0.6}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${fs * 0.6}" height="${fs * 0.6}" fill="var(--panel)"/><line x1="0" y1="0" x2="0" y2="${fs * 0.6}" stroke="var(--line)" stroke-width="${fs * 0.12}"/></pattern>
           <radialGradient id="glow${idx}" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#e79a3c"/></radialGradient>
         </defs>
-        ${rooms}${door}
+        ${rooms}${door}${bots}
       </svg></figure>`;
   }
 
@@ -116,6 +152,9 @@ HD.views = HD.views || {};
     if (mode === 'temp') {
       const c = C().comfortTarget;
       return `<div class="plan-scale" aria-hidden="true"><i></i><div><span>${c - 3}°</span><span>${c}°</span><span>${c + 3}°</span></div></div>`;
+    }
+    if (mode === 'vac') {
+      return `<ul class="plan-key"><li><i class="k-sel"></i>Tap rooms to choose what to clean</li><li><i class="k-robot"></i>Robot</li><li><i class="k-active"></i>Being cleaned</li></ul>${HD.vacuum.panelHtml()}`;
     }
     return `<ul class="plan-key"><li><i class="k-lit"></i>Light on — tap a room to switch</li><li><i class="k-here"></i>Someone there</li>${C().doorbell ? '<li><i class="k-door"></i>Front door camera — tap for live view</li>' : ''}</ul>`;
   }

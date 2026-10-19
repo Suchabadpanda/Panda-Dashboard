@@ -79,12 +79,23 @@ HD.views = HD.views || {};
   let planMode = 'live';
   try { planMode = localStorage.getItem('hd.planMode') || 'live'; } catch (e) { /* storage blocked */ }
   function planHeader() {
-    return `<h2>${planMode === 'live' ? 'Around the house' : 'Room temperatures'}</h2>
+    const vac = HD.vacuum && HD.vacuum.configured();
+    if (planMode === 'vac' && !vac) planMode = 'live';
+    const titles = { live: 'Around the house', temp: 'Room temperatures', vac: 'Robot vacuum' };
+    return `<h2>${titles[planMode]}</h2>
       <div class="seg" role="group" aria-label="Floor plan shows">
         <button data-plan-mode="live" class="${planMode === 'live' ? 'on' : ''}">Lights</button>
         <button data-plan-mode="temp" class="${planMode === 'temp' ? 'on' : ''}">Temperature</button>
+        ${vac ? `<button data-plan-mode="vac" class="${planMode === 'vac' ? 'on' : ''}">Vacuum</button>` : ''}
       </div>`;
   }
+
+  // The Home vacuum tile opens Rooms on the vacuum plan
+  document.addEventListener('click', (ev) => {
+    const g = ev.target.closest('[data-plan-goto]'); if (!g) return;
+    planMode = g.dataset.planGoto;
+    try { localStorage.setItem('hd.planMode', planMode); } catch (e) { /* storage blocked */ }
+  });
 
   document.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-plan-mode]'); const head = document.getElementById('plan-head');
@@ -111,7 +122,16 @@ HD.views = HD.views || {};
     update() {
       const b = document.getElementById('balance'); if (!b) return;
       b.innerHTML = balanceHtml();
-      const cp = document.getElementById('climate-plan'); if (cp) cp.innerHTML = HD.plan.html(planMode);
+      const head = document.getElementById('plan-head');
+      if (head) { const h = planHeader(); if (head.dataset.h !== h) { head.innerHTML = h; head.dataset.h = h; } }
+      const cp = document.getElementById('climate-plan');
+      if (cp) {
+        // Keep the Dreame map <img> across re-renders so it only reloads when the map changes
+        const old = cp.querySelector('.vac-map img');
+        cp.innerHTML = HD.plan.html(planMode);
+        const fresh = cp.querySelector('.vac-map img');
+        if (old && fresh && old.getAttribute('src') === fresh.getAttribute('src')) fresh.replaceWith(old);
+      }
       document.getElementById('ac').innerHTML = acHtml();
       document.getElementById('hotwater').innerHTML = hotWaterHtml();
     },
