@@ -49,6 +49,7 @@ window.HD = window.HD || {};
     ['binary_sensor.2f_hallway_motion_sensor_occupancy', 'off', '', '2F Hallway Motion Sensor', 'motion'],
     ['binary_sensor.1f_motion_sensor_occupancy', 'off', '', '1F Motion Sensor', 'motion'],
     ['binary_sensor.office_motion_detector_occupancy', 'on', '', 'Office Motion Detector Occupancy', 'occupancy'],
+    ['binary_sensor.ground_floor_toilet_motion_sensor_occupancy', 'off', '', 'Ground Floor Toilet Occupancy', 'occupancy'],
     ['binary_sensor.downstair_corridor_motion_sensor_occupancy', 'off', '', 'Downstair Corridor Motion', 'motion'],
     ['sensor.sonoff_s60zbtpg_power', '0.0', 'W', 'Living Room TV Socket Power', 'power'],
     ['sensor.sonoff_s60zbtpg_power_2', '0.0', 'W', '2F Landing Socket Power', 'power'],

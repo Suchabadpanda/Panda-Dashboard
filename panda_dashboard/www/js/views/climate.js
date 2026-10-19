@@ -80,6 +80,7 @@ HD.views = HD.views || {};
     mount(root) {
       root.innerHTML = `
       <div class="panel-grid climate">
+        ${HD.config.floorplan ? '<section class="panel wide plan-panel"><header><h2>Room temperatures</h2></header><div id="climate-plan"></div></section>' : ''}
         <section class="panel"><header><h2>Balance</h2></header><div id="balance"></div></section>
         <section class="panel wide-2"><header><h2>Last 24 hours</h2><p>Band shows ${HD.config.comfortTarget}° ±0.75°.</p></header><div id="chart-temps" class="chart-box"></div></section>
         <section class="panel"><header><h2>Hot water</h2></header><div id="hotwater"></div><div id="chart-tank" class="chart-box"></div></section>
@@ -90,6 +91,7 @@ HD.views = HD.views || {};
     update() {
       const b = document.getElementById('balance'); if (!b) return;
       b.innerHTML = balanceHtml();
+      const cp = document.getElementById('climate-plan'); if (cp) cp.innerHTML = HD.plan.html('temp');
       document.getElementById('ac').innerHTML = acHtml();
       document.getElementById('hotwater').innerHTML = hotWaterHtml();
     },

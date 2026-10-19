@@ -4,7 +4,7 @@ window.HD = window.HD || {};
 (function () {
   const { esc, icon } = HD.u;
   const S = HD.store;
-  const VIEWS = ['home', 'energy', 'climate', 'car', 'devices'];
+  const VIEWS = ['home', 'plan', 'energy', 'climate', 'car', 'devices'];
   let current = null;
 
   const WEATHER_WORDS = {

@@ -143,6 +143,41 @@ HD.config = {
     batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
   },
 
+  // ── Floor plan: one entry per floor, rooms as polygons in any units (the viewBox sets the scale).
+  // kind: room | wet | store | stairs. `sensor` borrows temperature, humidity, AC and TV from the
+  // room of that name above; `lights` toggle when the room is tapped; `occupancy` shows presence.
+  floorplan: {
+    floors: [
+      {
+        name: 'Ground floor', viewBox: '0 0 400 330',
+        rooms: [
+          { id: 'kitchen', name: 'Kitchen', sensor: 'Kitchen', points: '10,10 390,10 390,170 10,170' },
+          { id: 'office', name: 'Office', sensor: 'Office', lights: ['switch.office_light'], occupancy: 'binary_sensor.office_motion_detector_occupancy', points: '10,170 230,170 230,310 10,310' },
+          { id: 'hall', name: 'Hall', lights: ['switch.entrance_light'], occupancy: 'binary_sensor.downstair_corridor_motion_sensor_occupancy', points: '230,170 310,170 310,310 230,310' },
+          { id: 'wc', name: 'WC', kind: 'wet', lights: ['switch.ground_floor_toilet'], points: '310,170 390,170 390,310 310,310' },
+        ],
+        doorbell: { x: 270, y: 310, facing: 'down' },
+      },
+      {
+        name: 'First floor', viewBox: '0 0 400 330',
+        rooms: [
+          { id: 'living', name: 'Living room', sensor: 'Living room', lights: ['switch.living_room_light_switch'], points: '10,10 390,10 390,160 10,160' },
+          { id: 'landing', name: 'Landing', lights: ['switch.1f_landing'], occupancy: 'binary_sensor.1f_motion_sensor_occupancy', points: '270,160 390,160 390,220 270,220' },
+          { id: 'bed1', name: 'Bedroom 1', sensor: 'Bedroom 1', points: '10,160 270,160 270,220 390,220 390,310 10,310' },
+        ],
+      },
+      {
+        name: 'Second floor', viewBox: '0 0 400 330',
+        rooms: [
+          { id: 'up', name: 'Upstairs', sensor: 'Upstairs', points: '10,10 390,10 390,140 10,140' },
+          { id: 'bath', name: 'Bathroom', kind: 'wet', points: '10,140 230,140 230,200 10,200' },
+          { id: 'landing2', name: 'Landing', lights: ['switch.2f_landing'], occupancy: 'binary_sensor.2f_hallway_motion_sensor_occupancy', points: '230,140 390,140 390,200 230,200' },
+          { id: 'bed2', name: 'Bedroom 2', sensor: 'Bedroom 2', points: '10,200 390,200 390,310 10,310' },
+        ],
+      },
+    ],
+  },
+
   doorbell: {
     name: 'Front door',
     camera: 'camera.doorbell',
