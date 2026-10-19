@@ -44,15 +44,24 @@ jobs:
           want="v$(node -p "require('./package.json').version")"
           [ "$want" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} but package.json says $want"; exit 1; }
 
-      - name: Build and publish the installer
+      - name: Build the installer
+        run: npx electron-builder --win nsis --publish never
+
+      # One release per version, made here rather than by electron-builder (which can race
+      # itself into two releases with the same tag). Re-running replaces that version's release.
+      - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release)
-        run: npx electron-builder --win nsis --publish always
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build only (no release)
-        if: "!(startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release))"
-        run: npx electron-builder --win nsis --publish never
+        run: |
+          ver=$(node -p "require('./package.json').version"); tag="v$ver"
+          for id in $(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq ".[] | select(.tag_name==\"$tag\") | .id"); do
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/$id"
+          done
+          gh release create "$tag" dist/*.exe dist/*.blockmap dist/latest.yml \
+            --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" --title "Panda Tray $ver" \
+            --notes "Windows installer for Panda Tray $ver. Download Panda-Tray-Setup-$ver.exe and run it; installed copies update themselves."
 
       - uses: actions/upload-artifact@v4
         with:
