@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.17
+- Plan: keep room names inside the walls; stop highlighted rooms looking bigger
+
 ## 0.3.16
 - Robot vacuum on the floor plan (Dreame Vacuum integration)
 
