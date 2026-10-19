@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.16
+- Robot vacuum on the floor plan (Dreame Vacuum integration)
+
 ## 0.3.15
 - Merge Plan into Climate as a new Rooms view
 
