@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.3
+- Use Sigenergy hourly data for the months before HA
+
 ## 0.3.2
 - Count only post-install days in the install month
 
