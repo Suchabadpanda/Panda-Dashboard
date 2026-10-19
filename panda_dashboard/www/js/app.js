@@ -273,6 +273,7 @@ window.HD = window.HD || {};
     show(location.hash.slice(1) || 'home');
     HD.data.refresh();
     if (HD.doorbell) HD.doorbell.init();
+    if (HD.tracker) HD.tracker.init();
     setInterval(() => HD.data.refresh(), 5 * 60 * 1000);
     setInterval(renderHeader, 20 * 1000);
     keepAwake();

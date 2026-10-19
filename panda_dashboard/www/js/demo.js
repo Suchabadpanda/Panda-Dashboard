@@ -282,6 +282,7 @@ window.HD = window.HD || {};
 
   HD.demo = {
     snapshotTime: SNAP,
+    trackerCop: { today: 4.42, todayKwh: 7.1, todayHeat: 31, heating: 4.47, hotWater: 4.76, yesterday: 2.9, month: 3.63, design: 3.78, eta: 0.495, measured: true },
     statsStart: Date.parse('2026-04-09T08:00:00+01:00'),   // first HA statistics row
     start() {
       HD.store.states = buildStates();

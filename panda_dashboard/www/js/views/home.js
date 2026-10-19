@@ -253,6 +253,18 @@ HD.views = HD.views || {};
     p.then(() => HD.app.toast(`${sc.name}: done`)).catch((e) => HD.app.toast(`${sc.name} didn't work: ${e.message}`)).finally(() => { b.disabled = false; });
   });
 
+  // Heat pump efficiency from the Energy Tracker add-on: today's COP, with the month's SCOP
+  function copTile() {
+    const c = HD.tracker && HD.tracker.cop; if (!c) return '';
+    const f = (v) => (v == null ? '–' : v.toFixed(1));
+    const main = c.today != null ? c.today : c.yesterday;
+    const label = c.today != null ? 'Heat pump COP today' : 'Heat pump COP yesterday';
+    const sub = [c.month != null ? `month ${f(c.month)}` : '', c.design != null ? `design ${f(c.design)}` : ''].filter(Boolean).join(' · ');
+    const good = main != null && c.design != null && main >= c.design;
+    const title = `Estimated by the Energy Tracker (no heat meter): heat out ÷ electricity in.${c.heating != null ? ` Heating ${f(c.heating)}` : ''}${c.hotWater != null ? `, hot water ${f(c.hotWater)}` : ''}${c.todayHeat != null ? ` — about ${c.todayHeat} kWh of heat from ${c.todayKwh} kWh today` : ''}.`;
+    return `<div class="info-tile ${good ? 'good' : ''}" title="${esc(title)}">${icon('bolt')}<strong>${f(main)}</strong><span>${esc(label)}${sub ? `<br>${esc(sub)}` : ''}</span></div>`;
+  }
+
   function tilesHtml() {
     const d = HD.config.devices; const hp = HD.config.heatPump;
     const vac = S().num(d.vacuumPower);
@@ -260,6 +272,7 @@ HD.views = HD.views || {};
     const shortcuts = (HD.config.shortcuts || []).map(shortcutHtml).join('');
     return `<section class="around"><h2>Shortcuts</h2><div class="info-tiles">
       ${shortcuts}
+      ${copTile()}
       ${vacTile(vac)}
       ${tile('flame', temp(tank), tank != null && tank < 40 ? 'Hot water · low' : 'Hot water', tank != null && tank < 40 ? 'warn' : '')}
     </div></section>`;
