@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.8
+- Edit the tariff on the dashboard; TVs and washer in their rooms; drop NAS
+
 ## 0.3.7
 - Fix invisible doorbell overlay blocking the whole dashboard
 
