@@ -597,7 +597,6 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .pr[role="button"] { cursor: pointer; }
 .pr[role="button"]:hover .fillp { filter: brightness(1.12); }
 .pr[role="button"]:focus-visible .hl { stroke: var(--accent); }
-.pr.here .hl { stroke: var(--s-solar); }
 .pr .pulse { fill: var(--s-solar); animation: plan-pulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes plan-pulse { 0% { opacity: .9; transform: scale(.6); } 100% { opacity: 0; transform: scale(2.4); } }
 .dev { cursor: pointer; }
@@ -617,7 +616,7 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .plan-key li { display: flex; align-items: center; gap: 8px; }
 .plan-key i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
 .plan-key .k-lit { background: linear-gradient(135deg, #ffd27a, #e79a3c); }
-.plan-key .k-here { border: 2px solid var(--s-solar); border-radius: 50%; }
+.plan-key .k-here { background: var(--s-solar); border-radius: 50%; }
 .plan-key .k-door { background: var(--accent); border-radius: 50%; }
 .plan-key .k-sel { background: color-mix(in oklab, var(--accent) 38%, var(--room)); border: 2px solid var(--accent); }
 .plan-key .k-robot { background: var(--ink); border-radius: 50%; }
