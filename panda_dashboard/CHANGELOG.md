@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.10
+- Doorbell: show the event picture, fall back from the camera picture
+
 ## 0.3.9
 - Doorbell: start the Eufy P2P stream for live view; battery time left
 
