@@ -32,13 +32,30 @@ HD.views = HD.views || {};
     return `<button class="chip light ${st === 'on' ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}">${icon('bulb')}${esc(name)}</button>`;
   }
 
+  function tvBtn(id) {
+    if (!id) return '';
+    const st = S().state(id);
+    const avail = S().available(id);
+    const on = avail && st !== 'off' && st !== 'standby';
+    return `<button class="chip tv ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled title="TV is offline in Home Assistant"'} aria-pressed="${on}">${icon('tv')}TV${avail ? '' : ' · offline'}</button>`;
+  }
+
+  function washerChip(r) {
+    if (!r.washer) return '';
+    const st = S().state(r.washer);
+    if (!S().available(r.washer)) return `<span class="chip" title="Washing machine is offline in Home Assistant">${icon('drop')}Washer · offline</span>`;
+    const running = !['stop', 'off', 'idle', 'none'].includes(String(st).toLowerCase());
+    const done = r.washerDone && S().available(r.washerDone) ? HD.u.time(S().state(r.washerDone)) : '';
+    return `<span class="chip ${running ? 'on' : ''}">${icon('drop')}Washer · ${esc(HD.u.cap(String(st).replace(/_/g, ' ')))}${running && done ? ` until ${done}` : ''}</span>`;
+  }
+
   function room(r) {
     const t = S().num(r.temp); const h = S().num(r.hum);
     const motion = r.motion && S().state(r.motion) === 'on';
     const ac = r.climate && S().state(r.climate);
     const acOn = ac && ac !== 'off' && ac !== 'unavailable';
     const plug = r.plugPower ? S().num(r.plugPower) : r.socketPower ? S().num(r.socketPower) : null;
-    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name))].join('');
+    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name)), tvBtn(r.tv), washerChip(r)].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
     return `<article class="room" style="${tint(t)}" aria-label="${esc(r.name)}">
       <header><h3>${esc(r.name)}</h3>${motion ? `<span class="motion" title="Someone here · since ${HD.u.time(S().get(r.motion).last_changed)}">${icon('motion')}</span>` : ''}</header>
@@ -181,19 +198,15 @@ HD.views = HD.views || {};
     const ppl = HD.config.people.map((p) => ({ n: p.name, home: S().state(p.id) === 'home' }));
     const home = ppl.filter((p) => p.home);
     const presence = home.length === ppl.length ? (ppl.length > 1 ? 'Everyone home' : 'Home') : home.length ? `${home.map((p) => p.n).join(', ')} home` : 'Everyone out';
-    const washer = S().state(d.washer);
     const vac = S().num(d.vacuumPower);
     const pc = (d.plugs.find((p) => p.today) || {});
     const pcW = S().num(pc.power);
-    const nasOk = S().state(d.nas.volStatus) === 'normal';
     const tank = S().num(hp.tankTemp);
     return `<section class="around"><h2>Around the house</h2><div class="info-tiles">
       ${tile('motion', esc(presence), 'People', home.length ? 'good' : '')}
-      ${tile('drop', washer && washer !== 'unavailable' ? esc(HD.u.cap(washer.replace(/_/g, ' '))) : 'Offline', 'Washer')}
       ${tile('gauge', vac == null ? '–' : vac > 5 ? 'Charging' : 'Docked', 'Robot vacuum')}
       ${tile('flame', temp(tank), tank != null && tank < 40 ? 'Hot water · low' : 'Hot water', tank != null && tank < 40 ? 'warn' : '')}
       ${tile('power', pcW == null ? '–' : `${Math.round(pcW)} W`, esc(pc.name || 'PC'), pcW > 20 ? 'good' : '')}
-      ${tile(nasOk ? 'check' : 'alert', nasOk ? 'Healthy' : esc(S().state(d.nas.volStatus) || '–'), esc(d.nas.name || 'NAS'), nasOk ? 'good' : 'warn')}
     </div></section>`;
   }
 
@@ -223,9 +236,6 @@ HD.views = HD.views || {};
     if (S().state(v.inProgress) === 'on') alerts.push(['gauge', `Axle VPP event running until ${HD.u.time(S().state(v.end))}`, 'warning']);
     else if (S().state(v.later) === 'on') alerts.push(['gauge', `Axle VPP event later today, ${HD.u.time(S().state(v.start))}`, 'info']);
     else if (S().state(v.tomorrow) === 'on') alerts.push(['gauge', 'Axle VPP event tomorrow', 'info']);
-    const nas = HD.config.devices.nas;
-    if (S().available(nas.volStatus) && S().state(nas.volStatus) !== 'normal') alerts.push(['alert', `NAS volume ${S().state(nas.volStatus)}`, 'critical']);
-    if ((S().num(nas.temp) || 0) >= 65) alerts.push(['alert', `NAS running hot (${S().num(nas.temp)}°C)`, 'warning']);
     const lastBackup = S().state(HD.config.devices.backupLast);
     if (lastBackup && Date.now() - Date.parse(lastBackup) > 8 * 864e5) alerts.push(['alert', `No HA backup since ${ago(lastBackup)}`, 'warning']);
     if (S().state(HD.config.heatPump.legionella) === 'on') alerts.push(['flame', 'Legionella cycle running', 'info']);
@@ -258,7 +268,7 @@ HD.views = HD.views || {};
       <section class="now-block alerts">
         <h2>Attention</h2>
         ${alerts.length ? `<ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>`
-          : `<p class="all-clear">${icon('check')}Inverter, battery, NAS and backups all fine</p>`}
+          : `<p class="all-clear">${icon('check')}Inverter, battery and backups all fine</p>`}
       </section>`;
   }
 

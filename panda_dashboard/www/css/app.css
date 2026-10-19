@@ -479,7 +479,7 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 /* ── Around the house ── */
 .around { margin-top: var(--gap); }
 .around h2 { font-size: 15px; font-weight: 500; color: var(--muted); margin-bottom: 8px; }
-.info-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.info-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .info-tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; display: grid; gap: 2px; align-content: start; min-width: 0; }
 .info-tile .ic { color: var(--muted); margin-bottom: 4px; }
 .info-tile strong { font: 600 17px/1.2 var(--font-num); overflow-wrap: anywhere; }
@@ -556,3 +556,14 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .live-head .btn { margin-top: 0; }
 .live-body video { width: 100%; border-radius: var(--r-md); background: #000; display: block; aspect-ratio: 4 / 3; }
 .live-body .sub { color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+.tariff-name { display: grid; gap: 4px; font-size: 13px; margin-bottom: 8px; }
+.tariff-name input, .tariff-edit input { background: var(--room); border: 1px solid var(--line); color: var(--ink); border-radius: 6px; padding: 6px; font: inherit; font-size: 13px; }
+.tariff-edit { font-size: 12px; }
+.tariff-edit th, .tariff-edit td { padding: 4px; text-align: left; }
+.tariff-edit input[type="number"] { width: 76px; }
+.tariff-edit input[type="date"] { width: 132px; }
+.row-del { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
+.tariff-actions { display: flex; gap: 8px; margin: 8px 0 4px; }
+.tariff-actions .btn { margin-top: 0; }
+.settings { width: min(760px, calc(100vw - 32px)); }

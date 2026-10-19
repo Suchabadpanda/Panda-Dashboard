@@ -1,5 +1,5 @@
 /*
- * Devices view: every light, smart plug, TV, the NAS and HA's own housekeeping.
+ * Devices view: every light, smart plug, TV and HA's own housekeeping.
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -40,13 +40,6 @@ HD.views = HD.views || {};
       return `<li class="row">${icon('tv')}<span>${esc(S().attr(id, 'friendly_name') || id)}</span><em>${st === 'unavailable' ? 'Offline' : esc(st || '–')}</em></li>`;
     }).join('');
 
-    const n = d.nas;
-    const nasRows = [
-      ['Volume', S().state(n.volStatus) === 'normal' ? 'Healthy' : esc(S().state(n.volStatus) || '–')],
-      ['Used', S().num(n.volUsed) != null ? `${(S().num(n.volUsed) * 1000).toFixed(0)} GB` : '–'],
-      ['CPU', pct(S().num(n.cpu))], ['Memory', pct(S().num(n.mem))],
-      ['System temp', S().num(n.temp) != null ? `${S().num(n.temp)}°C` : '–'], ['Disks', S().num(n.diskTemp) != null ? `${S().num(n.diskTemp)}°C` : '–'],
-    ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
 
     const washer = S().state(d.washer);
     const e = HD.config.energy;
@@ -55,7 +48,6 @@ HD.views = HD.views || {};
         <section class="panel"><header><h2>Lights</h2><p>${onCount} on</p></header><ul class="tiles">${lightRows}</ul></section>
         <section class="panel"><header><h2>Smart plugs</h2></header><ul class="tiles">${plugRows}</ul>
           <button class="btn" data-press="${d.pcWake}" ${S().available(d.pcWake) ? '' : 'disabled'}>${icon('power')}Wake ${esc(d.pcName || 'PC')}</button></section>
-        <section class="panel"><header><h2>${esc(n.name)}</h2></header><dl class="kv">${nasRows}</dl></section>
         <section class="panel"><header><h2>Media and appliances</h2></header>
           <ul class="rows">${media}<li class="row">${icon('drop')}<span>Washing machine</span><em>${washer === 'unavailable' || !washer ? 'Offline' : esc(washer)}</em></li></ul></section>
         <section class="panel"><header><h2>Solar and battery hardware</h2></header>

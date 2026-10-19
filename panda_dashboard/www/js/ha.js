@@ -169,6 +169,10 @@ window.HD = window.HD || {};
       const on = store.state(entityId) === 'on';
       if (domain === 'select') return this.callService('select', 'select_option', { entity_id: entityId, option: on ? 'off' : 'on' });
       if (domain === 'button') return this.callService('button', 'press', { entity_id: entityId });
+      if (domain === 'media_player') {
+        const st = store.state(entityId);
+        return this.callService('media_player', ['off', 'standby', 'unavailable'].includes(st) ? 'turn_on' : 'turn_off', { entity_id: entityId });
+      }
       return this.callService(domain === 'light' || domain === 'switch' || domain === 'input_boolean' || domain === 'climate' ? domain : 'homeassistant',
         on ? 'turn_off' : 'turn_on', { entity_id: entityId });
     },

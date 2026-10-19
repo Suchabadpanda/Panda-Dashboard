@@ -127,13 +127,6 @@ window.HD = window.HD || {};
     ['sensor.washing_machine_completion_time', 'unavailable', '', 'Washing machine Completion time'],
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
     ['input_boolean.ac_all_cool', 'off', '', 'AC Quick Cool'],
-    ['sensor.nas_temperature', '61', '°C', 'NAS Temperature', 'temperature'],
-    ['sensor.nas_cpu_utilisation_total', '3', '%', 'NAS CPU utilisation (total)'],
-    ['sensor.nas_memory_usage_real', '42', '%', 'NAS Memory usage (real)'],
-    ['sensor.nas_volume_1_status', 'normal', '', 'NAS (Volume 1) Status'],
-    ['sensor.nas_volume_1_used_space', '0.486257', 'TB', 'NAS (Volume 1) Used space', 'data_size'],
-    ['sensor.nas_volume_1_average_disk_temp', '47.0', '°C', 'NAS (Volume 1) Average disk temp', 'temperature'],
-    ['binary_sensor.nas_security_status', 'off', '', 'NAS Security status', 'safety'],
     ['sensor.backup_last_successful_automatic_backup', '2026-10-18T03:04:08+00:00', '', 'Last successful automatic backup', 'timestamp'],
     ['sensor.backup_next_scheduled_automatic_backup', '2026-10-25T02:15:00+00:00', '', 'Next scheduled automatic backup', 'timestamp'],
   ];

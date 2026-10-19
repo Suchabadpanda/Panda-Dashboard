@@ -67,14 +67,79 @@ window.HD = window.HD || {};
     dlg.querySelector('#set-token').placeholder = HD.ha.hasToken() ? 'Saved — paste a new one to replace it' : 'Paste a long-lived access token';
     let theme = 'auto'; try { theme = localStorage.getItem('hd.theme') || 'auto'; } catch (e) { /* ignore */ }
     dlg.querySelector(`input[name="theme"][value="${theme}"]`).checked = true;
-    const p = (v) => `${(v * 100).toFixed(2).replace(/\.?0+$/, '')}p`;
-    const hh = (n) => `${String(n).padStart(2, '0')}:00`;
-    dlg.querySelector('#set-tariff').innerHTML = `<table><thead><tr><th>From</th><th>Cheap</th><th>Window</th><th>Peak</th><th>Export</th><th>Standing</th></tr></thead><tbody>${
-      HD.config.tariffs.map((t) => `<tr><td>${esc(t.from)}</td><td>${p(t.offPeak)}</td><td>${hh(t.offPeakStart)}–${hh(t.offPeakEnd)}</td><td>${p(t.peak)}</td><td>${p(t.export)}</td><td>${p(t.standing)}/day</td></tr>`).join('')}</tbody></table>`;
-    dlg.querySelector('#set-tariff-where').textContent = HD.config.tariffSource
-      ? 'Change these in Home Assistant: Settings → Add-ons → Panda Dashboard → Configuration. Add a row when a rate changes, then reload.'
-      : 'Running outside the add-on: change these in config.js.';
+    renderTariffEditor(HD.config.tariffs);
+    dlg.querySelector('#tariff-name').value = HD.config.tariffName || '';
     dlg.showModal();
+  }
+
+  // ── Tariff editor ──
+  // Rows are edited in pence and whole hours; saved as £/kWh like the add-on options.
+  const pen = (v) => (v == null ? '' : parseFloat((v * 100).toFixed(3)));
+  function renderTariffEditor(rows) {
+    const box = document.getElementById('set-tariff');
+    box.innerHTML = `<table class="tariff-edit"><thead><tr><th>From</th><th>Cheap p</th><th>Cheap from</th><th>to</th><th>Peak p</th><th>Export p</th><th>Standing p/day</th><th></th></tr></thead><tbody>${
+      rows.map((t, i) => `<tr data-row="${i}">
+        <td><input type="date" name="from" value="${esc(t.from)}" required aria-label="Applies from"></td>
+        <td><input type="number" name="offPeak" step="0.01" min="0" value="${pen(t.offPeak)}" aria-label="Cheap rate, pence per kWh"></td>
+        <td><input type="number" name="offPeakStart" step="1" min="0" max="23" value="${t.offPeakStart}" aria-label="Cheap rate starts, hour"></td>
+        <td><input type="number" name="offPeakEnd" step="1" min="0" max="24" value="${t.offPeakEnd}" aria-label="Cheap rate ends, hour"></td>
+        <td><input type="number" name="peak" step="0.01" min="0" value="${pen(t.peak)}" aria-label="Peak rate, pence per kWh"></td>
+        <td><input type="number" name="export" step="0.01" min="0" value="${pen(t.export)}" aria-label="Export rate, pence per kWh"></td>
+        <td><input type="number" name="standing" step="0.01" min="0" value="${pen(t.standing)}" aria-label="Standing charge, pence per day"></td>
+        <td>${rows.length > 1 ? `<button type="button" class="row-del" data-del="${i}" aria-label="Remove this row">×</button>` : ''}</td>
+      </tr>`).join('')}</tbody></table>`;
+    const where = document.getElementById('set-tariff-where');
+    where.textContent = 'Each row applies from its date until the next row. When your rates change, add a row instead of editing the old one, so past months keep the prices you paid.';
+  }
+
+  function readTariffEditor() {
+    const rows = [...document.querySelectorAll('#set-tariff tbody tr')].map((tr) => {
+      const v = (n) => tr.querySelector(`[name="${n}"]`).value;
+      return {
+        from: v('from'), offPeak: +v('offPeak') / 100, peak: +v('peak') / 100, export: +v('export') / 100,
+        standing: +v('standing') / 100, offPeakStart: parseInt(v('offPeakStart'), 10), offPeakEnd: parseInt(v('offPeakEnd'), 10),
+      };
+    });
+    const bad = rows.find((r) => !/^\d{4}-\d{2}-\d{2}$/.test(r.from) || [r.offPeak, r.peak, r.export, r.standing].some((x) => !Number.isFinite(x) || x < 0)
+      || !(r.offPeakStart >= 0 && r.offPeakStart <= 23) || !(r.offPeakEnd >= 0 && r.offPeakEnd <= 24));
+    if (bad) throw new Error('Check every row has a date, rates of 0 or more, and hours between 0 and 24.');
+    const dates = rows.map((r) => r.from);
+    if (new Set(dates).size !== dates.length) throw new Error('Two rows start on the same date.');
+    return rows.sort((x, y) => x.from.localeCompare(y.from));
+  }
+
+  async function addonSlug() {
+    const res = await HD.ha.callWS({ type: 'supervisor/api', endpoint: '/addons', method: 'get' });
+    const a = (res.addons || []).find((x) => /(^|_)panda_dashboard$/.test(x.slug));
+    return a && a.slug;
+  }
+
+  async function saveTariff() {
+    const where = document.getElementById('set-tariff-where');
+    let rows;
+    try { rows = readTariffEditor(); } catch (e) { where.textContent = e.message; return; }
+    const name = document.getElementById('tariff-name').value.trim();
+    HD.config.tariffs = rows; HD.config.tariffName = name;
+    renderTariffEditor(rows);
+    let saved = 'in this browser';
+    if (S.mode === 'live') {
+      try {
+        const slug = await addonSlug();
+        if (slug) {
+          await HD.ha.callWS({
+            type: 'supervisor/api', endpoint: `/addons/${slug}/options`, method: 'post',
+            data: { options: { tariff_name: name, tariffs: rows.map((t) => ({ from: t.from, off_peak: +t.offPeak.toFixed(5), peak: +t.peak.toFixed(5), export: +t.export.toFixed(5), standing: +t.standing.toFixed(5), off_peak_start: t.offPeakStart, off_peak_end: t.offPeakEnd })) } },
+          });
+          saved = 'in Home Assistant';
+          HD.config.tariffSource = 'add-on Configuration tab';
+        }
+      } catch (e) { console.warn('Could not save to the add-on', e); }
+    }
+    if (saved !== 'in Home Assistant') { try { localStorage.setItem('hd.tariffs', JSON.stringify({ name, rows })); } catch (e) { /* ignore */ } }
+    where.textContent = `Saved ${saved}${saved === 'in this browser' ? ' only — other devices keep their own rates' : ', for every device'}.`;
+    toast(`Tariff saved ${saved}`);
+    HD.data.refresh();
+    scheduleUpdate();
   }
 
   function applyTheme(t) {
@@ -114,6 +179,17 @@ window.HD = window.HD || {};
       }
       dlg.close();
     });
+    dlg.querySelector('#tariff-add').addEventListener('click', () => {
+      let rows; try { rows = readTariffEditor(); } catch (e) { rows = HD.config.tariffs; }
+      const lastRow = rows[rows.length - 1] || { offPeak: 0.076, peak: 0.2666, export: 0.165, standing: 0.6, offPeakStart: 0, offPeakEnd: 6 };
+      renderTariffEditor([...rows, { ...lastRow, from: new Date().toISOString().slice(0, 10) }]);
+    });
+    dlg.querySelector('#set-tariff').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-del]'); if (!b) return;
+      let rows; try { rows = readTariffEditor(); } catch (e) { rows = HD.config.tariffs; }
+      rows.splice(+b.dataset.del, 1); renderTariffEditor(rows);
+    });
+    dlg.querySelector('#tariff-save').addEventListener('click', saveTariff);
     dlg.querySelector('#set-forget').addEventListener('click', () => { HD.ha.saveCredentials('', ''); location.reload(); });
     dlg.querySelector('#set-demo').addEventListener('click', () => { location.href = `${location.pathname}?demo#${current}`; });
 
@@ -147,6 +223,12 @@ window.HD = window.HD || {};
       }
       if (o.tariff_name) HD.config.tariffName = o.tariff_name;
     } catch (e) { /* not running as the add-on */ }
+    if (!HD.config.tariffSource) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('hd.tariffs') || 'null');
+        if (saved && Array.isArray(saved.rows) && saved.rows.length) { HD.config.tariffs = saved.rows; if (saved.name) HD.config.tariffName = saved.name; HD.config.tariffSource = 'this browser'; }
+      } catch (e) { /* ignore */ }
+    }
   }
 
   async function start() {
