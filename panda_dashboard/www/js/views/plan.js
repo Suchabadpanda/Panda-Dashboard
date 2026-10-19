@@ -50,10 +50,25 @@ HD.views = HD.views || {};
     }
     const w = fs * 2.6; const hgt = fs * 1.5; const gap = fs * 0.4;
     return items.map((it, i) => {
-      const x = b.x0 + fs * 0.6 + (w + gap) * i; const y = b.y0 + fs * 2.1;
+      const x = b.x + (w + gap) * i; const y = b.y + fs * 0.7;
       return `<g class="dev ${it.on ? 'on' : ''} ${it.avail ? '' : 'off-line'}" ${it.avail ? `data-toggle="${it.id}" role="button" tabindex="0"` : ''} aria-label="${it.label} ${it.on ? 'on' : 'off'}">
         <rect x="${x}" y="${y}" width="${w}" height="${hgt}" rx="${hgt / 2}"/><text x="${x + w / 2}" y="${y + hgt * 0.7}" text-anchor="middle" font-size="${fs * 0.8}">${it.label}</text></g>`;
     }).join('');
+  }
+
+  // Top-left spot for a room's name that sits inside the room's outline (rooms with a
+  // notch, like an L-shaped kitchen, would otherwise put it outside the walls)
+  function labelAnchor(poly, b, lfs, chars) {
+    const pad = lfs * 0.6; const w = chars * lfs * 0.55;
+    const fits = (x, y) => inside(poly, x, y - lfs) && inside(poly, x + w, y - lfs) && inside(poly, x, y + lfs * 0.3) && inside(poly, x + w, y + lfs * 0.3);
+    const step = lfs * 0.5;
+    for (let dy = 0; dy < (b.y1 - b.y0) / 2; dy += step) {
+      for (let dx = 0; dx < (b.x1 - b.x0) / 2; dx += step) {
+        const x = b.x0 + pad + dx; const y = b.y0 + lfs * 1.4 + dy;
+        if (fits(x, y)) return { x, y };
+      }
+    }
+    return { x: b.x0 + pad, y: b.y0 + lfs * 1.4 };
   }
 
   // Ray-casting point-in-polygon
@@ -100,14 +115,16 @@ HD.views = HD.views || {};
       const small = (b.x1 - b.x0) < fs * 6 || (b.y1 - b.y0) < fs * 3;
       const tappable = d && d.lights.length && mode === 'live';
       const vacTap = mode === 'vac' && seg != null;
-      const label = kind === 'stairs' ? '' : `<text class="rn" x="${b.x0 + fs * 0.6}" y="${b.y0 + fs * 1.4}" font-size="${small ? fs * 0.7 : fs}">${esc(r.name)}</text>`;
+      const lfs = small ? fs * 0.7 : fs;
+      const a = labelAnchor(p, b, lfs, r.name.length);
+      const label = kind === 'stairs' ? '' : `<text class="rn" x="${a.x}" y="${a.y}" font-size="${lfs}">${esc(r.name)}</text>`;
       let big = '';
       if (d && d.t != null && !small) {
         big = `<text class="rt" x="${cx}" y="${cy + fs * 0.6}" text-anchor="middle" font-size="${fs * (mode === 'temp' ? 2.4 : 1.6)}">${temp(d.t)}</text>`;
         if (mode === 'temp' && d.h != null) big += `<text class="rh" x="${cx}" y="${cy + fs * 2.1}" text-anchor="middle" font-size="${fs * 0.8}">${pct(d.h)} humidity</text>`;
       }
       const here = d && d.here && mode === 'live' ? `<circle class="pulse" cx="${cx}" cy="${cy + (big ? fs * 1.8 : 0)}" r="${fs * 0.55}"/>` : '';
-      const devs = d && mode === 'live' && !small ? deviceButtons(r, d, b, fs) : '';
+      const devs = d && mode === 'live' && !small ? deviceButtons(r, d, a, fs) : '';
       const showBot = vac && vac.currentPlan === r.id && mode !== 'temp' && (vac.state !== 'docked' || mode === 'vac');
       if (showBot) {
         // Beside the temperature, nudged until it's inside the room's outline
@@ -119,7 +136,7 @@ HD.views = HD.views || {};
       const tap = vacTap ? `data-vac="room" data-seg="${seg}" role="button" tabindex="0" aria-pressed="${HD.vacuum.selected.has(seg)}"`
         : tappable ? `data-plan-room="${esc(r.id)}" role="button" tabindex="0"` : '';
       return `<g class="${cls}" ${tap} aria-label="${esc(title)}">
-        <polygon points="${r.points}" style="fill:${fill}"/>${label}${big}${here}</g>${devs}`;
+        <polygon class="fillp" points="${r.points}" style="fill:${fill}"/><polygon class="hl" points="${r.points}" clip-path="url(#clip${idx}-${esc(r.id)})"/><polygon class="edge" points="${r.points}"/>${label}${big}${here}</g>${devs}`;
     }).join('');
 
     let door = '';
@@ -135,6 +152,7 @@ HD.views = HD.views || {};
       <svg viewBox="${f.viewBox}" role="group" aria-label="${esc(f.name)}" preserveAspectRatio="xMidYMid meet">
         <defs>
           <pattern id="hatch${idx}" width="${fs * 0.6}" height="${fs * 0.6}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${fs * 0.6}" height="${fs * 0.6}" fill="var(--panel)"/><line x1="0" y1="0" x2="0" y2="${fs * 0.6}" stroke="var(--line)" stroke-width="${fs * 0.12}"/></pattern>
+          ${f.rooms.map((r) => `<clipPath id="clip${idx}-${esc(r.id)}"><polygon points="${r.points}"/></clipPath>`).join('')}
           <radialGradient id="glow${idx}" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#e79a3c"/></radialGradient>
         </defs>
         ${rooms}${door}${bots}

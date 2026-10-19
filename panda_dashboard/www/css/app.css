@@ -582,16 +582,22 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .plan-floor { margin: 0; min-width: 0; }
 .plan-floor figcaption { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
 .plan-floor svg { width: 100%; height: auto; max-height: 520px; display: block; overflow: visible; }
-.plan-floor polygon { stroke: var(--bg); stroke-width: 4; stroke-linejoin: round; transition: fill .5s; }
+.plan-floor polygon { stroke-linejoin: round; }
+.plan-floor .fillp { stroke: none; transition: fill .5s; }
+/* Highlights are clipped to the inside of the room, then the wall line is drawn on top,
+   so a highlighted room never looks bigger than its neighbours */
+.plan-floor .hl { fill: none; stroke: transparent; stroke-width: 10; }
+.plan-floor .edge { fill: none; stroke: var(--bg); stroke-width: 4; }
+.doorcam polygon { stroke: var(--bg); stroke-width: 4; }
 .pr .rn { fill: var(--muted); font-family: var(--font); font-weight: 500; }
 .pr.lit .rn, .pr.lit .rt { fill: #3a2300; }
 .pr .rt { fill: var(--ink); font-family: var(--font-num); font-weight: 600; }
 .pr .rh { fill: var(--muted); font-family: var(--font); }
 .pr.store .rn, .pr.wet .rn { fill: var(--faint); }
 .pr[role="button"] { cursor: pointer; }
-.pr[role="button"]:hover polygon { filter: brightness(1.12); }
-.pr[role="button"]:focus-visible polygon { stroke: var(--accent); }
-.pr.here polygon { stroke: var(--s-solar); }
+.pr[role="button"]:hover .fillp { filter: brightness(1.12); }
+.pr[role="button"]:focus-visible .hl { stroke: var(--accent); }
+.pr.here .hl { stroke: var(--s-solar); }
 .pr .pulse { fill: var(--s-solar); animation: plan-pulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes plan-pulse { 0% { opacity: .9; transform: scale(.6); } 100% { opacity: 0; transform: scale(2.4); } }
 .dev { cursor: pointer; }
@@ -627,10 +633,10 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .robot .halo { fill: var(--accent); stroke: none; opacity: 0; }
 .robot.cleaning .halo { animation: plan-pulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 .robot.error circle:not(.halo):not(.eye) { fill: var(--bad, #e5484d); }
-.pr.vac-active polygon { stroke: var(--s-load); stroke-dasharray: 14 9; animation: vac-march 1.2s linear infinite; }
+.pr.vac-active .hl { stroke: var(--s-load); stroke-dasharray: 14 9; animation: vac-march 1.2s linear infinite; }
 @keyframes vac-march { to { stroke-dashoffset: -23; } }
-.pr.vac-room:not(.vac-sel) polygon { stroke: color-mix(in oklab, var(--accent) 45%, var(--bg)); }
-.pr.vac-sel polygon { stroke: var(--accent); }
+.pr.vac-room:not(.vac-sel) .hl { stroke: color-mix(in oklab, var(--accent) 35%, transparent); }
+.pr.vac-sel .hl { stroke: var(--accent); }
 .pr.vac-sel .rn { fill: var(--ink); }
 
 /* Vacuum panel under the plan */
@@ -645,4 +651,4 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .vac-map img { width: 100%; height: auto; max-height: 420px; object-fit: contain; display: block; }
 .vac-map p { padding: 16px; text-align: center; }
 @media (max-width: 760px) { .vac { grid-template-columns: 1fr; } }
-@media (prefers-reduced-motion: reduce) { .pr .pulse, .doorcam.ringing circle, .robot .halo, .pr.vac-active polygon { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .pr .pulse, .doorcam.ringing circle, .robot .halo, .pr.vac-active .hl { animation: none; } }
