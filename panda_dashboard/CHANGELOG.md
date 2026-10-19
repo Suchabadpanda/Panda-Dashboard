@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.25
+- Home: COP moves to its own card under the front door
+
 ## 0.3.24
 - Home: heat pump COP from the Energy Tracker add-on
 
