@@ -110,7 +110,7 @@ window.HD = window.HD || {};
   async function refresh() {
     if (data.loading) return;
     data.loading = true;
-    const jobs = [loadToday, loadDaily, loadMonthly, loadTemps];
+    const jobs = [loadToday, loadDaily, loadTemps];   // payback/monthly costs live in the energy tracker
     await Promise.all(jobs.map((j) => j().catch((e) => console.warn(j.name, e))));
     data.loading = false;
     emit();

@@ -32,6 +32,16 @@ HD.views = HD.views || {};
     return `<button class="chip light ${st === 'on' ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}">${icon('bulb')}${esc(name)}</button>`;
   }
 
+  function acBtn(id) {
+    if (!id) return '';
+    const st = S().state(id); const avail = S().available(id);
+    const on = avail && st !== 'off';
+    const target = S().attr(id, 'temperature');
+    const mode = { cool: 'Cool', heat: 'Heat', dry: 'Dry', fan_only: 'Fan', heat_cool: 'Auto', auto: 'Auto' }[st] || HD.u.cap(String(st || ''));
+    const label = !avail ? 'AC · offline' : on ? `AC · ${mode}${target != null ? ` ${target}°` : ''}` : 'AC · off';
+    return `<button class="chip ac ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${on}" title="Turn the AC ${on ? 'off' : 'on (last mode)'}">${icon('snow')}${esc(label)}</button>`;
+  }
+
   function tvBtn(id) {
     if (!id) return '';
     const st = S().state(id);
@@ -52,15 +62,13 @@ HD.views = HD.views || {};
   function room(r) {
     const t = S().num(r.temp); const h = S().num(r.hum);
     const motion = r.motion && S().state(r.motion) === 'on';
-    const ac = r.climate && S().state(r.climate);
-    const acOn = ac && ac !== 'off' && ac !== 'unavailable';
     const plug = r.plugPower ? S().num(r.plugPower) : r.socketPower ? S().num(r.socketPower) : null;
-    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name)), tvBtn(r.tv), washerChip(r)].join('');
+    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name)), acBtn(r.climate), tvBtn(r.tv), washerChip(r)].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
     return `<article class="room" style="${tint(t)}" aria-label="${esc(r.name)}">
       <header><h3>${esc(r.name)}</h3>${motion ? `<span class="motion" title="Someone here · since ${HD.u.time(S().get(r.motion).last_changed)}">${icon('motion')}</span>` : ''}</header>
       <p class="room-temp">${temp(t)}<small>${delta === '' ? '' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}</small></p>
-      <p class="room-meta">${icon('drop')}${pct(h)}${r.thermostat ? ' · thermostat' : ''}${acOn ? ` · AC ${esc(ac)}` : ''}${plug != null && plug > 5 ? ` · ${esc(r.plugName || 'socket')} ${Math.round(plug)} W` : ''}</p>
+      <p class="room-meta">${icon('drop')}${pct(h)}${r.thermostat ? ' · thermostat' : ''}${plug != null && plug > 5 ? ` · ${esc(r.plugName || 'socket')} ${Math.round(plug)} W` : ''}</p>
       ${lights ? `<div class="room-controls">${lights}</div>` : ''}
     </article>`;
   }
