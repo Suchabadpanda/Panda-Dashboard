@@ -253,16 +253,25 @@ HD.views = HD.views || {};
     p.then(() => HD.app.toast(`${sc.name}: done`)).catch((e) => HD.app.toast(`${sc.name} didn't work: ${e.message}`)).finally(() => { b.disabled = false; });
   });
 
-  // Heat pump efficiency from the Energy Tracker add-on: today's COP, with the month's SCOP
-  function copTile() {
+  // Heat pump efficiency from the Energy Tracker add-on (right column, under the front door)
+  function copBlock() {
     const c = HD.tracker && HD.tracker.cop; if (!c) return '';
     const f = (v) => (v == null ? '–' : v.toFixed(1));
-    const main = c.today != null ? c.today : c.yesterday;
-    const label = c.today != null ? 'Heat pump COP today' : 'Heat pump COP yesterday';
-    const sub = [c.month != null ? `month ${f(c.month)}` : '', c.design != null ? `design ${f(c.design)}` : ''].filter(Boolean).join(' · ');
-    const good = main != null && c.design != null && main >= c.design;
-    const title = `Estimated by the Energy Tracker (no heat meter): heat out ÷ electricity in.${c.heating != null ? ` Heating ${f(c.heating)}` : ''}${c.hotWater != null ? `, hot water ${f(c.hotWater)}` : ''}${c.todayHeat != null ? ` — about ${c.todayHeat} kWh of heat from ${c.todayKwh} kWh today` : ''}.`;
-    return `<div class="info-tile ${good ? 'good' : ''}" title="${esc(title)}">${icon('bolt')}<strong>${f(main)}</strong><span>${esc(label)}${sub ? `<br>${esc(sub)}` : ''}</span></div>`;
+    const isToday = c.today != null;
+    const main = isToday ? c.today : c.yesterday;
+    const vsDesign = main != null && c.design != null ? (main >= c.design ? 'above' : 'below') : null;
+    const split = [c.heating != null ? `heating ${f(c.heating)}` : '', c.hotWater != null ? `hot water ${f(c.hotWater)}` : ''].filter(Boolean).join(' · ');
+    return `
+      <section class="now-block cop" title="Estimated by the Energy Tracker (no heat meter): heat out ÷ electricity in">
+        <h2>Heat pump COP ${isToday ? 'today' : 'yesterday'}</h2>
+        <p class="big">${f(main)}${vsDesign ? `<small> ${vsDesign} its ${f(c.design)} design</small>` : ''}</p>
+        ${isToday && split ? `<p>${esc(split)}${c.todayHeat != null ? ` · ${c.todayHeat} kWh of heat from ${c.todayKwh} kWh` : ''}</p>` : ''}
+        <dl class="cop-facts">
+          ${isToday ? `<div><dt>Yesterday</dt><dd>${f(c.yesterday)}</dd></div>` : ''}
+          <div><dt>This month</dt><dd>${f(c.month)}</dd></div>
+          <div><dt>Design SCOP</dt><dd>${f(c.design)}</dd></div>
+        </dl>
+      </section>`;
   }
 
   function tilesHtml() {
@@ -272,7 +281,6 @@ HD.views = HD.views || {};
     const shortcuts = (HD.config.shortcuts || []).map(shortcutHtml).join('');
     return `<section class="around"><h2>Shortcuts</h2><div class="info-tiles">
       ${shortcuts}
-      ${copTile()}
       ${vacTile(vac)}
       ${tile('flame', temp(tank), tank != null && tank < 40 ? 'Hot water · low' : 'Hot water', tank != null && tank < 40 ? 'warn' : '')}
     </div></section>`;
@@ -333,6 +341,7 @@ HD.views = HD.views || {};
         ${d && d.importKwh ? `<p class="sub">${Math.round((d.offPeakKwh / d.importKwh) * 100)}% of today’s import was at the ${pence(t.offPeak)} rate</p>` : ''}
       </section>
       ${HD.doorbell ? HD.doorbell.cardHtml() : ''}
+      ${copBlock()}
       <section class="now-block alerts">
         <h2>Attention</h2>
         ${alerts.length ? `<ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>`
