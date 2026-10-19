@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.6
+- Add the Eufy doorbell
+
 ## 0.3.5
 - Reddit-style features, editable tariff, motion and header fixes
 
