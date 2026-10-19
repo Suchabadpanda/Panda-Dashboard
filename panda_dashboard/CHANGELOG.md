@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.12
+- Energy: drop payback and money panels; AC buttons in room tiles
+
 ## 0.3.11
 - Doorbell live view: wait for the ~20 s start-up
 
