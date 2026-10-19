@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.4
+- Fix add-on image: build from nginx, not the Supervisor's base image
+
 ## 0.3.3
 - Use Sigenergy hourly data for the months before HA
 
