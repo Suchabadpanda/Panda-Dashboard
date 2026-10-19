@@ -102,6 +102,17 @@ window.HD = window.HD || {};
     ['sensor.espteslasolar_range', 'unavailable', 'km', 'ESPTeslaSolar Range'],
     ['sensor.tesla_wall_connector_handle_temperature', '9.7', '°C', 'Handle temperature', 'temperature'],
     ['sensor.tesla_wall_connector_grid_voltage', '243.4', 'V', 'Grid voltage', 'voltage'],
+    // doorbell (Eufy S220 + HomeBase)
+    ['camera.doorbell', 'idle', '', 'Doorbell'],
+    ['image.doorbell_event_image', 'unknown', '', 'Doorbell Event Image'],
+    ['binary_sensor.doorbell_ringing', 'off', '', 'Doorbell Ringing'],
+    ['binary_sensor.doorbell_motion_detected', 'off', '', 'Doorbell Motion', 'motion'],
+    ['binary_sensor.doorbell_person_detected', 'off', '', 'Doorbell Person', 'occupancy'],
+    ['sensor.doorbell_person_name', 'No Person', '', 'Doorbell Person Name'],
+    ['sensor.doorbell_battery_percentage', '79', '%', 'Doorbell Battery', 'battery'],
+    ['sensor.doorbell_charging_status', 'Not Charging', '', 'Doorbell Charging Status'],
+    ['select.home_doorbell_guard_mode', 'Home', '', 'Guard Mode'],
+    ['binary_sensor.home_doorbell_connected', 'on', '', 'HomeBase Connected'],
     // VPP
     ['sensor.axle_event_in_progress', 'off', '', 'Axle Event In Progress'],
     ['sensor.axle_event_later_today', 'off', '', 'Axle Event Later Today'],

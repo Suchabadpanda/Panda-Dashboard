@@ -140,6 +140,21 @@ HD.config = {
     batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
   },
 
+  doorbell: {
+    name: 'Front door',
+    camera: 'camera.doorbell',
+    image: 'image.doorbell_event_image',          // picture from the last ring or motion
+    ringing: 'binary_sensor.doorbell_ringing',
+    motion: 'binary_sensor.doorbell_motion_detected',
+    person: 'binary_sensor.doorbell_person_detected',
+    personName: 'sensor.doorbell_person_name',
+    battery: 'sensor.doorbell_battery_percentage',
+    charging: 'sensor.doorbell_charging_status',
+    guardMode: 'select.home_doorbell_guard_mode',
+    baseConnected: 'binary_sensor.home_doorbell_connected',
+    lowBattery: 20,                               // % — show a warning below this
+  },
+
   vpp: {
     inProgress: 'sensor.axle_event_in_progress',
     later: 'sensor.axle_event_later_today',

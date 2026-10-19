@@ -168,6 +168,7 @@ window.HD = window.HD || {};
     renderHeader();
     show(location.hash.slice(1) || 'home');
     HD.data.refresh();
+    if (HD.doorbell) HD.doorbell.init();
     setInterval(() => HD.data.refresh(), 5 * 60 * 1000);
     setInterval(renderHeader, 20 * 1000);
     keepAwake();
