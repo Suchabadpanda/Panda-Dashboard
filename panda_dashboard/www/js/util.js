@@ -7,7 +7,8 @@ window.HD = window.HD || {};
   const kw = (v) => (v == null ? '–' : Math.abs(v) < 1 ? `${Math.round(Math.abs(v) * 1000)} W` : `${Math.abs(v).toFixed(2)} kW`);
   const kwh = (v, dp = 1) => (v == null ? '–' : `${v.toFixed(dp)} kWh`);
   const gbp = (v, dp = 2) => (v == null || !Number.isFinite(v) ? '–' : `${v < 0 ? '−' : ''}£${Math.abs(v).toLocaleString('en-GB', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`);
-  const pence = (v) => `${(v * 100).toFixed(v * 100 % 1 ? 2 : 0)}p`;
+  const pence = (v) => `${parseFloat((v * 100).toFixed(2))}p`;
+  const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
   const temp = (v) => (v == null ? '–' : `${v.toFixed(1)}°`);
   const pct = (v) => (v == null ? '–' : `${Math.round(v)}%`);
   const time = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -49,5 +50,5 @@ window.HD = window.HD || {};
   };
   const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[name] || ''}</svg>`;
 
-  HD.u = { esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon };
+  HD.u = { cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon };
 })();

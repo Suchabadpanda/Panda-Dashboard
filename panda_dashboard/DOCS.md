@@ -3,6 +3,14 @@
 Opens from the **Panda Dashboard** entry in the sidebar. It signs in with your
 Home Assistant session, so there is nothing to configure.
 
+## Tariff
+
+Set your electricity rates on the **Configuration** tab. Each row applies from its `from`
+date until the next row; add a new row when rates change rather than editing the old one,
+so earlier months keep the prices you actually paid. Rates are £ per kWh including VAT
+(7.6p is `0.076`), the standing charge is £ per day, and the cheap window is in whole hours
+(`off_peak_start: 0`, `off_peak_end: 6` means midnight to 06:00). Save, then reload the dashboard.
+
 ## Your settings
 
 Copy `config.js` (your rooms, entities, tariffs and system cost) into this add-on's config folder:

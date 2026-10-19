@@ -91,7 +91,11 @@ system cost — go in a separate `config.js` that never enters git:
 Start from a copy of the example file and edit it. It loads after the example and replaces it,
 so add-on updates never touch your settings. Reload the dashboard after changing it.
 
-**Tariffs.** Rows apply from their `from` date; add a row when a rate changes. Keep
+**Tariffs.** With the add-on, edit them in HA under **Settings → Add-ons → Panda Dashboard →
+Configuration**. Each row applies from its `from` date until the next row, so add a row when your
+rates change each year rather than overwriting the old one — past months keep their old prices.
+Rates are £/kWh including VAT (7.6p = `0.076`). These override the tariffs in `config.js`; outside
+the add-on, edit `config.js` instead. The Settings dialog (status pill) shows which rates are in use. Keep
 `tools/ha_energy_export.py → TARIFFS` in step if you use the exporter.
 
 **Sign conventions** (Sigenergy integration): battery power is positive when charging, grid power

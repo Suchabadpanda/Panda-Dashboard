@@ -41,7 +41,7 @@ HD.views = HD.views || {};
     const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name))].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
     return `<article class="room" style="${tint(t)}" aria-label="${esc(r.name)}">
-      <header><h3>${esc(r.name)}</h3>${motion ? `<span class="motion" title="Motion detected">${icon('motion')}</span>` : ''}</header>
+      <header><h3>${esc(r.name)}</h3>${motion ? `<span class="motion" title="Someone here · since ${HD.u.time(S().get(r.motion).last_changed)}">${icon('motion')}</span>` : ''}</header>
       <p class="room-temp">${temp(t)}<small>${delta === '' ? '' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}</small></p>
       <p class="room-meta">${icon('drop')}${pct(h)}${r.thermostat ? ' · thermostat' : ''}${acOn ? ` · AC ${esc(ac)}` : ''}${plug != null && plug > 5 ? ` · ${esc(r.plugName || 'socket')} ${Math.round(plug)} W` : ''}</p>
       ${lights ? `<div class="room-controls">${lights}</div>` : ''}
@@ -91,6 +91,7 @@ HD.views = HD.views || {};
       </div>
 
       <div class="house">
+        <div class="sky ${isNight() ? 'night' : 'day'}" aria-hidden="true"><i class="orb"></i></div>
         <div class="roof ${pv > 0.05 ? 'generating' : ''}">
           <div class="panels" aria-hidden="true">${'<i></i>'.repeat(10)}</div>
           <p><strong>${pv > 0.05 ? kw(pv) : 'No sun'}</strong><span>Solar · ${kwh(S().num(e.pvToday))} today</span></p>
@@ -98,6 +99,7 @@ HD.views = HD.views || {};
         </div>
         ${flow('f-solar', pv, '')}
         <div class="floors">${floors}</div>
+        ${legendHtml()}
       </div>
 
       <div class="side right">
@@ -121,6 +123,78 @@ HD.views = HD.views || {};
         </div>
       </div>
     </div>`;
+  }
+
+  function isNight() {
+    const sun = S().state(HD.config.sun.state);
+    if (sun) return sun === 'below_horizon';
+    const h = new Date().getHours(); return h < 7 || h >= 19;
+  }
+
+  function roomTemps() {
+    return HD.config.floors.flatMap((f) => f.rooms.map((r) => ({ name: r.name, t: S().num(r.temp) }))).filter((r) => r.t != null);
+  }
+
+  // Colour scale under the house, matching the room tint
+  function legendHtml() {
+    const c = HD.config.comfortTarget;
+    return `<div class="temp-legend" aria-hidden="true"><span>${c - 3}°</span><i></i><span>${c}°</span><i class="warm"></i><span>${c + 3}°</span></div>`;
+  }
+
+  function greetingHtml() {
+    const hour = new Date().getHours();
+    const part = hour < 5 ? 'Good night' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const name = (HD.config.people[0] || {}).name;
+    const e = HD.config.energy;
+    const temps = roomTemps();
+    const avg = temps.length ? temps.reduce((a, r) => a + r.t, 0) / temps.length : null;
+
+    // Who's moving around right now
+    const busy = HD.config.floors.flatMap((f) => f.rooms).filter((r) => r.motion && S().state(r.motion) === 'on').map((r) => r.name);
+    const place = (n) => (/'s\b/.test(n) ? esc(n) : `the ${esc(n.toLowerCase())}`);
+    const headline = busy.length ? `Someone's in ${busy.map(place).join(' and ')}.` : 'All quiet at home.';
+
+    // One sentence on what the energy system is doing
+    const pv = S().num(e.pvPower) || 0; const bat = S().num(e.batteryPower) || 0; const grid = S().num(e.gridPower) || 0;
+    const soc = S().num(e.soc); const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    let energy = '';
+    if (grid > 0.1 && bat > 0.1 && HD.tariff.isOffPeak(now)) energy = `Filling the battery on the cheap rate (${pct(soc)}).`;
+    else if (pv > 0.1 && grid < -0.1) energy = `Solar is covering the house and exporting ${kw(-grid)}.`;
+    else if (pv > 0.1) energy = `Solar is making ${kw(pv)}.`;
+    else if (grid < -0.1 && bat < -0.1) energy = `The battery is exporting ${kw(-grid)} before the cheap rate (${pct(soc)} left).`;
+    else if (bat < -0.1) energy = `Running on the battery (${pct(soc)}).`;
+    else if (grid > 0.1) energy = `Buying ${kw(grid)} from the grid.`;
+
+    const extTemp = S().attr(HD.config.weather, 'temperature');
+    return `<section class="greeting">
+      <div><h1>${part}${name ? `, ${esc(name)}` : ''}</h1>
+      <p><span class="dot ${busy.length ? 'busy' : ''}"></span><strong>${headline}</strong> ${avg != null ? `It's ${avg.toFixed(1)}° inside${extTemp != null ? ` and ${Math.round(extTemp)}° out` : ''}.` : ''} ${energy}</p></div>
+    </section>`;
+  }
+
+  function tile(icon_, value, label, cls = '') {
+    return `<div class="info-tile ${cls}">${icon(icon_)}<strong>${value}</strong><span>${label}</span></div>`;
+  }
+
+  function tilesHtml() {
+    const d = HD.config.devices; const hp = HD.config.heatPump;
+    const ppl = HD.config.people.map((p) => ({ n: p.name, home: S().state(p.id) === 'home' }));
+    const home = ppl.filter((p) => p.home);
+    const presence = home.length === ppl.length ? (ppl.length > 1 ? 'Everyone home' : 'Home') : home.length ? `${home.map((p) => p.n).join(', ')} home` : 'Everyone out';
+    const washer = S().state(d.washer);
+    const vac = S().num(d.vacuumPower);
+    const pc = (d.plugs.find((p) => p.today) || {});
+    const pcW = S().num(pc.power);
+    const nasOk = S().state(d.nas.volStatus) === 'normal';
+    const tank = S().num(hp.tankTemp);
+    return `<section class="around"><h2>Around the house</h2><div class="info-tiles">
+      ${tile('motion', esc(presence), 'People', home.length ? 'good' : '')}
+      ${tile('drop', washer && washer !== 'unavailable' ? esc(HD.u.cap(washer.replace(/_/g, ' '))) : 'Offline', 'Washer')}
+      ${tile('gauge', vac == null ? '–' : vac > 5 ? 'Charging' : 'Docked', 'Robot vacuum')}
+      ${tile('flame', temp(tank), tank != null && tank < 40 ? 'Hot water · low' : 'Hot water', tank != null && tank < 40 ? 'warn' : '')}
+      ${tile('power', pcW == null ? '–' : `${Math.round(pcW)} W`, esc(pc.name || 'PC'), pcW > 20 ? 'good' : '')}
+      ${tile(nasOk ? 'check' : 'alert', nasOk ? 'Healthy' : esc(S().state(d.nas.volStatus) || '–'), esc(d.nas.name || 'NAS'), nasOk ? 'good' : 'warn')}
+    </div></section>`;
   }
 
   function nowHtml() {
@@ -189,7 +263,7 @@ HD.views = HD.views || {};
   HD.views.home = {
     title: 'Home',
     mount(root) {
-      root.innerHTML = '<div class="home-grid"><div id="house"></div><aside id="now" class="now"></aside></div>';
+      root.innerHTML = '<div id="greeting"></div><div class="home-grid"><div class="home-main"><div id="house"></div><div id="tiles"></div></div><aside id="now" class="now"></aside></div>';
       this.update();
     },
     update() {
@@ -197,6 +271,8 @@ HD.views = HD.views || {};
       if (!house) return;
       house.innerHTML = houseHtml();
       now.innerHTML = nowHtml();
+      document.getElementById('greeting').innerHTML = greetingHtml();
+      document.getElementById('tiles').innerHTML = tilesHtml();
     },
   };
 })();

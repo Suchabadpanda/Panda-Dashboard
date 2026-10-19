@@ -17,3 +17,27 @@ panel_title: Panda Dashboard
 # Your energy tracker CSV lives here: \\homeassistant.local\addon_configs\<id>_panda_dashboard\
 map:
   - addon_config:ro
+
+# Edit these in Settings → Add-ons → Panda Dashboard → Configuration.
+# Add a row whenever a rate changes; each row applies from its date until the next one.
+# Rates are £ per kWh including VAT (7.6p = 0.076); standing charge is £ per day.
+options:
+  tariff_name: ""
+  tariffs:
+    - from: "2025-10-29"
+      off_peak: 0.076
+      peak: 0.2666
+      export: 0.165
+      standing: 0.60
+      off_peak_start: 0
+      off_peak_end: 6
+schema:
+  tariff_name: str?
+  tariffs:
+    - from: match(^\d{4}-\d{2}-\d{2}$)
+      off_peak: float(0,2)
+      peak: float(0,2)
+      export: float(0,2)
+      standing: float(0,5)
+      off_peak_start: int(0,23)
+      off_peak_end: int(0,24)

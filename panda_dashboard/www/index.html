@@ -16,7 +16,10 @@
   <a class="skip" href="#view">Skip to content</a>
   <header class="topbar">
     <div id="top" class="top"></div>
-    <nav id="nav" class="nav" aria-label="Views"></nav>
+    <div class="top-right">
+      <nav id="nav" class="nav" aria-label="Views"></nav>
+      <span id="status-slot"></span>
+    </div>
   </header>
 
   <main id="view" class="view" tabindex="-1"></main>
@@ -34,6 +37,11 @@
         <input id="set-token" type="password" autocomplete="off">
         <small>Only needed when the dashboard isn't served from Home Assistant. Create one in HA under your profile → Security. It stays in this browser.</small>
       </label>
+      <section class="tariff-info">
+        <h3>Electricity tariff</h3>
+        <div id="set-tariff" class="table-scroll"></div>
+        <small id="set-tariff-where"></small>
+      </section>
       <fieldset>
         <legend>Theme</legend>
         <label><input type="radio" name="theme" value="auto"> Match device</label>
@@ -62,6 +70,7 @@
   <script src="js/views/home.js"></script>
   <script src="js/views/energy.js"></script>
   <script src="js/views/climate.js"></script>
+  <script src="js/views/car.js"></script>
   <script src="js/views/devices.js"></script>
   <script src="js/app.js"></script>
 </body>

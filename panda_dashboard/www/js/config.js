@@ -24,7 +24,7 @@ HD.config = {
   ],
 
   weather: 'weather.forecast_home',
-  sun: { rising: 'sensor.sun_next_rising', setting: 'sensor.sun_next_setting' },
+  sun: { state: 'sun.sun', rising: 'sensor.sun_next_rising', setting: 'sensor.sun_next_setting' },
 
   // ── The house, top floor first. Drawn as a cross-section on the Home view. ──
   floors: [
@@ -34,7 +34,7 @@ HD.config = {
         { name: 'Bedroom 2', temp: 'sensor.ewelink_snzb_02p_temperature', hum: 'sensor.ewelink_snzb_02p_humidity',
           climate: 'climate.bedroom_2_ac' },
         { name: 'Upstairs', temp: 'sensor.extra_temperature', hum: 'sensor.extra_humidity',
-          light: 'switch.2f_landing', lightName: 'Landing', lightWhere: 'landing', motion: 'binary_sensor.2f_hallway_motion_sensor',
+          light: 'switch.2f_landing', lightName: 'Landing', lightWhere: 'landing', motion: 'binary_sensor.2f_hallway_motion_sensor_occupancy',
           socket: 'switch.sonoff_s60zbtpg_2', socketName: 'Landing socket' },
       ],
     },
@@ -45,7 +45,7 @@ HD.config = {
         { name: 'Living room', temp: 'sensor.ewelink_snzb_02p_temperature_2', hum: 'sensor.ewelink_snzb_02p_humidity_2',
           climate: 'climate.living_room', light: 'switch.living_room_light_switch', lightName: 'Main light',
           extraLights: [{ id: 'switch.1f_landing', name: 'Landing', where: 'landing' }],
-          motion: 'binary_sensor.1f_motion_sensor',
+          motion: 'binary_sensor.1f_motion_sensor_occupancy',
           socket: 'switch.sonoff_s60zbtpg', socketName: 'TV socket', socketPower: 'sensor.sonoff_s60zbtpg_power' },
       ],
     },
@@ -54,13 +54,13 @@ HD.config = {
       rooms: [
         { name: 'Office', temp: 'sensor.office_temp_humidity_temperature', hum: 'sensor.office_temp_humidity_humidity',
           climate: 'climate.office', light: 'switch.office_light', lightName: 'Light',
-          motion: 'binary_sensor.office_motion_detector', occupancy: 'binary_sensor.office_motion_detector_occupancy',
+          motion: 'binary_sensor.office_motion_detector_occupancy',
           plugPower: 'sensor.sonoff_10026839a2_power', plugName: 'Computer' },
         { name: 'Kitchen', temp: 'sensor.temp_humidity_kitchen_temperature', hum: 'sensor.temp_humidity_kitchen_humidity',
           thermostat: true,
           light: 'switch.entrance_light', lightName: 'Entrance', lightWhere: 'hallway',
           extraLights: [{ id: 'switch.ground_floor_toilet', name: 'Toilet' }],
-          motion: 'binary_sensor.downstair_corridor_motion_sensor' },
+          motion: 'binary_sensor.downstair_corridor_motion_sensor_occupancy' },
       ],
     },
   ],
@@ -130,6 +130,14 @@ HD.config = {
     // ESPHome BLE bridge — currently unavailable in HA; shown when it comes back
     carSoc: 'sensor.espteslasolar_battery',
     carRange: 'sensor.espteslasolar_range',
+    carCharging: 'sensor.espteslasolar_charging',
+    chargeLimit: 'number.espteslasolar_charging_limit',
+    doors: 'lock.espteslasolar_doors',
+    outsideTemp: 'sensor.espteslasolar_outside_temperature',
+    tpms: { fl: 'sensor.espteslasolar_tpms_front_left', fr: 'sensor.espteslasolar_tpms_front_right', rl: 'sensor.espteslasolar_tpms_rear_left', rr: 'sensor.espteslasolar_tpms_rear_right' },
+    handleTemp: 'sensor.tesla_wall_connector_handle_temperature',
+    voltage: 'sensor.tesla_wall_connector_grid_voltage',
+    batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
   },
 
   vpp: {
@@ -150,6 +158,7 @@ HD.config = {
     ],
     media: ['media_player.office_tv', 'media_player.living_room_tv'],
     washer: 'sensor.washing_machine_machine_state',
+    vacuumPower: 'sensor.robot_vacuum_plug_power',
     washerDone: 'sensor.washing_machine_completion_time',
     pcWake: 'button.wake_on_lan_pc',
     pcName: 'PC',
@@ -171,9 +180,9 @@ HD.config = {
   tariffName: '',          // e.g. 'Octopus Go' — shown on the Energy view
   // ── Tariffs. Add a row when a rate changes; rows apply from their date. ──
   tariffs: [
-    { from: '2025-10-29', offPeak: 0.08, peak: 0.2666, offPeakStart: 0, offPeakEnd: 6, export: 0.165, standing: 0.60 },
+    { from: '2025-10-29', offPeak: 0.076, peak: 0.2666, offPeakStart: 0, offPeakEnd: 6, export: 0.165, standing: 0.60 },
     // Export fix ends Nov 2026; ~12p expected. Confirm the date and rate, then edit this row.
-    { from: '2026-12-01', offPeak: 0.08, peak: 0.2666, offPeakStart: 0, offPeakEnd: 6, export: 0.12, standing: 0.60, provisional: true },
+    { from: '2026-12-01', offPeak: 0.076, peak: 0.2666, offPeakStart: 0, offPeakEnd: 6, export: 0.12, standing: 0.60, provisional: true },
   ],
 
   // ── Return on investment (carried over from the energy tracker) ──

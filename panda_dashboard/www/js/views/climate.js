@@ -22,7 +22,9 @@ HD.views = HD.views || {};
     const lo = Math.min(target - 3, ...ts); const hi = Math.max(target + 3, ...ts);
     const x = (v) => ((v - lo) / (hi - lo)) * 100;
     const verdict = spread <= 1.5 ? 'Well balanced' : spread <= 2.5 ? 'A little uneven' : 'Uneven';
+    const warm = list.reduce((a, r) => (r.t > a.t ? r : a)); const cool = list.reduce((a, r) => (r.t < a.t ? r : a));
     return `
+      <p class="headline">${esc(warm.name)} is ${(warm.t - cool.t).toFixed(1)}° warmer than ${esc(cool.name)}.</p>
       <div class="balance-head">
         <p class="big">${spread.toFixed(1)}°<small> spread</small></p>
         <p><strong>${verdict}.</strong> Warmest to coolest room right now; aim for 1–1.5°. House average ${temp(avg)} against a ${target}° target.</p>
