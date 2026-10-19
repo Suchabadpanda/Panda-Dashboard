@@ -490,6 +490,10 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .info-tile span { font-size: 12px; color: var(--muted); }
 .info-tile.good { border-color: color-mix(in oklab, var(--s-battery) 55%, var(--line)); }
 .info-tile.good .ic { color: var(--s-battery); }
+.info-tile.shortcut { font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.info-tile.shortcut:hover:not(:disabled) { border-color: var(--accent); }
+.info-tile.shortcut:disabled { opacity: .5; cursor: default; }
+.info-tile.shortcut.danger .ic { color: var(--critical); }
 .info-tile.warn { border-color: color-mix(in oklab, var(--warning) 60%, var(--line)); }
 .info-tile.warn .ic { color: var(--warning); }
 @media (max-width: 1100px) { .info-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

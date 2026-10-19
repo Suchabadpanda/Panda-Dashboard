@@ -129,6 +129,8 @@ window.HD = window.HD || {};
     ['sensor.washing_machine_completion_time', 'unavailable', '', 'Washing machine Completion time'],
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
     ['input_boolean.ac_all_cool', 'off', '', 'AC Quick Cool'],
+    ['button.pc_mute', 'unknown', '', 'PC Mute'],
+    ['button.pc_shutdown', 'unknown', '', 'PC Shutdown'],
     ['sensor.backup_last_successful_automatic_backup', '2026-10-18T03:04:08+00:00', '', 'Last successful automatic backup', 'timestamp'],
     ['sensor.backup_next_scheduled_automatic_backup', '2026-10-25T02:15:00+00:00', '', 'Next scheduled automatic backup', 'timestamp'],
   ];

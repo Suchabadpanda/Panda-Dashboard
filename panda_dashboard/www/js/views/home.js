@@ -210,15 +210,54 @@ HD.views = HD.views || {};
     return `<a class="info-tile-link" href="#rooms" data-plan-goto="vac">${tile('gauge', esc(text), label, v.state === 'error' ? 'warn' : v.state === 'cleaning' ? 'good' : '')}</a>`;
   }
 
+  // ── Shortcuts (config.shortcuts) ──
+  // { name, icon, confirm?, and one of:
+  //   toggle: entity          — flip it (input_boolean, switch, …); shows on/off
+  //   press: button entity    — press it
+  //   service: 'domain.svc', entities: [ids] | 'lights' — call a service on those
+  //     ('lights' = every room light in config.floors) }
+  // Every light the dashboard knows: room tiles (light / extraLights) and the floor plan's rooms
+  const roomLights = () => [...new Set([
+    ...HD.config.floors.flatMap((f) => f.rooms.flatMap((r) => [r.light, ...(r.extraLights || []).map((l) => l.id)])),
+    ...(HD.config.floorplan ? HD.config.floorplan.floors.flatMap((f) => f.rooms.flatMap((r) => r.lights || [])) : []),
+  ].filter(Boolean))];
+  function shortcutTargets(sc) { return sc.entities === 'lights' ? roomLights() : [].concat(sc.entities || []); }
+  function shortcutHtml(sc, i) {
+    let sub = ''; let cls = ''; let ok = true;
+    if (sc.toggle) {
+      const on = S().state(sc.toggle) === 'on'; ok = !!S().get(sc.toggle) && S().state(sc.toggle) !== 'unavailable';
+      sub = ok ? (on ? 'On' : 'Off') : 'Unavailable'; cls = on ? 'good' : '';
+    } else if (sc.press) {
+      ok = !!S().get(sc.press) && S().state(sc.press) !== 'unavailable';
+      sub = ok ? (sc.hint || '') : 'Unavailable';
+    } else if (sc.service) {
+      const ids = shortcutTargets(sc);
+      const lit = ids.filter((id) => S().state(id) === 'on').length;
+      sub = sc.entities === 'lights' ? (lit ? `${lit} on now` : 'All off') : (sc.hint || '');
+    }
+    return `<button class="info-tile shortcut ${cls} ${sc.danger ? 'danger' : ''}" data-shortcut="${i}" ${ok ? '' : 'disabled'}>
+      ${icon(sc.icon || 'power')}<strong>${esc(sc.name)}</strong><span>${esc(sub)}</span></button>`;
+  }
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-shortcut]'); if (!b) return;
+    const sc = (HD.config.shortcuts || [])[+b.dataset.shortcut]; if (!sc) return;
+    if (sc.confirm && !window.confirm(sc.confirm)) return;
+    let p;
+    if (sc.toggle) p = HD.ha.toggle(sc.toggle);
+    else if (sc.press) p = HD.ha.callService('button', 'press', { entity_id: sc.press });
+    else if (sc.service) { const [d, svc] = sc.service.split('.'); p = HD.ha.callService(d, svc, { entity_id: shortcutTargets(sc) }); }
+    if (!p) return;
+    b.disabled = true;
+    p.then(() => HD.app.toast(`${sc.name}: done`)).catch((e) => HD.app.toast(`${sc.name} didn't work: ${e.message}`)).finally(() => { b.disabled = false; });
+  });
+
   function tilesHtml() {
     const d = HD.config.devices; const hp = HD.config.heatPump;
-    const ppl = HD.config.people.map((p) => ({ n: p.name, home: S().state(p.id) === 'home' }));
-    const home = ppl.filter((p) => p.home);
-    const presence = home.length === ppl.length ? (ppl.length > 1 ? 'Everyone home' : 'Home') : home.length ? `${home.map((p) => p.n).join(', ')} home` : 'Everyone out';
     const vac = S().num(d.vacuumPower);
     const tank = S().num(hp.tankTemp);
-    return `<section class="around"><h2>Around the house</h2><div class="info-tiles">
-      ${tile('motion', esc(presence), 'People', home.length ? 'good' : '')}
+    const shortcuts = (HD.config.shortcuts || []).map(shortcutHtml).join('');
+    return `<section class="around"><h2>Shortcuts</h2><div class="info-tiles">
+      ${shortcuts}
       ${vacTile(vac)}
       ${tile('flame', temp(tank), tank != null && tank < 40 ? 'Hot water · low' : 'Hot water', tank != null && tank < 40 ? 'warn' : '')}
     </div></section>`;

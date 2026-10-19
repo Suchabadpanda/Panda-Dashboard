@@ -57,6 +57,8 @@ window.HD = window.HD || {};
     bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
     flash: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3zM4 4l2 2M20 4l-2 2M2 11h2M20 11h2"/>',
     pin: '<path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    mute: '<path d="M11 5L6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/>',
+    lightsoff: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3zM3 3l18 18"/>',
     update: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',
   };
   const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[name] || ''}</svg>`;

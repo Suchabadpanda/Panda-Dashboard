@@ -131,7 +131,8 @@ window.HD = window.HD || {};
         }
       } catch (e) { console.warn('Could not save to the add-on', e); }
     }
-    if (saved !== 'in Home Assistant') { try { localStorage.setItem('hd.tariffs', JSON.stringify({ name, rows })); } catch (e) { /* ignore */ } }
+    // Keep a copy in this browser too, as a fallback if Home Assistant can't be asked
+    try { localStorage.setItem('hd.tariffs', JSON.stringify({ name, rows })); } catch (e) { /* ignore */ }
     where.textContent = `Saved ${saved}${saved === 'in this browser' ? ' only — other devices keep their own rates' : ', for every device'}.`;
     toast(`Tariff saved ${saved}`);
     HD.data.refresh();
@@ -205,26 +206,50 @@ window.HD = window.HD || {};
   }
 
   // Tariffs set in the add-on's Configuration tab replace the ones in config.js
+  // ── Tariffs: where saved rates live ──
+  // Rates saved from the dashboard go into the add-on's options (Supervisor keeps those
+  // across updates). They're read back over the Home Assistant connection; options.json
+  // and this browser's copy are fallbacks. Options still at the add-on's shipped
+  // default count as "never saved", so config.js's own rows are kept.
+  const SHIPPED = JSON.stringify([{ from: '2025-10-29', off_peak: 0.076, peak: 0.2666, export: 0.165, standing: 0.6, off_peak_start: 0, off_peak_end: 6 }]);
+  function applyOptions(o, source) {
+    if (!o || !Array.isArray(o.tariffs) || !o.tariffs.length) return false;
+    const norm = JSON.stringify(o.tariffs.map((t) => ({ from: t.from, off_peak: +t.off_peak, peak: +t.peak, export: +t.export, standing: +t.standing, off_peak_start: +t.off_peak_start, off_peak_end: +t.off_peak_end })));
+    if (norm === SHIPPED && !o.tariff_name) return false;
+    HD.config.tariffs = o.tariffs
+      .filter((t) => /^\d{4}-\d{2}-\d{2}$/.test(t.from))
+      .map((t) => ({ from: t.from, offPeak: +t.off_peak, peak: +t.peak, export: +t.export, standing: +t.standing, offPeakStart: +t.off_peak_start, offPeakEnd: +t.off_peak_end }))
+      .sort((x, y) => x.from.localeCompare(y.from));
+    if (o.tariff_name) HD.config.tariffName = o.tariff_name;
+    HD.config.tariffSource = source;
+    return true;
+  }
+  function applyBrowserCopy() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('hd.tariffs') || 'null');
+      if (saved && Array.isArray(saved.rows) && saved.rows.length) {
+        HD.config.tariffs = saved.rows; if (saved.name) HD.config.tariffName = saved.name;
+        HD.config.tariffSource = 'this browser';
+        return true;
+      }
+    } catch (e) { /* storage blocked */ }
+    return false;
+  }
+  // Before connecting: options.json if the add-on serves it, else this browser's copy
   async function loadAddonOptions() {
     try {
       const r = await fetch('options.json', { cache: 'no-store' });
-      if (!r.ok) return;
-      const o = await r.json();
-      if (Array.isArray(o.tariffs) && o.tariffs.length) {
-        HD.config.tariffs = o.tariffs
-          .filter((t) => /^\d{4}-\d{2}-\d{2}$/.test(t.from))
-          .map((t) => ({ from: t.from, offPeak: +t.off_peak, peak: +t.peak, export: +t.export, standing: +t.standing, offPeakStart: +t.off_peak_start, offPeakEnd: +t.off_peak_end }))
-          .sort((x, y) => x.from.localeCompare(y.from));
-        HD.config.tariffSource = 'add-on Configuration tab';
-      }
-      if (o.tariff_name) HD.config.tariffName = o.tariff_name;
+      if (r.ok && applyOptions(await r.json(), 'add-on Configuration tab')) return;
     } catch (e) { /* not running as the add-on */ }
-    if (!HD.config.tariffSource) {
-      try {
-        const saved = JSON.parse(localStorage.getItem('hd.tariffs') || 'null');
-        if (saved && Array.isArray(saved.rows) && saved.rows.length) { HD.config.tariffs = saved.rows; if (saved.name) HD.config.tariffName = saved.name; HD.config.tariffSource = 'this browser'; }
-      } catch (e) { /* ignore */ }
-    }
+    applyBrowserCopy();
+  }
+  // Once connected: the add-on's options straight from the Supervisor (always current)
+  async function loadSupervisorOptions() {
+    try {
+      const slug = await addonSlug(); if (!slug) return false;
+      const info = await HD.ha.callWS({ type: 'supervisor/api', endpoint: `/addons/${slug}/info`, method: 'get' });
+      return applyOptions(info && info.options, 'add-on Configuration tab');
+    } catch (e) { return false; }   // not an admin, or not running under Supervisor
   }
 
   async function start() {
@@ -238,6 +263,7 @@ window.HD = window.HD || {};
     const params = new URLSearchParams(location.search);
     let live = false;
     if (!params.has('demo') && !window.HD_FORCE_DEMO) live = await HD.ha.connect();
+    if (live) await loadSupervisorOptions();
     if (!live) {
       const why = S.mode === 'error' ? S.message : '';
       HD.demo.start();

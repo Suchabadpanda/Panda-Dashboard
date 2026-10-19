@@ -237,6 +237,16 @@ HD.config = {
     direction: 'sensor.axle_import_export',
   },
 
+
+  // ── Shortcuts on the Home page ──
+  // toggle: an entity to flip · press: a button entity · service + entities ('lights' = every room light)
+  shortcuts: [
+    { name: 'All lights off', icon: 'lightsoff', service: 'switch.turn_off', entities: 'lights', confirm: 'Turn off all lights?' },
+    { name: 'All AC', icon: 'snow', toggle: 'input_boolean.ac_all_cool' },
+    { name: 'Wake PC', icon: 'power', press: 'button.wake_on_lan_pc', confirm: 'Wake up the PC?' },
+    { name: 'Mute PC', icon: 'mute', press: 'button.pc_mute' },
+    { name: 'Shut down PC', icon: 'power', press: 'button.pc_shutdown', confirm: 'Shut down the PC?', danger: true },
+  ],
   devices: {
     plugs: [
       { name: 'Computer', switchSelect: 'select.sonoff_10026839a2_1', power: 'sensor.sonoff_10026839a2_power', today: 'sensor.sonoff_10026839a2_energy_day', month: 'sensor.sonoff_10026839a2_energy_month' },
