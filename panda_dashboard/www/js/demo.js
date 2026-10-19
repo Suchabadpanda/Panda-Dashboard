@@ -111,6 +111,7 @@ window.HD = window.HD || {};
     ['sensor.doorbell_person_name', 'No Person', '', 'Doorbell Person Name'],
     ['sensor.doorbell_battery_percentage', '79', '%', 'Doorbell Battery', 'battery'],
     ['sensor.doorbell_charging_status', 'Not Charging', '', 'Doorbell Charging Status'],
+    ['sensor.doorbell_days_since_last_charging', '7', 'd', 'Doorbell Days Since Last Charging'],
     ['select.home_doorbell_guard_mode', 'Home', '', 'Guard Mode'],
     ['binary_sensor.home_doorbell_connected', 'on', '', 'HomeBase Connected'],
     // VPP

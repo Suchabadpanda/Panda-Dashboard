@@ -153,6 +153,8 @@ HD.config = {
     personName: 'sensor.doorbell_person_name',
     battery: 'sensor.doorbell_battery_percentage',
     charging: 'sensor.doorbell_charging_status',
+    daysSinceCharge: 'sensor.doorbell_days_since_last_charging',
+    streamService: 'eufy_security',               // integration that starts/stops the P2P stream
     guardMode: 'select.home_doorbell_guard_mode',
     baseConnected: 'binary_sensor.home_doorbell_connected',
     lowBattery: 20,                               // % — show a warning below this

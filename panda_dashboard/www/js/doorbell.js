@@ -49,6 +49,43 @@ window.HD = window.HD || {};
     } catch (e) { console.warn('Doorbell history unavailable', e); }
   }
 
+  // Days of battery left. Prefer the measured drain over the last 2+ weeks of
+  // statistics; fall back to "% used since last charge ÷ days since charging".
+  let drainPerDay = null;
+  async function loadBatteryTrend() {
+    if (!enabled() || S().mode !== 'live') return;
+    try {
+      const id = cfg().battery;
+      const res = await HD.ha.stats([id], Date.now() - 21 * 864e5, null, 'hour', ['mean']);
+      const pts = (res[id] || []).filter((r) => r.mean != null);
+      if (pts.length < 72) return;                       // need ~3 days
+      // Use the stretch since the last charge (where the level jumped up)
+      let startIdx = 0;
+      for (let i = 1; i < pts.length; i++) if (pts[i].mean - pts[i - 1].mean > 5) startIdx = i;
+      const seg = pts.slice(startIdx);
+      const days = (seg[seg.length - 1].start - seg[0].start) / 864e5;
+      const used = seg[0].mean - seg[seg.length - 1].mean;
+      if (days >= 3 && used > 0) drainPerDay = used / days;
+    } catch (e) { /* statistics not available yet */ }
+  }
+  function batteryEstimate() {
+    const c = cfg(); const bat = S().num(c.battery);
+    if (bat == null || S().state(c.charging) === 'Charging') return null;
+    let rate = drainPerDay;
+    if (!rate) {
+      const days = S().num(c.daysSinceCharge);
+      if (days && days >= 1 && bat < 100) rate = (100 - bat) / days;
+    }
+    if (!rate || rate <= 0) return null;
+    return { days: bat / rate, rate };
+  }
+  function estimateText() {
+    const e = batteryEstimate(); if (!e) return '';
+    const d = e.days;
+    const left = d >= 60 ? `${Math.round(d / 30)} months` : d >= 14 ? `${Math.round(d / 7)} weeks` : `${Math.max(0, Math.round(d))} days`;
+    return `≈ ${left} left`;
+  }
+
   function since(ts, none) { return ts ? ago(new Date(ts).toISOString()) : none; }
 
   function cardHtml() {
@@ -69,7 +106,7 @@ window.HD = window.HD || {};
         <dl class="door-facts">
           <div><dt>Last ring</dt><dd>${ringing ? 'Ringing now' : since(last.ring, '–')}</dd></div>
           <div><dt>Last person</dt><dd>${S().state(c.person) === 'on' ? 'Now' : since(last.person, '–')}${who && who !== 'No Person' && who !== 'unknown' ? ` · ${esc(who)}` : ''}</dd></div>
-          <div><dt>Battery</dt><dd class="${low ? 'warn' : ''}">${bat == null ? '–' : `${Math.round(bat)}%`}</dd></div>
+          <div><dt>Battery</dt><dd class="${low ? 'warn' : ''}">${bat == null ? '–' : `${Math.round(bat)}%`}${S().state(c.charging) === 'Charging' ? ' · charging' : estimateText() ? `<small>${estimateText()}</small>` : ''}</dd></div>
           <div><dt>Mode</dt><dd>${esc(S().state(c.guardMode) || '–')}</dd></div>
         </dl>
       </section>`;
@@ -79,7 +116,9 @@ window.HD = window.HD || {};
     if (!enabled()) return [];
     const c = cfg(); const out = [];
     const bat = S().num(c.battery);
+    const est = batteryEstimate();
     if (bat != null && bat < (c.lowBattery || 20)) out.push(['alert', `Doorbell battery at ${Math.round(bat)}% — time to charge it`, 'warning']);
+    else if (est && est.days < 7) out.push(['alert', `Doorbell battery runs out in about ${Math.max(1, Math.round(est.days))} days`, 'warning']);
     if (S().state(c.baseConnected) === 'off') out.push(['alert', 'Eufy HomeBase is disconnected', 'critical']);
     return out;
   }
@@ -108,6 +147,12 @@ window.HD = window.HD || {};
 
   // ── Live view ──
   let hls = null;
+  let p2pStarted = false;
+  function stopP2P() {
+    const c = cfg();
+    if (p2pStarted && c.streamService && S().mode === 'live') HD.ha.callService(c.streamService, 'stop_p2p_livestream', { entity_id: c.camera }).catch(() => {});
+    p2pStarted = false;
+  }
   async function openLive() {
     hideRing();
     const dlg = document.getElementById('doorbell-live');
@@ -121,7 +166,18 @@ window.HD = window.HD || {};
     const video = dlg.querySelector('#door-video');
     const status = dlg.querySelector('#live-status');
     try {
-      const { url } = await HD.ha.callWS({ type: 'camera/stream', entity_id: c.camera, format: 'hls' });
+      if (c.streamService) {
+        try { await HD.ha.callService(c.streamService, 'start_p2p_livestream', { entity_id: c.camera }); }
+        catch (e) { if (!/already_running|AlreadyRunning/i.test(e.message)) throw e; }  // already streaming is fine
+        p2pStarted = true;
+      }
+      // The HomeBase needs a few seconds to open the stream; keep asking until HA has it
+      let url = null; let lastErr = null;
+      for (let i = 0; i < 15 && !url && dlg.open; i++) {
+        try { ({ url } = await HD.ha.callWS({ type: 'camera/stream', entity_id: c.camera, format: 'hls' })); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 2000)); }
+      }
+      if (!dlg.open) return;
+      if (!url) throw lastErr || new Error('the doorbell did not start streaming');
       const src = `${HD.ha.baseUrl()}${url}`;
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = src;
@@ -131,15 +187,33 @@ window.HD = window.HD || {};
         hls.loadSource(src); hls.attachMedia(video);
         hls.on(window.Hls.Events.ERROR, (_, d) => { if (d.fatal) status.textContent = 'The stream stopped. Close and try again.'; });
       }
-      video.addEventListener('playing', () => { status.textContent = 'Live. Close this when you’re done to save the doorbell’s battery.'; }, { once: true });
+      let playing = false;
+      video.addEventListener('playing', () => { playing = true; status.textContent = 'Live. Close this when you’re done to save the doorbell’s battery.'; }, { once: true });
+      setTimeout(() => { if (!playing && dlg.open) startSnapshotFallback(dlg, status); }, 20000);
     } catch (e) {
-      status.textContent = `Couldn't start live view: ${e.message}. The picture above is the latest snapshot.`;
+      status.textContent = `Couldn't start live video (${e.message}).`;
+      startSnapshotFallback(dlg, status);
     }
+  }
+
+  // While the doorbell is awake its picture refreshes; show that every 2 s instead of video
+  let snapTimer = null;
+  function startSnapshotFallback(dlg, status) {
+    const cam = S().get(cfg().camera); const pic = cam && cam.attributes.entity_picture;
+    if (!pic) return;
+    const body = dlg.querySelector('.live-body');
+    if (hls) { hls.destroy(); hls = null; }
+    body.querySelector('video').replaceWith(Object.assign(document.createElement('img'), { className: 'live-snap', alt: 'Doorbell picture, refreshing' }));
+    const img = body.querySelector('.live-snap');
+    const tick = () => { img.src = `${HD.ha.baseUrl()}${pic}${pic.includes('?') ? '&' : '?'}t=${Date.now()}`; };
+    tick(); clearInterval(snapTimer); snapTimer = setInterval(tick, 2000);
+    status.textContent = `${status.textContent} Showing the doorbell's picture, refreshed every 2 seconds, instead.`.trim();
   }
   function closeLive() {
     const dlg = document.getElementById('doorbell-live');
     if (hls) { hls.destroy(); hls = null; }
     const v = dlg.querySelector('video'); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+    stopP2P(); clearInterval(snapTimer);
     dlg.close(); dlg.innerHTML = '';
   }
   function loadScript(src) {
@@ -153,15 +227,17 @@ window.HD = window.HD || {};
       else if (ev.target.closest('[data-doorbell-dismiss]')) hideRing();
       else if (ev.target.closest('[data-doorbell-close]')) closeLive();
     });
-    document.getElementById('doorbell-live').addEventListener('close', () => { if (hls) { hls.destroy(); hls = null; } });
+    document.getElementById('doorbell-live').addEventListener('close', () => { if (hls) { hls.destroy(); hls = null; } stopP2P(); clearInterval(snapTimer); });
+    // Don't leave the doorbell streaming if the page is closed mid-view
+    window.addEventListener('pagehide', stopP2P);
     S().on((id) => {
       const c = cfg();
       if (id === c.ringing && S().state(c.ringing) === 'on') { last.ring = Date.now(); showRing(); }
       else if (id === c.person && S().state(c.person) === 'on') { last.person = Date.now(); if (document.getElementById('doorbell-alert').hidden) HD.app.toast(`Person at the ${(c.name || 'front door').toLowerCase()}`); }
       else if (id === c.motion && S().state(c.motion) === 'on') last.motion = Date.now();
     });
-    loadHistory();
-    setInterval(loadHistory, 15 * 60 * 1000);
+    loadHistory(); loadBatteryTrend();
+    setInterval(() => { loadHistory(); loadBatteryTrend(); }, 15 * 60 * 1000);
   }
 
   HD.doorbell = { init, cardHtml, alerts, enabled, showRing, last };
