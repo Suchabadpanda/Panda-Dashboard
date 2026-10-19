@@ -2,7 +2,7 @@
  * Floor plan, drawn from HD.config.floorplan.
  *   live mode:  lights glow, presence pulses, AC/TV buttons, doorbell at the front door
  *   temp mode:  rooms shaded by temperature against the comfort target, with a scale
- * HD.plan.html(mode) returns markup; the Plan view and the Climate view both use it.
+ * HD.plan.html(mode) returns markup for the Rooms view.
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -141,21 +141,4 @@ HD.views = HD.views || {};
   });
 
   HD.plan = { html };
-
-  let mode = 'live';
-  HD.views.plan = {
-    title: 'Plan',
-    mount(root) {
-      root.innerHTML = `<section class="panel plan-panel">
-        <header><h2>${mode === 'live' ? 'Around the house' : 'Room temperatures'}</h2>
-          <div class="seg" role="group" aria-label="Plan view">
-            <button data-plan-mode="live" class="${mode === 'live' ? 'on' : ''}">Live</button>
-            <button data-plan-mode="temp" class="${mode === 'temp' ? 'on' : ''}">Temperature</button>
-          </div></header>
-        <div id="plan-body"></div></section>`;
-      root.querySelectorAll('[data-plan-mode]').forEach((b) => b.addEventListener('click', () => { mode = b.dataset.planMode; this.mount(root); }));
-      this.update();
-    },
-    update() { const el = document.getElementById('plan-body'); if (el) el.innerHTML = html(mode); },
-  };
 })();

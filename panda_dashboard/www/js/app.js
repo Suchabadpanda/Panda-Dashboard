@@ -4,7 +4,8 @@ window.HD = window.HD || {};
 (function () {
   const { esc, icon } = HD.u;
   const S = HD.store;
-  const VIEWS = ['home', 'plan', 'energy', 'climate', 'car', 'devices'];
+  const VIEWS = ['home', 'rooms', 'energy', 'car', 'devices'];
+  const ALIASES = { plan: 'rooms', climate: 'rooms' }; // old bookmarks
   let current = null;
 
   const WEATHER_WORDS = {
@@ -35,6 +36,7 @@ window.HD = window.HD || {};
   }
 
   function show(name) {
+    name = ALIASES[name] || name;
     if (!VIEWS.includes(name)) name = 'home';
     current = name;
     document.getElementById('nav').innerHTML = navHtml();

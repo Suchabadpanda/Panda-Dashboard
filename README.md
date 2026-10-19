@@ -14,10 +14,11 @@ Home Assistant over its WebSocket API.
 
 | View | What's on it |
 |---|---|
-| **Home** | House cross-section with room temperature/humidity, motion, lights and AC; live solar, battery, grid, heat pump and EV flows; current tariff rate and when it changes; today's kWh and £; alerts (Sigen alarms, Axle VPP events, NAS, backups) |
-| **Energy** | Power through the day with the off-peak window shaded; battery charge; 30 days of grid import/export and solar vs use; monthly import cost vs export credit; payback tracker with 25-year projection and a month-by-month table |
-| **Climate** | Balance spread (target 1–1.5°), 24 h room temperatures against the 22° band, hot-water tank, AC mode controls |
-| **Devices** | Every light and smart plug, Wake-on-LAN for a PC, TVs, washer, Synology NAS health, SigenStor hardware, HA backups |
+| **Home** | House cross-section with room temperature/humidity, presence, lights, AC and TV; live solar, battery, grid, heat pump and EV flows; current tariff rate; today's kWh and £; front door camera; alerts |
+| **Rooms** | Floor plan that switches between lights/presence (tap a room to switch its lights) and temperatures; balance spread (target 1–1.5°), 24 h room temperatures, hot-water tank, AC mode controls |
+| **Energy** | Power through the day with the off-peak window shaded; battery charge; 30 days of grid import/export and solar vs use |
+| **Car** | Charge-now gauge for the tariff and spare solar, Wall Connector details, 30 days of charging |
+| **Devices** | Every light and smart plug, TVs, washer, SigenStor hardware, HA backups |
 
 ## Run it
 
@@ -162,7 +163,7 @@ panda_dashboard/www/       the dashboard itself
   js/tariff.js            time-of-use pricing, CSV parsing, ROI maths
   js/charts.js            small SVG line/bar charts with tooltips
   js/demo.js              demo snapshot of the real house
-  js/views/*.js           Home, Energy, Climate, Devices
+  js/views/*.js           Home, Rooms (+ plan.js floor plan), Energy, Car, Devices
 .github/workflows/        bumps the add-on version on each change
 tools/                exporter script, preview bundler
 deploy/               HA (bash/PowerShell) and NAS (Docker) deployment

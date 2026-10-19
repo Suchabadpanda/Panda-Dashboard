@@ -1,6 +1,7 @@
 /*
- * Climate view: how balanced the house is around the comfort target,
- * 24 hours of room temperatures, hot water, and the AC units.
+ * Rooms view: the floor plan (lights and presence, or temperatures), how balanced
+ * the house is around the comfort target, 24 hours of room temperatures, hot
+ * water, and the AC units.
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -75,12 +76,31 @@ HD.views = HD.views || {};
     });
   }
 
-  HD.views.climate = {
-    title: 'Climate',
+  let planMode = 'live';
+  try { planMode = localStorage.getItem('hd.planMode') || 'live'; } catch (e) { /* storage blocked */ }
+  function planHeader() {
+    return `<h2>${planMode === 'live' ? 'Around the house' : 'Room temperatures'}</h2>
+      <div class="seg" role="group" aria-label="Floor plan shows">
+        <button data-plan-mode="live" class="${planMode === 'live' ? 'on' : ''}">Lights</button>
+        <button data-plan-mode="temp" class="${planMode === 'temp' ? 'on' : ''}">Temperature</button>
+      </div>`;
+  }
+
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-plan-mode]'); const head = document.getElementById('plan-head');
+    if (!b || !head) return;
+    planMode = b.dataset.planMode;
+    try { localStorage.setItem('hd.planMode', planMode); } catch (e) { /* storage blocked */ }
+    head.innerHTML = planHeader();
+    HD.views.rooms.update();
+  });
+
+  HD.views.rooms = {
+    title: 'Rooms',
     mount(root) {
       root.innerHTML = `
       <div class="panel-grid climate">
-        ${HD.config.floorplan ? '<section class="panel wide plan-panel"><header><h2>Room temperatures</h2></header><div id="climate-plan"></div></section>' : ''}
+        ${HD.config.floorplan ? `<section class="panel wide plan-panel"><header id="plan-head">${planHeader()}</header><div id="climate-plan"></div></section>` : ''}
         <section class="panel"><header><h2>Balance</h2></header><div id="balance"></div></section>
         <section class="panel wide-2"><header><h2>Last 24 hours</h2><p>Band shows ${HD.config.comfortTarget}° ±0.75°.</p></header><div id="chart-temps" class="chart-box"></div></section>
         <section class="panel"><header><h2>Hot water</h2></header><div id="hotwater"></div><div id="chart-tank" class="chart-box"></div></section>
@@ -91,7 +111,7 @@ HD.views = HD.views || {};
     update() {
       const b = document.getElementById('balance'); if (!b) return;
       b.innerHTML = balanceHtml();
-      const cp = document.getElementById('climate-plan'); if (cp) cp.innerHTML = HD.plan.html('temp');
+      const cp = document.getElementById('climate-plan'); if (cp) cp.innerHTML = HD.plan.html(planMode);
       document.getElementById('ac').innerHTML = acHtml();
       document.getElementById('hotwater').innerHTML = hotWaterHtml();
     },

@@ -577,6 +577,7 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 
 /* ── Floor plan ── */
 .plan-panel > header { align-items: center; }
+.plan-panel .seg button { flex: none; padding: 0 14px; }
 .plan-floors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; align-items: start; }
 .plan-floor { margin: 0; min-width: 0; }
 .plan-floor figcaption { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
