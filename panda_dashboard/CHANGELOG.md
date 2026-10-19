@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.24
+- Home: heat pump COP from the Energy Tracker add-on
+
 ## 0.3.23
 - Heat pump: running/resting from a threshold, standby draw shown
 
