@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.11
+- Doorbell live view: wait for the ~20 s start-up
+
 ## 0.3.10
 - Doorbell: show the event picture, fall back from the camera picture
 
