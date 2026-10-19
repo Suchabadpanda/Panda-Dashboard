@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.7
+- Fix invisible doorbell overlay blocking the whole dashboard
+
 ## 0.3.6
 - Add the Eufy doorbell
 
