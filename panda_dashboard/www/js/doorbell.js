@@ -3,7 +3,9 @@
  *  - front-door card with the latest picture, last ring / person, battery
  *  - full-screen alert when someone rings, on whichever view is open
  *  - live view on tap, using HA's own camera stream (HLS)
- * The S220 is battery powered, so live video only starts when asked for.
+ *  - a "refresh" that wakes the doorbell just long enough to take a new picture
+ * The S220 is battery powered, so live video only starts when asked for (or on a
+ * ring, so the live view is ready sooner).
  */
 window.HD = window.HD || {};
 
@@ -16,16 +18,73 @@ window.HD = window.HD || {};
 
   const enabled = () => !!(cfg() && cfg().camera && S().get(cfg().camera));
 
-  function pictureUrl() {
+  // Two pictures are available:
+  //  - the camera's own picture: the last frame grabbed while it streamed (live view,
+  //    or a "Refresh" below). Its state flips idle↔streaming, so last_changed ≈ when.
+  //  - the event image: the thumbnail Eufy sends with a ring / motion event.
+  // Show whichever is newer; if the camera has never streamed since HA started its
+  // picture can fail to load, and the <img> falls back to the event image.
+  let picVersion = 0;
+  function pictures() {
     const c = cfg();
-    const img = S().get(c.image);
-    const cam = S().get(c.camera);
-    // The event image has a picture even while its state is 'unknown'; a battery camera's own
-    // picture returns HTTP 500 unless it has just streamed, so prefer the event image.
-    const pick = img && img.attributes.entity_picture ? img : cam;
-    const url = pick && pick.attributes.entity_picture;
-    if (!url) return null;
-    return `${HD.ha.baseUrl()}${url}${url.includes('?') ? '&' : '?'}v=${Date.parse(pick.last_changed) || 0}`;
+    const img = S().get(c.image); const cam = S().get(c.camera);
+    const camAt = cam ? Date.parse(cam.last_changed) : 0;
+    const eventAt = Math.max(last.ring || 0, last.person || 0, last.motion || 0);
+    const url = (e) => {
+      const u = e && e.attributes.entity_picture; if (!u) return null;
+      if (u.startsWith('data:')) return u;
+      return `${HD.ha.baseUrl()}${u}${u.includes('?') ? '&' : '?'}v=${picVersion}-${Date.parse(e.last_updated) || 0}`;
+    };
+    const camUrl = url(cam); const evtUrl = url(img);
+    const camFirst = camUrl && (!evtUrl || camAt >= eventAt);
+    return {
+      main: camFirst ? camUrl : evtUrl || camUrl, fallback: camFirst ? evtUrl : null,
+      at: camFirst ? camAt : eventAt || null,
+    };
+  }
+  const pictureUrl = () => pictures().main;
+  const imgTag = (cls, alt) => {
+    const p = pictures(); if (!p.main) return '';
+    const fb = p.fallback ? ` onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src='${esc(p.fallback)}'}else{this.replaceWith(Object.assign(document.createElement('span'),{className:'no-pic',textContent:'No picture yet'}))}"`
+      : ` onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'no-pic',textContent:'No picture yet'}))"`;
+    return `<img class="${cls}" src="${esc(p.main)}" alt="${esc(alt)}"${fb}>`;
+  };
+
+  // ── Waiting for the doorbell to wake ──
+  // The camera entity's state turns 'streaming' once the HomeBase has the P2P stream.
+  function waitForStreaming(timeoutMs) {
+    const c = cfg();
+    if (S().state(c.camera) === 'streaming') return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const off = S().on((id) => { if (id === c.camera && S().state(c.camera) === 'streaming') { off(); clearTimeout(t); resolve(true); } });
+      const t = setTimeout(() => { off(); resolve(false); }, timeoutMs);
+    });
+  }
+  async function startP2P() {
+    const c = cfg(); if (!c.streamService || S().mode !== 'live') return;
+    try { await HD.ha.callService(c.streamService, 'start_p2p_livestream', { entity_id: c.camera }); }
+    catch (e) { if (!/already_running|AlreadyRunning/i.test(e.message)) throw e; }  // already streaming is fine
+    p2pStarted = true;
+  }
+  // Grab a fresh frame while the stream is up; the camera's picture becomes that frame
+  function grabFrame() {
+    const c = cfg();
+    return HD.ha.callService(c.streamService, 'generate_image', { entity_id: c.camera })
+      .catch(() => {}).then(() => { picVersion++; HD.store.emit(c.camera); });
+  }
+
+  // "Refresh" on the card: wake the doorbell just long enough to take a picture
+  let refreshing = false;
+  async function refreshPicture() {
+    if (refreshing || S().mode !== 'live') return;
+    refreshing = true; HD.store.emit(null);
+    try {
+      await startP2P();
+      if (await waitForStreaming(45000)) await grabFrame();
+      else HD.app.toast("The doorbell didn't wake up in time. Try again.");
+    } catch (e) { HD.app.toast(`Couldn't refresh the picture (${e.message})`); }
+    if (!document.getElementById('doorbell-live').open) stopP2P();
+    refreshing = false; HD.store.emit(null);
   }
 
   // Latest "on" times from history, so restarts don't reset "last rang"
@@ -101,10 +160,14 @@ window.HD = window.HD || {};
     return `
       <section class="now-block doorbell ${ringing ? 'ringing' : ''}">
         <h2>${esc(c.name || 'Front door')}</h2>
-        <button class="door-pic" data-doorbell-live aria-label="Open live view of the ${esc(c.name || 'front door')}">
-          ${pic ? `<img src="${esc(pic)}" alt="Latest picture from the doorbell" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'no-pic',textContent:'No picture yet'}))">` : '<span class="no-pic">No picture yet</span>'}
-          <span class="live-chip">${icon('tv')}Live view</span>
-        </button>
+        <div class="door-media">
+          <button class="door-pic" data-doorbell-live aria-label="Open live view of the ${esc(c.name || 'front door')}">
+            ${pic ? imgTag('', 'Latest picture from the doorbell') : '<span class="no-pic">No picture yet</span>'}
+            <span class="live-chip">${icon('tv')}Live view</span>
+          </button>
+          ${pictures().at ? `<span class="pic-age">${refreshing ? 'Waking the doorbell…' : since(pictures().at, '')}</span>` : refreshing ? '<span class="pic-age">Waking the doorbell…</span>' : ''}
+          ${S().mode === 'live' && c.streamService ? `<button class="pic-refresh" data-doorbell-refresh ${refreshing ? 'disabled aria-busy="true"' : ''} aria-label="Take a new picture" title="Take a new picture (wakes the doorbell for a few seconds)">${refreshing ? '…' : '↻'}</button>` : ''}
+        </div>
         <dl class="door-facts">
           <div><dt>Last ring</dt><dd>${ringing ? 'Ringing now' : since(last.ring, '–')}</dd></div>
           <div><dt>Last person</dt><dd>${S().state(c.person) === 'on' ? 'Now' : since(last.person, '–')}${who && who !== 'No Person' && who !== 'unknown' ? ` · ${esc(who)}` : ''}</dd></div>
@@ -133,7 +196,7 @@ window.HD = window.HD || {};
       <div class="ring-card" role="alertdialog" aria-labelledby="ring-title">
         <p id="ring-title" class="ring-title">${icon('alert')}Someone's at the ${esc((c.name || 'front door').toLowerCase())}</p>
         <p class="sub">${time(Date.now())}</p>
-        <div class="ring-pic">${pictureUrl() ? `<img src="${esc(pictureUrl())}" alt="Picture from the doorbell">` : ''}</div>
+        <div class="ring-pic">${imgTag('', 'Picture from the doorbell')}</div>
         <div class="ring-actions">
           <button class="btn" data-doorbell-live>${icon('tv')}Live view</button>
           <button class="btn ghost" data-doorbell-dismiss>Dismiss</button>
@@ -145,38 +208,58 @@ window.HD = window.HD || {};
     // The event picture lands a moment after the ring; refresh it
     setTimeout(() => { const img = el.querySelector('.ring-pic img'); const u = pictureUrl(); if (img && u) img.src = u; else if (u) el.querySelector('.ring-pic').innerHTML = `<img src="${esc(u)}" alt="Picture from the doorbell">`; }, 4000);
   }
+  // On a ring, start waking the doorbell straight away so "Live view" opens quickly.
+  // If nobody opens it within a minute, let it go back to sleep.
+  function prewarm() {
+    if (cfg().prewarmOnRing === false || S().mode !== 'live' || p2pStarted) return;
+    startP2P().catch(() => {});
+    clearTimeout(prewarmTimer);
+    prewarmTimer = setTimeout(() => { if (!document.getElementById('doorbell-live').open) stopP2P(); }, 60000);
+  }
   function hideRing() { const el = document.getElementById('doorbell-alert'); if (el) { el.hidden = true; el.innerHTML = ''; } }
 
   // ── Live view ──
   let hls = null;
   let p2pStarted = false;
+  let liveReached = false;   // video actually played this session
+  let prewarmTimer = null;
   function stopP2P() {
     const c = cfg();
+    clearTimeout(prewarmTimer);
     if (p2pStarted && c.streamService && S().mode === 'live') HD.ha.callService(c.streamService, 'stop_p2p_livestream', { entity_id: c.camera }).catch(() => {});
     p2pStarted = false;
   }
+  // Leaving the live view: keep a picture of what it showed, then let the doorbell sleep
+  function endLive() {
+    if (liveReached && p2pStarted && S().mode === 'live') { liveReached = false; grabFrame().finally(stopP2P); }
+    else stopP2P();
+  }
   async function openLive() {
-    hideRing();
+    hideRing(); clearTimeout(prewarmTimer); liveReached = false;
     const dlg = document.getElementById('doorbell-live');
     const c = cfg();
     dlg.innerHTML = `
       <div class="live-head"><h2>${esc(c.name || 'Front door')}</h2><button class="btn ghost" data-doorbell-close>Close</button></div>
       <div class="live-body"><video id="door-video" playsinline muted autoplay controls poster="${esc(pictureUrl() || '')}"></video>
-      <p class="sub" id="live-status">Connecting… (about 20 seconds — the doorbell has to wake up). Streaming uses a little of its battery.</p></div>`;
+      <p class="sub" id="live-status">Connecting… the doorbell has to wake up first. Streaming uses a little of its battery.</p></div>`;
     dlg.showModal();
     if (S().mode !== 'live') { dlg.querySelector('#live-status').textContent = 'Live view needs a connection to Home Assistant.'; return; }
     const video = dlg.querySelector('#door-video');
     const status = dlg.querySelector('#live-status');
+    const t0 = Date.now();
+    const secs = () => `${Math.round((Date.now() - t0) / 1000)} s`;
     try {
       if (c.streamService) {
-        try { await HD.ha.callService(c.streamService, 'start_p2p_livestream', { entity_id: c.camera }); }
-        catch (e) { if (!/already_running|AlreadyRunning/i.test(e.message)) throw e; }  // already streaming is fine
-        p2pStarted = true;
+        await startP2P();
+        // Ask HA for the stream the moment the doorbell is up, rather than polling blind
+        status.textContent = 'Waking the doorbell…';
+        await waitForStreaming(40000);
+        if (!dlg.open) return;
+        status.textContent = `Doorbell awake after ${secs()}. Starting video…`;
       }
-      // The HomeBase needs a few seconds to open the stream; keep asking until HA has it
       let url = null; let lastErr = null;
-      for (let i = 0; i < 15 && !url && dlg.open; i++) {
-        try { ({ url } = await HD.ha.callWS({ type: 'camera/stream', entity_id: c.camera, format: 'hls' })); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 2000)); }
+      for (let i = 0; i < 20 && !url && dlg.open; i++) {
+        try { ({ url } = await HD.ha.callWS({ type: 'camera/stream', entity_id: c.camera, format: 'hls' })); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 1000)); }
       }
       if (!dlg.open) return;
       if (!url) throw lastErr || new Error('the doorbell did not start streaming');
@@ -192,7 +275,7 @@ window.HD = window.HD || {};
         if (!dlg.open) return;
         let retries = 0;
         hls = new window.Hls({
-          liveSyncDurationCount: 2,
+          lowLatencyMode: true, liveSyncDurationCount: 1, maxLiveSyncPlaybackRate: 1.5,
           manifestLoadingTimeOut: 30000, manifestLoadingMaxRetry: 6, manifestLoadingRetryDelay: 2000,
           levelLoadingTimeOut: 30000, levelLoadingMaxRetry: 6,
           fragLoadingTimeOut: 30000, fragLoadingMaxRetry: 6,
@@ -207,7 +290,7 @@ window.HD = window.HD || {};
       }
       let live = false;
       video.addEventListener('timeupdate', () => {
-        if (!live && video.currentTime > 0) { live = true; status.textContent = 'Live. Close this when you’re done to save the doorbell’s battery.'; }
+        if (!live && video.currentTime > 0) { live = true; liveReached = true; status.textContent = `Live (took ${secs()}). Close this when you’re done to save the doorbell’s battery.`; }
       });
       setTimeout(() => { if (!live && dlg.open) { status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 45000);
     } catch (e) {
@@ -241,7 +324,7 @@ window.HD = window.HD || {};
     const dlg = document.getElementById('doorbell-live');
     if (hls) { hls.destroy(); hls = null; }
     const v = dlg.querySelector('video'); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
-    stopP2P(); clearInterval(snapTimer);
+    endLive(); clearInterval(snapTimer);
     dlg.close(); dlg.innerHTML = '';
   }
   function loadScript(src) {
@@ -254,13 +337,14 @@ window.HD = window.HD || {};
       if (ev.target.closest('[data-doorbell-live]')) openLive();
       else if (ev.target.closest('[data-doorbell-dismiss]')) hideRing();
       else if (ev.target.closest('[data-doorbell-close]')) closeLive();
+      else if (ev.target.closest('[data-doorbell-refresh]')) refreshPicture();
     });
-    document.getElementById('doorbell-live').addEventListener('close', () => { if (hls) { hls.destroy(); hls = null; } stopP2P(); clearInterval(snapTimer); });
+    document.getElementById('doorbell-live').addEventListener('close', () => { if (hls) { hls.destroy(); hls = null; } endLive(); clearInterval(snapTimer); });
     // Don't leave the doorbell streaming if the page is closed mid-view
     window.addEventListener('pagehide', stopP2P);
     S().on((id) => {
       const c = cfg();
-      if (id === c.ringing && S().state(c.ringing) === 'on') { last.ring = Date.now(); showRing(); }
+      if (id === c.ringing && S().state(c.ringing) === 'on') { last.ring = Date.now(); showRing(); prewarm(); }
       else if (id === c.person && S().state(c.person) === 'on') { last.person = Date.now(); if (document.getElementById('doorbell-alert').hidden) HD.app.toast(`Person at the ${(c.name || 'front door').toLowerCase()}`); }
       else if (id === c.motion && S().state(c.motion) === 'on') last.motion = Date.now();
     });

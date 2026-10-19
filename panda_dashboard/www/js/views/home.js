@@ -296,7 +296,12 @@ HD.views = HD.views || {};
       const house = document.getElementById('house'); const now = document.getElementById('now');
       if (!house) return;
       house.innerHTML = houseHtml();
+      // Keep the doorbell picture element across re-renders so it isn't re-fetched
+      // (and the camera isn't asked for a frame) on every state change
+      const oldPic = now.querySelector('.door-pic img');
       now.innerHTML = nowHtml();
+      const newPic = now.querySelector('.door-pic img');
+      if (oldPic && newPic && oldPic.getAttribute('src') === newPic.getAttribute('src')) newPic.replaceWith(oldPic);
       document.getElementById('greeting').innerHTML = greetingHtml();
       document.getElementById('tiles').innerHTML = tilesHtml();
     },
