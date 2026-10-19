@@ -153,6 +153,23 @@ window.HD = window.HD || {};
       states[id] = { entity_id: id, state, attributes, last_changed: ts, last_updated: ts };
     });
     states['weather.forecast_home'] = { entity_id: 'weather.forecast_home', ...WEATHER, last_changed: ts, last_updated: ts };
+    // Tesla Fleet: the car parked away from home, asleep (made-up location)
+    const car = (id, state, attributes = {}) => { states[id] = { entity_id: id, state, attributes, last_changed: ts, last_updated: ts }; };
+    car('zone.home', 'zoning', { latitude: 51.5007, longitude: -0.1246, radius: 100 });
+    car('device_tracker.model_y_location', 'not_home', { latitude: 51.5155, longitude: -0.0922, source_type: 'gps' });
+    car('binary_sensor.model_y_status', 'off'); car('binary_sensor.model_y_charge_cable', 'off');
+    car('sensor.model_y_battery_level', '89', { unit_of_measurement: '%' }); car('sensor.model_y_battery_range', '377.1', { unit_of_measurement: 'km' });
+    car('number.model_y_charge_limit', '90', { unit_of_measurement: '%' }); car('sensor.model_y_charging', 'disconnected');
+    car('sensor.model_y_charger_power', '0', { unit_of_measurement: 'kW' });
+    car('lock.model_y_lock', 'locked'); car('switch.model_y_sentry_mode', 'off'); car('cover.model_y_windows', 'closed');
+    car('cover.model_y_froot', 'closed'); car('cover.model_y_boot', 'closed'); car('cover.model_y_charge_port_door', 'closed');
+    car('climate.model_y_climate', 'off', { current_temperature: 14.5 }); car('button.model_y_flash_lights', 'unknown');
+    car('sensor.model_y_inside_temperature', '14.5', { unit_of_measurement: '°C' }); car('sensor.model_y_outside_temperature', '12.5', { unit_of_measurement: '°C' });
+    car('sensor.model_y_odometer', '41250', { unit_of_measurement: 'km' });
+    car('update.model_y_update', 'off', { installed_version: '2026.38.3.1', latest_version: '2026.38.3.1' });
+    ['front_driver', 'front_passenger', 'rear_driver', 'rear_passenger'].forEach((d) => car(`binary_sensor.model_y_${d}_door`, 'off'));
+    [['front_left', 2.9], ['front_right', 2.9], ['rear_left', 2.75], ['rear_right', 2.9]].forEach(([w, v]) => car(`sensor.model_y_tyre_pressure_${w}`, String(v), { unit_of_measurement: 'bar' }));
+
     // Dreame robot vacuum, part-way through cleaning the kitchen (room boxes and positions
     // are in the vacuum's millimetre coordinates, drawn the other way round to the plan)
     const VROOMS = { 'Ground floor': [{ id: 6, name: 'Kitchen' }, { id: 1, name: 'Office' }, { id: 2, name: 'Hallway' }, { id: 3, name: 'Bathroom' }, { id: 5, name: 'Garden' }] };

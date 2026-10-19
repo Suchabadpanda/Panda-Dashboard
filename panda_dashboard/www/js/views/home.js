@@ -142,7 +142,7 @@ HD.views = HD.views || {};
           <svg class="car" viewBox="0 0 56 32" aria-hidden="true"><path d="M4 22v-5l6-2 7-8h20l9 8 6 2v5z"/><circle cx="15" cy="24" r="4"/><circle cx="42" cy="24" r="4"/></svg>
           <h4>${esc(HD.config.ev.name || 'Car')}</h4>
           <p>${evP > 0.1 ? `Charging ${kw(evP)}` : evState === 'not_connected' ? 'Not plugged in' : esc((evState || '').replace(/_/g, ' '))}</p>
-          <p class="sub">Last session ${kwh(S().num(HD.config.ev.session))}${S().available(HD.config.ev.carSoc) ? ` · car ${pct(S().num(HD.config.ev.carSoc))}` : ''}</p>
+          <p class="sub">Last session ${kwh(S().num(HD.config.ev.session))}${HD.car && HD.car.soc() != null ? ` · car ${pct(HD.car.soc())}` : ''}</p>
         </div>
         </div>
       </div>

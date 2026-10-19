@@ -130,17 +130,39 @@ HD.config = {
     power: 'sensor.tesla_wall_connector_total_power',
     session: 'sensor.tesla_wall_connector_session_energy',
     lifetime: 'sensor.tesla_wall_connector_energy',
-    // ESPHome BLE bridge — currently unavailable in HA; shown when it comes back
-    carSoc: 'sensor.espteslasolar_battery',
-    carRange: 'sensor.espteslasolar_range',
-    carCharging: 'sensor.espteslasolar_charging',
-    chargeLimit: 'number.espteslasolar_charging_limit',
-    doors: 'lock.espteslasolar_doors',
-    outsideTemp: 'sensor.espteslasolar_outside_temperature',
-    tpms: { fl: 'sensor.espteslasolar_tpms_front_left', fr: 'sensor.espteslasolar_tpms_front_right', rl: 'sensor.espteslasolar_tpms_rear_left', rr: 'sensor.espteslasolar_tpms_rear_right' },
     handleTemp: 'sensor.tesla_wall_connector_handle_temperature',
     voltage: 'sensor.tesla_wall_connector_grid_voltage',
     batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
+    tyreTarget: 42,              // recommended tyre pressure, psi (low warning 3 psi under)
+    // The car itself: each key uses the first source that has it available, so the
+    // Bluetooth bridge wins when the car's on the driveway and Tesla Fleet covers the rest.
+    car: {
+      sources: [
+      { name: 'Bluetooth',            // ESPHome Tesla BLE bridge on the driveway: local, free, only in range
+        soc: 'sensor.espteslasolar_battery', range: 'sensor.espteslasolar_range', limit: 'number.espteslasolar_charging_limit',
+        asleep: 'binary_sensor.espteslasolar_asleep', charging: 'sensor.espteslasolar_charging', chargerPower: 'sensor.espteslasolar_charger_power',
+        cable: 'binary_sensor.espteslasolar_charger', locked: 'lock.espteslasolar_doors', sentry: 'switch.espteslasolar_sentry_mode',
+        windows: 'cover.espteslasolar_windows', frunk: 'cover.espteslasolar_frunk', trunk: 'cover.espteslasolar_trunk',
+        chargePort: 'cover.espteslasolar_charge_port_door', climate: 'climate.espteslasolar_climate', flash: 'button.espteslasolar_flash_lights',
+        outsideTemp: 'sensor.espteslasolar_outside_temperature', odometer: 'sensor.espteslasolar_odometer',
+        doorFl: 'binary_sensor.espteslasolar_door_driver_front', doorFr: 'binary_sensor.espteslasolar_door_passenger_front',
+        doorRl: 'binary_sensor.espteslasolar_door_driver_rear', doorRr: 'binary_sensor.espteslasolar_door_passenger_rear',
+        tpmsFl: 'sensor.espteslasolar_tpms_front_left', tpmsFr: 'sensor.espteslasolar_tpms_front_right',
+        tpmsRl: 'sensor.espteslasolar_tpms_rear_left', tpmsRr: 'sensor.espteslasolar_tpms_rear_right' },
+      { name: 'Tesla Fleet',          // cloud: anywhere, polled every 10 min while awake
+        soc: 'sensor.model_y_battery_level', range: 'sensor.model_y_battery_range', limit: 'number.model_y_charge_limit',
+        awake: 'binary_sensor.model_y_status', charging: 'sensor.model_y_charging', chargerPower: 'sensor.model_y_charger_power',
+        cable: 'binary_sensor.model_y_charge_cable', locked: 'lock.model_y_lock', sentry: 'switch.model_y_sentry_mode',
+        windows: 'cover.model_y_windows', frunk: 'cover.model_y_froot', trunk: 'cover.model_y_boot',
+        chargePort: 'cover.model_y_charge_port_door', climate: 'climate.model_y_climate', flash: 'button.model_y_flash_lights',
+        insideTemp: 'sensor.model_y_inside_temperature', outsideTemp: 'sensor.model_y_outside_temperature', odometer: 'sensor.model_y_odometer',
+        location: 'device_tracker.model_y_location', update: 'update.model_y_update',
+        doorFl: 'binary_sensor.model_y_front_driver_door', doorFr: 'binary_sensor.model_y_front_passenger_door',
+        doorRl: 'binary_sensor.model_y_rear_driver_door', doorRr: 'binary_sensor.model_y_rear_passenger_door',
+        tpmsFl: 'sensor.model_y_tyre_pressure_front_left', tpmsFr: 'sensor.model_y_tyre_pressure_front_right',
+        tpmsRl: 'sensor.model_y_tyre_pressure_rear_left', tpmsRr: 'sensor.model_y_tyre_pressure_rear_right' },
+      ],
+    },
   },
 
   // ── Floor plan: one entry per floor, rooms as polygons in any units (the viewBox sets the scale).
