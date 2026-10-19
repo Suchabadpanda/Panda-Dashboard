@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.26
+- Energy: drop the end-of-line labels on Power today (legend covers it)
+
 ## 0.3.25
 - Home: COP moves to its own card under the front door
 
