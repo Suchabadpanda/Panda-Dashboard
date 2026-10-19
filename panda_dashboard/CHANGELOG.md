@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.5
+- Reddit-style features, editable tariff, motion and header fixes
+
 ## 0.3.4
 - Fix add-on image: build from nginx, not the Supervisor's base image
 
