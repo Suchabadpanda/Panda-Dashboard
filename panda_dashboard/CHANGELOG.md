@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.18
+- Vacuum: per-floor Dreame maps and the robot's real position on the plan
+
 ## 0.3.17
 - Plan: keep room names inside the walls; stop highlighted rooms looking bigger
 
