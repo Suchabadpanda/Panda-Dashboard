@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.14
+- Tidy header and room controls; fix plan AC positions
+
 ## 0.3.13
 - Add a floor plan view
 
