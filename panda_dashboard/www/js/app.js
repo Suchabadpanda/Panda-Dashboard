@@ -15,16 +15,10 @@ window.HD = window.HD || {};
   function headerHtml() {
     const now = new Date();
     const w = S.get(HD.config.weather);
-    const people = HD.config.people.map((p) => {
-      const st = S.state(p.id);
-      const home = st === 'home';
-      return `<li class="${home ? 'home' : ''}" title="${esc(p.name)}: ${home ? 'home' : esc(st === 'not_home' ? 'away' : st || 'unknown')}"><span class="avatar">${esc(p.name[0])}</span>${esc(p.name)}<small>${home ? 'Home' : st === 'not_home' ? 'Away' : esc(st || '–')}</small></li>`;
-    }).join('');
     return `
       <div class="clock"><time>${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</time>
         <span>${now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</span></div>
-      ${w ? `<div class="weather"><strong>${Math.round(w.attributes.temperature)}°</strong><span>${esc(WEATHER_WORDS[w.state] || w.state)} · wind ${Math.round(w.attributes.wind_speed || 0)} ${esc(w.attributes.wind_speed_unit || '')}</span></div>` : ''}
-      <ul class="people">${people}</ul>`;
+      ${w ? `<div class="weather"><strong>${Math.round(w.attributes.temperature)}°</strong><span>${esc(WEATHER_WORDS[w.state] || w.state)} · wind ${Math.round(w.attributes.wind_speed || 0)} ${esc(w.attributes.wind_speed_unit || '')}</span></div>` : ''}`;
   }
 
   function statusHtml() {

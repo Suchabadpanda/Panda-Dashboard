@@ -221,15 +221,19 @@ button { font: inherit; color: inherit; }
 .room-temp small { font-size: 14px; color: var(--muted); margin-left: 6px; font-weight: 500; }
 .room-meta { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); }
 .room-meta .ic { width: 14px; height: 14px; }
-.room-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 8px; }
+.room-controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: auto; padding-top: 8px; }
 .motion { color: var(--s-solar); display: inline-flex; }
 .motion .ic { width: 18px; height: 18px; }
 
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; flex: none;
   border: 1px solid var(--line); background: color-mix(in oklab, var(--bg) 40%, transparent);
-  padding: 6px 10px; border-radius: 999px; font-size: 13px; color: var(--muted); min-height: 34px;
+  height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13px; line-height: 1; color: var(--muted);
+  white-space: nowrap;
 }
+/* Shape says what a control does: lights are pills, appliances are rounded squares, status is read-only */
+.chip.appliance { border-radius: 8px; }
+.chip.status { cursor: default; border-style: dashed; background: transparent; }
 .chip.on { background: var(--s-solar); border-color: var(--s-solar); color: #1b1300; }
 .chip:disabled { opacity: .45; cursor: default; }
 .chip .ic { width: 15px; height: 15px; }
@@ -569,7 +573,7 @@ tr.filled td, tr.filled th { color: var(--faint); font-style: italic; }
 .settings { width: min(760px, calc(100vw - 32px)); }
 .door-facts dd small { display: block; font: 400 12px/1.3 var(--font); color: var(--muted); }
 .live-snap { width: 100%; border-radius: var(--r-md); display: block; aspect-ratio: 4 / 3; object-fit: cover; background: #000; }
-.chip.ac.on { background: var(--s-load); border-color: var(--s-load); color: #fff; }
+.chip.appliance.on { background: var(--s-load); border-color: var(--s-load); color: #fff; }
 
 /* ── Floor plan ── */
 .plan-panel > header { align-items: center; }

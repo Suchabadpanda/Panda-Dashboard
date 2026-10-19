@@ -40,17 +40,17 @@ HD.views = HD.views || {};
 
   function deviceButtons(r, d, b, fs) {
     const items = [];
-    if (d.ac && S().get(d.ac)) {
+    if (d.ac) {
       const on = S().available(d.ac) && S().state(d.ac) !== 'off';
       items.push({ id: d.ac, label: 'AC', on, avail: S().available(d.ac) });
     }
-    if (d.tv && S().get(d.tv)) {
+    if (d.tv) {
       const st = S().state(d.tv);
       items.push({ id: d.tv, label: 'TV', on: S().available(d.tv) && !['off', 'standby'].includes(st), avail: S().available(d.tv) });
     }
     const w = fs * 2.6; const hgt = fs * 1.5; const gap = fs * 0.4;
     return items.map((it, i) => {
-      const x = b.x1 - (w + gap) * (i + 1); const y = b.y0 + gap;
+      const x = b.x0 + fs * 0.6 + (w + gap) * i; const y = b.y0 + fs * 2.1;
       return `<g class="dev ${it.on ? 'on' : ''} ${it.avail ? '' : 'off-line'}" ${it.avail ? `data-toggle="${it.id}" role="button" tabindex="0"` : ''} aria-label="${it.label} ${it.on ? 'on' : 'off'}">
         <rect x="${x}" y="${y}" width="${w}" height="${hgt}" rx="${hgt / 2}"/><text x="${x + w / 2}" y="${y + hgt * 0.7}" text-anchor="middle" font-size="${fs * 0.8}">${it.label}</text></g>`;
     }).join('');
