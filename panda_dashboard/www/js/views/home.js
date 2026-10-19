@@ -80,6 +80,8 @@ HD.views = HD.views || {};
     const grid = S().num(e.gridPower) || 0;     // + importing
     const soc = S().num(e.soc);
     const hpP = S().num(HD.config.heatPump.power) || 0;
+    // Standby draw (controls, circulation) isn't "running"; config.heatPump.runningAbove sets the line
+    const hpOn = hpP > (HD.config.heatPump.runningAbove ?? 0.1);
     const evP = S().num(HD.config.ev.power) || 0;
     const evState = S().state(HD.config.ev.status);
     const tank = S().num(HD.config.heatPump.tankTemp);
@@ -128,11 +130,11 @@ HD.views = HD.views || {};
 
       <div class="side right">
         <div class="link">
-        ${flow('f-hp', hpP, kw(hpP))}
-        <div class="node heatpump ${hpP > 0.1 ? 'running' : ''}">
+        ${flow('f-hp', hpOn ? hpP : 0, kw(hpP))}
+        <div class="node heatpump ${hpOn ? 'running' : ''}">
           <svg class="fan" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="34" rx="4"/><circle cx="24" cy="24" r="11"/><path d="M24 24c0-6 3-9 6-9M24 24c6 0 9 3 9 6M24 24c0 6-3 9-6 9M24 24c-6 0-9-3-9-6"/></svg>
           <h4>Heat pump</h4>
-          <p>${hpP > 0.1 ? `Running ${kw(hpP)}` : 'Resting'}</p>
+          <p>${hpOn ? `Running ${kw(hpP)}` : `Resting${hpP >= 0.05 ? ` · ${kw(hpP)} standby` : ''}`}</p>
           <p class="sub">Tank ${temp(tank)} · ${kwh(S().num(HD.config.heatPump.energyToday))} today${S().state(HD.config.heatPump.legionella) === 'on' ? ' · legionella cycle' : ''}</p>
         </div>
         </div>
