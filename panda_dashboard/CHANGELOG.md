@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.15
+- Merge Plan into Climate as a new Rooms view
+
 ## 0.3.14
 - Tidy header and room controls; fix plan AC positions
 
