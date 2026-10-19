@@ -21,7 +21,7 @@ HD.views = HD.views || {};
     const t = HD.tariff.tariffAt(dayStart);
     const offPeak = [[dayStart.getTime() + t.offPeakStart * 3600e3, dayStart.getTime() + t.offPeakEnd * 3600e3]];
     HD.chart.line(box, {
-      label: 'Power through the day', height: 240, zero: true, regions: offPeak,
+      label: 'Power through the day', height: 240, zero: true, regions: offPeak, endLabels: false,
       xMin: dayStart.getTime(), xMax: dayStart.getTime() + 24 * 3600e3, xTicks: 6,
       format: (v, tick) => (tick ? `${v}` : `${v.toFixed(2)} kW`),
       series: [
@@ -33,7 +33,7 @@ HD.views = HD.views || {};
     });
     HD.chart.line(document.getElementById('chart-soc'), {
       label: 'Battery charge through the day', height: 120, yMin: 0, yMax: 100, ticks: 2, regions: offPeak,
-      xMin: dayStart.getTime(), xMax: dayStart.getTime() + 24 * 3600e3, xTicks: 6, endLabels: false, padRight: 74,
+      xMin: dayStart.getTime(), xMax: dayStart.getTime() + 24 * 3600e3, xTicks: 6, endLabels: false,
       format: (v) => `${Math.round(v)}%`,
       series: [{ name: 'Battery charge', points: pts(c[e.soc]), color: 'var(--s-battery)', area: true }],
     });
