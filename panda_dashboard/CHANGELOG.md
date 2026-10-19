@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.20
+- Doorbell: newer picture, refresh button, quicker live view
+
 ## 0.3.19
 - Plan: drop the presence outline so lit rooms match the temperature plan
 
