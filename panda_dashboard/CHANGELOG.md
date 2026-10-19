@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.13
+- Add a floor plan view
+
 ## 0.3.12
 - Energy: drop payback and money panels; AC buttons in room tiles
 
