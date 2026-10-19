@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.22
+- Home: Shortcuts replace people tile; tariffs saved on the dashboard stick
+
 ## 0.3.21
 - Car view: Tesla Fleet + Bluetooth bridge, top-down car with tyres and controls
 
