@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.9
+- Doorbell: start the Eufy P2P stream for live view; battery time left
+
 ## 0.3.8
 - Edit the tariff on the dashboard; TVs and washer in their rooms; drop NAS
 
