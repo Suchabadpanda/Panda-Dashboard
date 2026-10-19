@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.23
+- Heat pump: running/resting from a threshold, standby draw shown
+
 ## 0.3.22
 - Home: Shortcuts replace people tile; tariffs saved on the dashboard stick
 
