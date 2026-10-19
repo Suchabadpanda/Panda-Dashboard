@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.21
+- Car view: Tesla Fleet + Bluetooth bridge, top-down car with tyres and controls
+
 ## 0.3.20
 - Doorbell: newer picture, refresh button, quicker live view
 
