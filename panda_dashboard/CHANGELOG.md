@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.19
+- Plan: drop the presence outline so lit rooms match the temperature plan
+
 ## 0.3.18
 - Vacuum: per-floor Dreame maps and the robot's real position on the plan
 
