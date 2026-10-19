@@ -117,7 +117,7 @@ HD.views = HD.views || {};
 
     const table = document.getElementById('roi-table');
     table.innerHTML = `<table><thead><tr><th scope="col">Month</th><th scope="col">Bought</th><th scope="col">Sold</th><th scope="col">Import cost</th><th scope="col">Export credit</th><th scope="col">Baseline</th><th scope="col">Saved</th><th scope="col">Source</th></tr></thead><tbody>
-      ${roi.months.map((m) => `<tr class="${m.filled ? 'filled' : ''}"><th scope="row">${m.label}</th><td>${m.import != null ? m.import.toFixed(0) : '–'}</td><td>${m.export != null ? m.export.toFixed(0) : '–'}</td><td>${gbp(m.importCost)}</td><td>${gbp(m.exportCredit)}</td><td>${gbp(m.baseline)}</td><td>${gbp(m.saving)}</td><td>${m.filled ? 'estimated (average)' : m.source === 'tracker' ? 'tracker CSV' : m.estimated ? 'HA, split estimated' : 'HA, hourly'}</td></tr>`).join('')}
+      ${roi.months.map((m) => `<tr class="${m.filled ? 'filled' : ''}"><th scope="row">${m.label}</th><td>${m.import != null ? m.import.toFixed(0) : '–'}</td><td>${m.export != null ? m.export.toFixed(0) : '–'}</td><td>${gbp(m.importCost)}</td><td>${gbp(m.exportCredit)}</td><td>${gbp(m.baseline)}</td><td>${gbp(m.saving)}</td><td>${m.filled ? 'estimated (average)' : m.source === 'tracker' ? 'tracker CSV' : m.source === 'ha+tracker' ? 'HA + tracker CSV' : m.estimated ? 'HA, split estimated' : 'HA, hourly'}</td></tr>`).join('')}
     </tbody></table>`;
   }
 

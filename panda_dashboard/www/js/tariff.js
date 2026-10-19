@@ -68,7 +68,7 @@ window.HD = window.HD || {};
       if (!key) return;
       const num = (n) => { const v = parseFloat(c[idx(n)]); return Number.isFinite(v) ? v : null; };
       rows[key] = {
-        import: num('import_kwh'), export: num('export_kwh'),
+        import: num('import_kwh'), export: num('export_kwh'), load: num('load_kwh'),
         importCost: num('import_cost'), exportCredit: num('export_credit'), standing: num('standing_charge'),
       };
     });
@@ -121,12 +121,21 @@ window.HD = window.HD || {};
           row.exportCredit = h.export * t.export;
           row.estimated = true;
         }
+        // HA's first month is partial: add the days before HA started from the tracker CSV
+        if (firstHaMonth && c && c.importCost != null) {
+          row.import += c.import || 0; row.export += c.export || 0;
+          if (row.load != null && c.load != null) row.load += c.load;
+          row.importCost += c.importCost;
+          row.exportCredit += (c.export || 0) * tariffAt(new Date(key + '-15')).export;
+          row.partial = key === nowKey || key === startKey;
+          row.source = 'ha+tracker';
+        }
       } else if (c && c.importCost != null) {
         // Tracker month (before HA recorded). Export credit is accrued from kWh at the
         // export rate: the CSV's credit column holds E.ON's lump payments, which land
         // months after the export happened.
         row.source = 'tracker';
-        row.import = c.import; row.export = c.export; row.load = null;
+        row.import = c.import; row.export = c.export; row.load = c.load ?? null;
         row.importCost = c.importCost;
         row.exportCredit = c.export ? c.export * tariffAt(new Date(key + '-15')).export : (c.exportCredit || 0);
       } else {
@@ -146,7 +155,7 @@ window.HD = window.HD || {};
         row.actual = row.importCost - row.exportCredit;
         row.saving = row.baseline != null ? row.baseline - row.actual : null;
         // Install month: only the days after install count
-        if (key === startKey && row.saving != null) row.saving *= (daysInMonth(startKey) - install.getDate() + 1) / daysInMonth(startKey);
+        if (key === startKey && row.saving != null && row.baselineFrom === 'same month before install') row.saving *= (daysInMonth(startKey) - install.getDate() + 1) / daysInMonth(startKey);
       }
       months.push(row);
     }

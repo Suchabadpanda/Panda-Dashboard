@@ -123,7 +123,17 @@ saving   = baseline − actual
 
 Put the tracker's `energy_monthly.csv` in `data/` (git-ignored) before deploying, or use
 **Energy → Payback → Import tracker CSV** in the browser. Columns:
-`label,import_kwh,export_kwh,import_cost,export_credit,standing_charge`.
+`label,import_kwh,export_kwh,import_cost,export_credit,standing_charge`, plus optional `load_kwh`.
+
+`tools/build_tracker_csv.py` builds the CSV from the E.ON billing workbook plus the Sigenergy
+app's hourly export, which supplies import, export and house load for the months before HA:
+
+```bash
+python3 tools/build_tracker_csv.py --billing Energy_usage_2024-.xlsx --sigen sigen-hourly.xlsx --out data/energy_monthly.csv
+```
+
+The optional `load_kwh` column lets those months use the same load-based baseline as HA months.
+For HA's first (partial) month, the CSV row covers only the days before HA started and is added to HA's figures.
 
 `tools/ha_energy_export.py` is the updated exporter: it reads the SigenStor import/export
 statistics and writes the same CSV with time-of-use pricing, for feeding the standalone tracker
