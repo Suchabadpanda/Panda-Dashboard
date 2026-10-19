@@ -20,7 +20,9 @@ window.HD = window.HD || {};
     const c = cfg();
     const img = S().get(c.image);
     const cam = S().get(c.camera);
-    const pick = img && img.state !== 'unknown' && img.attributes.entity_picture ? img : cam;
+    // The event image has a picture even while its state is 'unknown'; a battery camera's own
+    // picture returns HTTP 500 unless it has just streamed, so prefer the event image.
+    const pick = img && img.attributes.entity_picture ? img : cam;
     const url = pick && pick.attributes.entity_picture;
     if (!url) return null;
     return `${HD.ha.baseUrl()}${url}${url.includes('?') ? '&' : '?'}v=${Date.parse(pick.last_changed) || 0}`;
@@ -100,7 +102,7 @@ window.HD = window.HD || {};
       <section class="now-block doorbell ${ringing ? 'ringing' : ''}">
         <h2>${esc(c.name || 'Front door')}</h2>
         <button class="door-pic" data-doorbell-live aria-label="Open live view of the ${esc(c.name || 'front door')}">
-          ${pic ? `<img src="${esc(pic)}" alt="Latest picture from the doorbell" loading="lazy">` : '<span class="no-pic">No picture yet</span>'}
+          ${pic ? `<img src="${esc(pic)}" alt="Latest picture from the doorbell" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'no-pic',textContent:'No picture yet'}))">` : '<span class="no-pic">No picture yet</span>'}
           <span class="live-chip">${icon('tv')}Live view</span>
         </button>
         <dl class="door-facts">
@@ -199,16 +201,24 @@ window.HD = window.HD || {};
   // While the doorbell is awake its picture refreshes; show that every 2 s instead of video
   let snapTimer = null;
   function startSnapshotFallback(dlg, status) {
-    const cam = S().get(cfg().camera); const pic = cam && cam.attributes.entity_picture;
-    if (!pic) return;
+    const c = cfg();
+    const cam = S().get(c.camera); const img = S().get(c.image);
+    const camPic = cam && cam.attributes.entity_picture;
+    const evtPic = img && img.attributes.entity_picture;
+    if (!camPic && !evtPic) return;
     const body = dlg.querySelector('.live-body');
     if (hls) { hls.destroy(); hls = null; }
-    body.querySelector('video').replaceWith(Object.assign(document.createElement('img'), { className: 'live-snap', alt: 'Doorbell picture, refreshing' }));
-    const img = body.querySelector('.live-snap');
-    const tick = () => { img.src = `${HD.ha.baseUrl()}${pic}${pic.includes('?') ? '&' : '?'}t=${Date.now()}`; };
+    const video = body.querySelector('video');
+    if (video) video.replaceWith(Object.assign(document.createElement('img'), { className: 'live-snap', alt: 'Doorbell picture, refreshing' }));
+    const el = body.querySelector('.live-snap');
+    const withQ = (p, k, v) => `${HD.ha.baseUrl()}${p}${p.includes('?') ? '&' : '?'}${k}=${v}`;
+    // The camera's picture 500s on a battery doorbell that isn't streaming; fall back to the event image
+    el.onerror = () => { if (evtPic && !el.src.includes(evtPic.split('?')[0])) el.src = withQ(evtPic, 't', Date.now()); };
+    const tick = () => { el.src = camPic ? withQ(camPic, 't', Date.now()) : withQ(evtPic, 't', Date.now()); };
     tick(); clearInterval(snapTimer); snapTimer = setInterval(tick, 2000);
     status.textContent = `${status.textContent} Showing the doorbell's picture, refreshed every 2 seconds, instead.`.trim();
   }
+
   function closeLive() {
     const dlg = document.getElementById('doorbell-live');
     if (hls) { hls.destroy(); hls = null; }
