@@ -153,12 +153,16 @@ window.HD = window.HD || {};
       states[id] = { entity_id: id, state, attributes, last_changed: ts, last_updated: ts };
     });
     states['weather.forecast_home'] = { entity_id: 'weather.forecast_home', ...WEATHER, last_changed: ts, last_updated: ts };
-    // Dreame robot vacuum, part-way through cleaning the kitchen
+    // Dreame robot vacuum, part-way through cleaning the kitchen (room boxes and positions
+    // are in the vacuum's millimetre coordinates, drawn the other way round to the plan)
+    const VROOMS = { 'Ground floor': [{ id: 6, name: 'Kitchen' }, { id: 1, name: 'Office' }, { id: 2, name: 'Hallway' }, { id: 3, name: 'Bathroom' }, { id: 5, name: 'Garden' }] };
     states['vacuum.dreame_vacuum'] = { entity_id: 'vacuum.dreame_vacuum', state: 'cleaning', last_changed: ts, last_updated: ts,
-      attributes: { friendly_name: 'Dreame vacuum', battery: 74, status: 'sweeping', current_segment: 1, active_segments: [1, 4],
-        selected_map: 'Ground floor', rooms: { 'Ground floor': [{ id: 1, name: 'Kitchen' }, { id: 2, name: 'Office' }, { id: 3, name: 'Hall' }, { id: 4, name: 'Dining area' }] } } };
+      attributes: { friendly_name: 'Dreame vacuum', battery: 74, status: 'sweeping', current_segment: 6, active_segments: [6, 2],
+        selected_map: 'Ground floor', rooms: VROOMS } };
     states['camera.dreame_vacuum_map'] = { entity_id: 'camera.dreame_vacuum_map', state: 'idle', last_changed: ts, last_updated: ts,
-      attributes: { friendly_name: 'Dreame vacuum map', entity_picture: DEMO_MAP } };
+      attributes: { friendly_name: 'Dreame vacuum map', entity_picture: DEMO_MAP, vacuum_position: { x: 1700, y: 900, a: 90 }, charger_position: { x: -295, y: 350, a: 268 },
+        rooms: { 1: { room_id: 1, name: 'Office', x0: 1650, y0: 3550, x1: 4100, y1: 6400 }, 2: { room_id: 2, name: 'Hallway', x0: 450, y0: 2750, x1: 2750, y1: 6600 },
+          3: { room_id: 3, name: 'Bathroom', x0: -400, y0: 4500, x1: 600, y1: 6500 }, 6: { room_id: 6, name: 'Kitchen', x0: -650, y0: -3050, x1: 4150, y1: 3100 } } } };
     return states;
   }
 
@@ -276,7 +280,7 @@ window.HD = window.HD || {};
         else if (domain === 'dreame_vacuum' || domain === 'vacuum') {
           const segs = [].concat(data.segments || []);
           if (service === 'vacuum_clean_segment') Object.assign(s.attributes, { active_segments: segs, current_segment: segs[0] });
-          if (service === 'start') s.attributes.active_segments = (s.attributes.rooms['Ground floor'] || []).map((r) => r.id);
+          if (service === 'start') s.attributes.active_segments = (s.attributes.rooms[s.attributes.selected_map] || []).map((r) => r.id);
           s.state = { vacuum_clean_segment: 'cleaning', start: 'cleaning', pause: 'paused', return_to_base: 'returning' }[service] || s.state;
           if (s.state !== 'cleaning') s.attributes.active_segments = [];
         }

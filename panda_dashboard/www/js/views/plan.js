@@ -92,8 +92,14 @@ HD.views = HD.views || {};
   function floorSvg(f, mode, idx) {
     const vb = f.viewBox.split(/\s+/).map(Number);
     const fs = vb[2] / 24;
-    const vac = HD.vacuum && HD.vacuum.configured() ? HD.vacuum.info() : null;
+    const vacAll = HD.vacuum && HD.vacuum.configured() ? HD.vacuum.info() : null;
+    const vac = vacAll && vacAll.floor === f.name ? vacAll : null;   // the robot's on this floor
     let bots = '';   // drawn last so later rooms don't cover them
+    if (vac && mode !== 'temp') {
+      if (vac.dockAt && mode === 'vac') bots += `<g class="dock" aria-label="Robot dock"><rect x="${vac.dockAt.x - fs * 0.7}" y="${vac.dockAt.y - fs * 0.5}" width="${fs * 1.4}" height="${fs}" rx="${fs * 0.2}"/></g>`;
+      const showAny = vac.state !== 'docked' || mode === 'vac';
+      if (showAny && vac.robotAt) bots += robot(vac.robotAt.x, vac.robotAt.y, fs, vac.state);
+    }
     const rooms = f.rooms.map((r) => {
       const p = pts(r.points); const b = bbox(p);
       const kind = r.kind || 'room';
@@ -119,13 +125,13 @@ HD.views = HD.views || {};
       const a = labelAnchor(p, b, lfs, r.name.length);
       const label = kind === 'stairs' ? '' : `<text class="rn" x="${a.x}" y="${a.y}" font-size="${lfs}">${esc(r.name)}</text>`;
       let big = '';
-      if (d && d.t != null && !small) {
+      if (d && d.t != null && !small && mode !== 'vac') {
         big = `<text class="rt" x="${cx}" y="${cy + fs * 0.6}" text-anchor="middle" font-size="${fs * (mode === 'temp' ? 2.4 : 1.6)}">${temp(d.t)}</text>`;
         if (mode === 'temp' && d.h != null) big += `<text class="rh" x="${cx}" y="${cy + fs * 2.1}" text-anchor="middle" font-size="${fs * 0.8}">${pct(d.h)} humidity</text>`;
       }
       const here = d && d.here && mode === 'live' ? `<circle class="pulse" cx="${cx}" cy="${cy + (big ? fs * 1.8 : 0)}" r="${fs * 0.55}"/>` : '';
       const devs = d && mode === 'live' && !small ? deviceButtons(r, d, a, fs) : '';
-      const showBot = vac && vac.currentPlan === r.id && mode !== 'temp' && (vac.state !== 'docked' || mode === 'vac');
+      const showBot = vac && !vac.robotAt && vac.currentPlan === r.id && mode !== 'temp' && (vac.state !== 'docked' || mode === 'vac');
       if (showBot) {
         // Beside the temperature, nudged until it's inside the room's outline
         const spots = [[cx + fs * 3.7, cy], [cx - fs * 3.7, cy], [cx, cy + fs * 2.4], [cx, cy - fs * 2.4], [cx, cy]];
@@ -148,7 +154,8 @@ HD.views = HD.views || {};
         <polygon class="cone" points="${cone}"/><circle cx="${x}" cy="${y}" r="${r0}"/></g>`;
     }
 
-    return `<figure class="plan-floor"><figcaption>${esc(f.name)}</figcaption>
+    const off = mode === 'vac' && vacAll && !vac ? ' vac-elsewhere' : '';
+    return `<figure class="plan-floor${off}"><figcaption>${esc(f.name)}${mode === 'vac' && vac ? ' <span class="robot-here">· robot is here</span>' : ''}</figcaption>
       <svg viewBox="${f.viewBox}" role="group" aria-label="${esc(f.name)}" preserveAspectRatio="xMidYMid meet">
         <defs>
           <pattern id="hatch${idx}" width="${fs * 0.6}" height="${fs * 0.6}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${fs * 0.6}" height="${fs * 0.6}" fill="var(--panel)"/><line x1="0" y1="0" x2="0" y2="${fs * 0.6}" stroke="var(--line)" stroke-width="${fs * 0.12}"/></pattern>
