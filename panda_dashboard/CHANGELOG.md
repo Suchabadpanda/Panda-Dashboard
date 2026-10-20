@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.29
+- New car drawing, more colour and motion, bottom page bar on phones
+
 ## 0.3.28
 - Tank chart back, mirrored battery line, fuller Charge now? card
 
