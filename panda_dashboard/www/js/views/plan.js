@@ -89,10 +89,10 @@ HD.views = HD.views || {};
         if (best && area <= best.area) continue;
         let ok = true;
         for (let i = i0; i < i1 && ok; i++) for (let k = k0; k < k1 && ok; k++) ok = cell[i][k];
-        if (ok) best = { area, x: (xs[i0] + xs[i1]) / 2, y: (ys[k0] + ys[k1]) / 2 };
+        if (ok) best = { area, x: (xs[i0] + xs[i1]) / 2, y: (ys[k0] + ys[k1]) / 2, w: xs[i1] - xs[i0], h: ys[k1] - ys[k0] };
       }
     }
-    const c = best || { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
+    const c = best || { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2, w: b.x1 - b.x0, h: b.y1 - b.y0 };
     centres.set(key, c);
     return c;
   }
@@ -156,13 +156,18 @@ HD.views = HD.views || {};
       const a = labelAnchor(p, b, lfs, r.name.length);
       const label = kind === 'stairs' ? '' : `<text class="rn" x="${a.x}" y="${a.y}" font-size="${lfs}">${esc(r.name)}</text>`;
       let big = '';
-      if (d && d.t != null && !small && mode !== 'vac') {
+      // Narrow rooms such as the hall still get a temperature if one fits: it's shrunk only as
+      // far as the room's width needs, and humidity is shortened to just the figure
+      const roomy = vc.w >= fs * 3 && vc.h >= fs * 4;
+      if (d && d.t != null && roomy && mode !== 'vac') {
         // Temperature (and humidity under it) centred as one block on the room's visual centre
-        const tfs = fs * (mode === 'temp' ? 2.2 : 1.6);
+        const want = fs * (mode === 'temp' ? 2.2 : 1.6);
+        const tfs = Math.min(want, (vc.w - fs * 0.8) / (temp(d.t).length * 0.56));
+        const narrow = vc.w < fs * 6;
         const withHum = mode === 'temp' && d.h != null;
         const base = cy + tfs * 0.36 - (withHum ? fs * 0.7 : 0);
         big = `<text class="rt" x="${cx}" y="${base}" text-anchor="middle" font-size="${tfs}">${temp(d.t)}</text>`;
-        if (withHum) big += `<text class="rh" x="${cx}" y="${base + fs * 1.5}" text-anchor="middle" font-size="${fs * 0.8}">${pct(d.h)} humidity</text>`;
+        if (withHum) big += `<text class="rh" x="${cx}" y="${base + fs * 1.5}" text-anchor="middle" font-size="${fs * 0.8}">${pct(d.h)}${narrow ? '' : ' humidity'}</text>`;
       }
       const here = d && d.here && mode === 'live' ? `<circle class="pulse" cx="${cx}" cy="${cy + (big ? fs * 1.8 : 0)}" r="${fs * 0.55}"/>` : '';
       const devs = d && mode === 'live' && !small ? deviceButtons(r, d, a, fs) : '';
