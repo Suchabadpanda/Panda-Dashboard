@@ -134,12 +134,38 @@ window.HD = window.HD || {};
     };
   }
 
-  function pictureUrl() {
+  // The Dreame map camera updates every few seconds while cleaning (and Home Assistant
+  // rotates the picture's access token), so its URL keeps changing. Swapping the <img> src
+  // straight away blanked the picture while each new one downloaded, which made the map
+  // blink. Instead the newest picture is fetched in the background and only shown once it
+  // has loaded and decoded; the page keeps showing the previous one until then.
+  let shown = null; let loading = null; let lastTry = 0;
+  function latestUrl() {
     const cam = mapCamera(); const s = cam && S().get(cam);
     const url = s && s.attributes.entity_picture;
     if (!url) return null;
     if (url.startsWith('data:')) return url;
     return `${HD.ha.baseUrl()}${url}${url.includes('?') ? '&' : '?'}v=${Date.parse(s.last_updated || s.last_changed) || 0}`;
+  }
+  function pictureUrl() {
+    const want = latestUrl();
+    if (!want) return shown;
+    if (!shown || want.startsWith('data:')) { shown = want; return shown; }
+    // At most one download at a time, and not more often than every 3 s
+    if (want !== shown && want !== loading && Date.now() - lastTry > 3000) {
+      lastTry = Date.now(); loading = want;
+      const img = new Image();
+      img.src = want;
+      (img.decode ? img.decode() : new Promise((ok, bad) => { img.onload = ok; img.onerror = bad; }))
+        .then(() => {
+          shown = want;
+          document.querySelectorAll('.vac-map img').forEach((el) => { el.src = want; });   // same element, no blank frame
+          HD.app.refresh();
+        })
+        .catch(() => { /* keep the old picture; the next update tries again */ })
+        .finally(() => { if (loading === want) loading = null; });
+    }
+    return shown;
   }
 
   // ── actions ──
