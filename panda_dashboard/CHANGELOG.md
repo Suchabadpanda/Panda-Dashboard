@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.40
+- Home: lights, AC and TV as icon-only buttons on the room tiles
+
 ## 0.3.39
 - Home: heat pump COP to two decimal places
 
