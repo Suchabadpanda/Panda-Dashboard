@@ -71,6 +71,32 @@ HD.views = HD.views || {};
     return { x: b.x0 + pad, y: b.y0 + lfs * 1.4 };
   }
 
+  // Where a room's temperature goes: the middle of the biggest rectangle that fits inside
+  // the room. For an L-shaped room that's the centre of its main part, where the
+  // bounding-box centre would sit low or off to one side, near the corner of the L.
+  // Rooms are traced with square walls, so the rectangles come from the room's own corners.
+  const centres = new Map();
+  function visualCentre(key, poly, b) {
+    if (centres.has(key)) return centres.get(key);
+    const xs = [...new Set(poly.map((q) => q[0]))].sort((a, c) => a - c);
+    const ys = [...new Set(poly.map((q) => q[1]))].sort((a, c) => a - c);
+    // Which grid cells between the corners are inside the room
+    const cell = xs.slice(0, -1).map((x, i) => ys.slice(0, -1).map((y, k) => inside(poly, (x + xs[i + 1]) / 2, (y + ys[k + 1]) / 2)));
+    let best = null;
+    for (let i0 = 0; i0 < xs.length - 1; i0++) for (let i1 = i0 + 1; i1 < xs.length; i1++) {
+      for (let k0 = 0; k0 < ys.length - 1; k0++) for (let k1 = k0 + 1; k1 < ys.length; k1++) {
+        const area = (xs[i1] - xs[i0]) * (ys[k1] - ys[k0]);
+        if (best && area <= best.area) continue;
+        let ok = true;
+        for (let i = i0; i < i1 && ok; i++) for (let k = k0; k < k1 && ok; k++) ok = cell[i][k];
+        if (ok) best = { area, x: (xs[i0] + xs[i1]) / 2, y: (ys[k0] + ys[k1]) / 2 };
+      }
+    }
+    const c = best || { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
+    centres.set(key, c);
+    return c;
+  }
+
   // Ray-casting point-in-polygon
   function inside(poly, x, y) {
     let c = false;
@@ -91,7 +117,9 @@ HD.views = HD.views || {};
 
   function floorSvg(f, mode, idx) {
     const vb = f.viewBox.split(/\s+/).map(Number);
-    const fs = vb[2] / 24;
+    // Every floor is drawn at the same scale (see .plan-floor svg in the CSS), so one text
+    // size in plan units gives the same size on screen on every floor
+    const fs = commonFs();
     const vacAll = HD.vacuum && HD.vacuum.configured() ? HD.vacuum.info() : null;
     const vac = vacAll && vacAll.floor === f.name ? vacAll : null;   // the robot's on this floor
     let bots = '';   // drawn last so later rooms don't cover them
@@ -117,17 +145,24 @@ HD.views = HD.views || {};
         if (seg != null) cls += ' vac-room';
         if (seg != null && HD.vacuum.selected.has(seg)) { cls += ' vac-sel'; fill = 'color-mix(in oklab, var(--accent) 38%, var(--room))'; }
       }
-      const cx = (b.x0 + b.x1) / 2; const cy = (b.y0 + b.y1) / 2;
+      const vc = visualCentre(`${f.name}|${r.points}`, p, b);
+      const cx = vc.x; const cy = vc.y;
       const small = (b.x1 - b.x0) < fs * 6 || (b.y1 - b.y0) < fs * 3;
       const tappable = d && d.lights.length && mode === 'live';
       const vacTap = mode === 'vac' && seg != null;
-      const lfs = small ? fs * 0.7 : fs;
+      // One name size everywhere; only a name too long for its room is shrunk to fit
+      const roomW = b.x1 - b.x0;
+      const lfs = Math.max(fs * 0.6, Math.min(fs, (roomW - fs * 1.2) / (r.name.length * 0.55)));
       const a = labelAnchor(p, b, lfs, r.name.length);
       const label = kind === 'stairs' ? '' : `<text class="rn" x="${a.x}" y="${a.y}" font-size="${lfs}">${esc(r.name)}</text>`;
       let big = '';
       if (d && d.t != null && !small && mode !== 'vac') {
-        big = `<text class="rt" x="${cx}" y="${cy + fs * 0.6}" text-anchor="middle" font-size="${fs * (mode === 'temp' ? 2.4 : 1.6)}">${temp(d.t)}</text>`;
-        if (mode === 'temp' && d.h != null) big += `<text class="rh" x="${cx}" y="${cy + fs * 2.1}" text-anchor="middle" font-size="${fs * 0.8}">${pct(d.h)} humidity</text>`;
+        // Temperature (and humidity under it) centred as one block on the room's visual centre
+        const tfs = fs * (mode === 'temp' ? 2.2 : 1.6);
+        const withHum = mode === 'temp' && d.h != null;
+        const base = cy + tfs * 0.36 - (withHum ? fs * 0.7 : 0);
+        big = `<text class="rt" x="${cx}" y="${base}" text-anchor="middle" font-size="${tfs}">${temp(d.t)}</text>`;
+        if (withHum) big += `<text class="rh" x="${cx}" y="${base + fs * 1.5}" text-anchor="middle" font-size="${fs * 0.8}">${pct(d.h)} humidity</text>`;
       }
       const here = d && d.here && mode === 'live' ? `<circle class="pulse" cx="${cx}" cy="${cy + (big ? fs * 1.8 : 0)}" r="${fs * 0.55}"/>` : '';
       const devs = d && mode === 'live' && !small ? deviceButtons(r, d, a, fs) : '';
@@ -156,7 +191,7 @@ HD.views = HD.views || {};
 
     const off = mode === 'vac' && vacAll && !vac ? ' vac-elsewhere' : '';
     return `<figure class="plan-floor${off}"><figcaption>${esc(f.name)}${mode === 'vac' && vac ? ' <span class="robot-here">· robot is here</span>' : ''}</figcaption>
-      <svg viewBox="${f.viewBox}" role="group" aria-label="${esc(f.name)}" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="${f.viewBox}" role="group" aria-label="${esc(f.name)}" preserveAspectRatio="xMidYMid meet" style="--vbw:${vb[2]};--vbh:${vb[3]};--maxw:${sizes().w};--maxh:${sizes().h}">
         <defs>
           <pattern id="hatch${idx}" width="${fs * 0.6}" height="${fs * 0.6}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${fs * 0.6}" height="${fs * 0.6}" fill="var(--panel)"/><line x1="0" y1="0" x2="0" y2="${fs * 0.6}" stroke="var(--line)" stroke-width="${fs * 0.12}"/></pattern>
           ${f.rooms.map((r) => `<clipPath id="clip${idx}-${esc(r.id)}"><polygon points="${r.points}"/></clipPath>`).join('')}
@@ -183,6 +218,13 @@ HD.views = HD.views || {};
     }
     return `<ul class="plan-key"><li><i class="k-lit"></i>Light on — tap a room to switch</li><li><i class="k-here"></i>Someone there</li>${C().doorbell ? '<li><i class="k-door"></i>Front door camera — tap for live view</li>' : ''}</ul>`;
   }
+
+  // Plan units per text size, the same on every floor: based on the widest floor
+  const sizes = () => {
+    const vbs = C().floorplan.floors.map((f) => f.viewBox.split(/\s+/).map(Number));
+    return { w: Math.max(...vbs.map((v) => v[2])), h: Math.max(...vbs.map((v) => v[3])) };
+  };
+  const commonFs = () => sizes().w / 24;
 
   function html(mode) {
     const fp = C().floorplan;
