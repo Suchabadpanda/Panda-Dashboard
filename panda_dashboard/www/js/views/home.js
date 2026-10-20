@@ -266,7 +266,7 @@ HD.views = HD.views || {};
   // Heat pump efficiency from the Energy Tracker add-on (right column, under the front door)
   function copBlock() {
     const c = HD.tracker && HD.tracker.cop; if (!c) return '';
-    const f = (v) => (v == null ? '–' : v.toFixed(1));
+    const f = (v) => (v == null ? '–' : v.toFixed(2));
     const isToday = c.today != null;
     const main = isToday ? c.today : c.yesterday;
     const vsDesign = main != null && c.design != null ? (main >= c.design ? 'above' : 'below') : null;
