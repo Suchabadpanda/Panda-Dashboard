@@ -1026,3 +1026,19 @@ a.chip { text-decoration: none; }
 .room .chip.icon-only { width: 38px; height: 34px; padding: 0; flex: none; }
 .room .chip.icon-only .ic { width: 18px; height: 18px; }
 @media (max-width: 520px) { .room .chip.icon-only { width: 32px; height: 28px; } .room .chip.icon-only .ic { width: 16px; height: 16px; } }
+
+/* ── Steady layout: live numbers change, boxes don't ──
+   Figures use fixed-width digits, single-line readouts don't wrap, and text that may wrap
+   keeps room for its longest form, so a value changing never resizes a tile and nudges
+   everything below it. */
+body { font-variant-numeric: tabular-nums; }
+.room-temp { white-space: nowrap; }
+.room-meta { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; min-width: 0; }
+.room-meta > * { flex: none; }
+.node h4, .node p { overflow-wrap: anywhere; }
+.node > p:not(.sub), .node > p.sub, .node.heatpump .hp-note { min-height: 2.9em; min-height: 2lh; }
+.greeting p { min-height: 4.4em; min-height: 3lh; align-content: flex-start; }
+.now-block.battery > p:not(.big) { min-height: 1.5em; min-height: 1lh; }
+/* A light coming on shouldn't jump: no pop when the button is redrawn */
+.chip.on { animation: none; }
+.panel .headline, .balance-head p:not(.big) { min-height: 2lh; }

@@ -107,7 +107,6 @@ HD.views = HD.views || {};
     const cols = (rooms) => rooms.map((r) => (r.slim ? 'minmax(0, .72fr)' : 'minmax(0, 1fr)')).join(' ');
     const floors = HD.config.floors.map((f, i) => `
       <section class="floor" style="grid-template-columns:${cols(layouts[i])}" aria-label="${esc(f.name)}">
-        <span class="floor-tag">${esc(f.short)}</span>
         ${layouts[i].map(room).join('')}
       </section>`).join('');
 

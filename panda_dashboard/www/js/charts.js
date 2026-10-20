@@ -76,7 +76,8 @@ window.HD = window.HD || {};
       const series = o.series.filter((s) => s.points && s.points.length);
       if (!series.length) { container.innerHTML = `<p class="empty">${o.empty || 'No data yet.'}</p>`; return; }
       legend(container, series);
-      const labelRoom = o.endLabels === false ? (o.padRight ?? 8) : 74;
+      // Names at the line ends only when asked for (endLabels: true): the legend says which is which
+      const labelRoom = o.endLabels === true ? 74 : (o.padRight ?? 8);
       const m = { t: 10, r: labelRoom, b: 22, l: 40 };
       const xs = series.flatMap((s) => s.points.map((p) => p[0]));
       const ys = series.flatMap((s) => s.points.map((p) => p[1]).filter((v) => v != null));
@@ -121,7 +122,7 @@ window.HD = window.HD || {};
         }
         el('path', { d, stroke: s.color, class: `line${s.dashed ? ' dashed' : ''}` }, svg);
         const last = [...s.points].reverse().find((p) => p[1] != null);
-        if (last && o.endLabels !== false) labels.push({ y: sy(last[1]), x: sx(last[0]), s, v: last[1] });
+        if (last && o.endLabels === true) labels.push({ y: sy(last[1]), x: sx(last[0]), s, v: last[1] });
       });
       // direct end labels, nudged apart
       labels.sort((a, b) => a.y - b.y);
