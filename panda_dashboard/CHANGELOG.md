@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.32
+- Home: landings and hallway in the middle column so rooms line up floor to floor
+
 ## 0.3.31
 - Living room FP300, 1F landing and hallway rooms, area-based sensors, dishwasher
 
