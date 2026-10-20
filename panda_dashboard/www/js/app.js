@@ -31,16 +31,24 @@ window.HD = window.HD || {};
     HD.u.setHTML(document.getElementById('status-slot'), statusHtml());
   }
 
+  const NAV_ICONS = { home: 'house', rooms: 'rooms', energy: 'bolt', car: 'car', devices: 'plug' };
   function navHtml() {
-    return VIEWS.map((v) => `<a href="#${v}" class="${v === current ? 'active' : ''}" ${v === current ? 'aria-current="page"' : ''}>${HD.views[v].title}</a>`).join('');
+    return VIEWS.map((v) => `<a href="#${v}" class="${v === current ? 'active' : ''}" ${v === current ? 'aria-current="page"' : ''}>${HD.u.icon(NAV_ICONS[v])}<span>${HD.views[v].title}</span></a>`).join('');
   }
 
   function show(name) {
     name = ALIASES[name] || name;
     if (!VIEWS.includes(name)) name = 'home';
+    const changed = current !== name;
     current = name;
+    document.body.dataset.view = name;
     document.getElementById('nav').innerHTML = navHtml();
-    HD.views[name].mount(document.getElementById('view'));
+    const view = document.getElementById('view');
+    // Panels rise in on a page change only (not on every live update)
+    view.classList.remove('enter'); void view.offsetWidth; view.classList.add('enter');
+    clearTimeout(show.t); show.t = setTimeout(() => view.classList.remove('enter'), 900);
+    HD.views[name].mount(view);
+    if (changed) window.scrollTo({ top: 0 });
   }
 
   // Redraw at most once a second however many entities change; sensors like the

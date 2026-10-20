@@ -134,6 +134,7 @@ HD.config = {
     voltage: 'sensor.tesla_wall_connector_grid_voltage',
     batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
     tyreTarget: 42,              // recommended tyre pressure, psi (low warning 3 psi under)
+    colour: '#5f7fa8',           // paint colour for the car drawing on the Car page (any CSS colour)
     // The car itself: each key uses the first source that has it available, so the
     // Bluetooth bridge wins when the car's on the driveway and Tesla Fleet covers the rest.
     car: {

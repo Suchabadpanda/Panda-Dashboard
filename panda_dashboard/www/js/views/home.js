@@ -237,7 +237,9 @@ HD.views = HD.views || {};
       const lit = ids.filter((id) => S().state(id) === 'on').length;
       sub = sc.entities === 'lights' ? (lit ? `${lit} on now` : 'All off') : (sc.hint || '');
     }
-    return `<button class="info-tile shortcut ${cls} ${sc.danger ? 'danger' : ''}" data-shortcut="${i}" ${ok ? '' : 'disabled'}>
+    const TONES = { lightsoff: 'var(--s-solar)', bulb: 'var(--s-solar)', snow: 'var(--cool)', flame: 'var(--warm)', mute: 'var(--c5)', power: 'var(--accent)' };
+    const tone = sc.danger ? 'var(--critical)' : (TONES[sc.icon] || 'var(--accent)');
+    return `<button class="info-tile shortcut ${cls} ${sc.danger ? 'danger' : ''}" style="--tone:${tone}" data-shortcut="${i}" ${ok ? '' : 'disabled'}>
       ${icon(sc.icon || 'power')}<strong>${esc(sc.name)}</strong><span>${esc(sub)}</span></button>`;
   }
   document.addEventListener('click', (ev) => {

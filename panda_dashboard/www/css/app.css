@@ -507,10 +507,6 @@ thead th { color: var(--muted); font-weight: 500; }
 .car-head h2 .ic { width: 20px; height: 20px; color: var(--muted); }
 .car-main { display: grid; grid-template-columns: minmax(200px, 300px) 1fr; gap: 20px; align-items: center; }
 .car-top { width: 100%; height: auto; display: block; }
-.car-top .body { fill: color-mix(in oklab, var(--ink) 16%, var(--panel)); stroke: var(--line); stroke-width: 2; }
-.car-top .glass { fill: color-mix(in oklab, var(--bg) 70%, var(--accent)); opacity: .55; }
-.car-top .line { fill: none; stroke: var(--line); stroke-width: 2; }
-.car-top .wheel { fill: color-mix(in oklab, var(--ink) 30%, var(--bg)); }
 .car-top .tp { fill: var(--ink); font: 600 20px var(--font-num); }
 .car-top .tp .u { fill: var(--muted); font: 400 11px var(--font); }
 .car-top .tp.low { fill: var(--warning); }
@@ -706,3 +702,149 @@ thead th { color: var(--muted); font-weight: 500; }
 .sessions .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
 .sessions .tag.cheap { color: var(--s-battery); border-color: color-mix(in oklab, var(--s-battery) 45%, var(--line)); }
 .sessions .tag.peak { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 50%, var(--line)); }
+
+/* Car drawing: an original crossover that shows what the car is doing */
+.car-top { overflow: visible; }
+.car-top .paint-a { stop-color: color-mix(in oklab, var(--paint) 70%, #0b1118); }
+.car-top .paint-b { stop-color: color-mix(in oklab, var(--paint) 92%, #fff); }
+.car-top .shadow { fill: #000; opacity: .22; filter: blur(6px); }
+.car-top .body { fill: url(#car-paint); stroke: color-mix(in oklab, var(--paint) 60%, #0b1118); stroke-width: 2; transition: opacity .4s, filter .4s; }
+.car-top .hood, .car-top .boot { fill: color-mix(in oklab, var(--paint) 85%, #0b1118); stroke: color-mix(in oklab, var(--ink) 18%, transparent); stroke-width: 1; transition: transform .35s cubic-bezier(.3,1.4,.5,1), fill .3s; }
+.car-top .hood.open { fill: color-mix(in oklab, var(--warning) 55%, var(--room)); transform: translateY(-8px); }
+.car-top .boot.open { fill: color-mix(in oklab, var(--warning) 55%, var(--room)); transform: translateY(8px); }
+.car-top .glass { fill: #1a2533; stroke: color-mix(in oklab, var(--accent) 30%, transparent); stroke-width: 1; }
+.car-top .glass.sunroof { fill: #223146; }
+.car-top .roof-bar { stroke: color-mix(in oklab, var(--paint) 70%, #0b1118); stroke-width: 3; }
+.car-top .win { fill: #1a2533; transition: fill .3s; }
+.car-top .win.open { fill: var(--warning); }
+.car-top .mirror { fill: color-mix(in oklab, var(--paint) 80%, #0b1118); stroke: var(--line); }
+.car-top .seam { stroke: color-mix(in oklab, var(--ink) 25%, transparent); stroke-width: 1.5; }
+.car-top .door-open rect { fill: var(--warning); animation: door-swing .45s cubic-bezier(.3,1.4,.5,1); transform-box: fill-box; }
+.car-top .wheel { fill: color-mix(in oklab, var(--ink) 22%, var(--bg)); }
+.car-top .wheel.low { fill: var(--critical); }
+.car-top .tp { fill: var(--ink); font: 600 20px var(--font-num); }
+.car-top .tp .u { fill: var(--muted); font: 400 11px var(--font); }
+.car-top .tp.low { fill: var(--critical); }
+.car-top .lamp { fill: none; stroke-width: 4; stroke-linecap: round; }
+.car-top .lamp.head { stroke: #f4f1e6; opacity: .8; }
+.car-top .lamp.tail { stroke: #e2403a; opacity: .85; }
+.car-top .beams { fill: #fff6c8; opacity: 0; }
+.car-top.flashing .beams { animation: beam .5s ease-in-out 6 alternate; }
+.car-top.flashing .lamp { animation: lamp .5s ease-in-out 6 alternate; }
+.car-top .port { fill: color-mix(in oklab, var(--ink) 30%, var(--room)); }
+.car-top.plugged .port { fill: var(--accent); }
+.car-top.charging .port { fill: var(--s-battery); }
+.car-top .glow-a { stop-color: var(--s-battery); stop-opacity: .9; }
+.car-top .glow-b { stop-color: var(--s-battery); stop-opacity: 0; }
+.car-top .port-glow { animation: pulse-glow 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.car-top .cable { fill: none; stroke: color-mix(in oklab, var(--ink) 35%, var(--bg)); stroke-width: 5; stroke-linecap: round; }
+.car-top .cable-flow { fill: none; stroke: transparent; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 4 14; }
+.car-top.charging .cable-flow { stroke: var(--s-battery); animation: cable-flow 1s linear infinite; }
+.car-top .air circle { fill: none; stroke: var(--accent); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.car-top.climate .air circle { animation: air 3s ease-out infinite; }
+.car-top.climate .air circle:nth-child(2) { animation-delay: 1s; }
+.car-top.climate .air circle:nth-child(3) { animation-delay: 2s; }
+.car-top .sentry-eye { fill: transparent; }
+.car-top.sentry .sentry-eye { fill: var(--critical); animation: blink 2s ease-in-out infinite; }
+.car-top.asleep .body, .car-top.asleep .hood, .car-top.asleep .boot { filter: saturate(.75) brightness(.88); }
+.car-top.asleep .lamp { opacity: .25; }
+.car-top .zz { fill: var(--muted); font: 600 16px var(--font-num); animation: float 3s ease-in-out infinite; }
+@keyframes door-swing { from { transform: rotate(-30deg); } }
+@keyframes beam { from { opacity: 0; } to { opacity: .55; } }
+@keyframes lamp { to { opacity: 1; stroke: #fff6c8; filter: drop-shadow(0 0 6px #fff3a6); } }
+@keyframes pulse-glow { 0%, 100% { opacity: .5; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.25); } }
+@keyframes cable-flow { to { stroke-dashoffset: -18; } }
+@keyframes air { 0% { opacity: .8; transform: scale(.4); } 100% { opacity: 0; transform: scale(3.4); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+@keyframes float { 0%, 100% { transform: translateY(0); opacity: .9; } 50% { transform: translateY(-5px); opacity: .5; } }
+
+/* ── Colour & motion ──
+ * A little more life: an ambient glow behind the page, coloured nav and shortcut icons,
+ * press feedback on everything tappable, glowing "on" states, and panels that rise in
+ * when you change page. Live updates never replay the entrance. Reduced-motion turns it off. */
+body {
+  background:
+    radial-gradient(900px 600px at 0% -10%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 70%),
+    radial-gradient(800px 600px at 100% 110%, color-mix(in oklab, var(--s-battery) 12%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+body[data-view="energy"] { --view-tint: var(--s-solar); }
+body[data-view="car"] { --view-tint: var(--s-battery); }
+body[data-view="rooms"] { --view-tint: var(--c5); }
+.panel, .now-block, .node, .info-tile {
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--ink) 7%, transparent), 0 6px 18px -12px rgb(0 0 0 / .5);
+}
+.panel > header:not(.car-head) h2 { display: flex; align-items: center; gap: 8px; }
+.panel > header:not(.car-head) h2::before {
+  content: ''; width: 4px; height: 16px; border-radius: 2px;
+  background: linear-gradient(var(--view-tint, var(--accent)), color-mix(in oklab, var(--view-tint, var(--accent)) 40%, transparent));
+}
+
+/* Nav: gradient pill for the current page, icons on phones */
+.nav a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .25s, color .25s, transform .15s; }
+.nav a .ic { display: none; }
+.nav a:hover { color: var(--ink); }
+.nav a.active {
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, var(--c5)), color-mix(in oklab, var(--accent) 70%, var(--s-battery)));
+  color: var(--bg); box-shadow: 0 4px 14px -6px color-mix(in oklab, var(--accent) 70%, transparent);
+}
+
+/* Press feedback on anything you can tap */
+button, .nav a, .chip, .info-tile.shortcut, .car-btn, .tile, .seg button {
+  transition: transform .14s ease, background-color .25s, border-color .25s, color .25s, box-shadow .25s;
+  -webkit-tap-highlight-color: transparent;
+}
+button:active:not(:disabled), .nav a:active, .car-btn:active:not(:disabled), .info-tile.shortcut:active:not(:disabled) { transform: scale(.96); }
+@media (hover: hover) {
+  .info-tile.shortcut:hover:not(:disabled), .car-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--tone, var(--accent)) 70%, transparent); }
+}
+
+/* Shortcut tiles: each has its own colour */
+.info-tile.shortcut .ic {
+  width: 34px; height: 34px; padding: 7px; border-radius: 10px;
+  color: var(--tone, var(--accent)); background: color-mix(in oklab, var(--tone, var(--accent)) 16%, transparent);
+}
+.info-tile.shortcut:hover:not(:disabled) { border-color: var(--tone, var(--accent)); }
+.info-tile.shortcut.good { border-color: color-mix(in oklab, var(--tone, var(--s-battery)) 60%, var(--line)); background: color-mix(in oklab, var(--tone, var(--s-battery)) 8%, var(--panel)); }
+.car-btn .ic { color: var(--accent); }
+
+/* "On" states glow */
+.chip.on { box-shadow: 0 0 0 3px color-mix(in oklab, var(--s-solar) 22%, transparent), 0 4px 14px -4px color-mix(in oklab, var(--s-solar) 70%, transparent); animation: pop .3s ease-out; }
+.seg button.on { background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 70%, var(--c5))); }
+.car-chip.ok { background: color-mix(in oklab, var(--s-battery) 10%, transparent); }
+@keyframes pop { 0% { transform: scale(.9); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+/* Gauge needle sweeps in */
+.view.enter .g-needle { transform-box: view-box; transform-origin: 120px 118px; animation: sweep .9s cubic-bezier(.3,1.3,.5,1); }
+@keyframes sweep { from { transform: rotate(-70deg); } }
+
+/* Page entrance: panels rise in, one after another */
+.view.enter > * > *, .view.enter .now > *, .view.enter .info-tiles > * { animation: rise .5s cubic-bezier(.2,.8,.3,1) both; }
+.view.enter > * > *:nth-child(2), .view.enter .now > *:nth-child(2), .view.enter .info-tiles > *:nth-child(2) { animation-delay: .05s; }
+.view.enter > * > *:nth-child(3), .view.enter .now > *:nth-child(3), .view.enter .info-tiles > *:nth-child(3) { animation-delay: .1s; }
+.view.enter > * > *:nth-child(4), .view.enter .now > *:nth-child(4), .view.enter .info-tiles > *:nth-child(4) { animation-delay: .15s; }
+.view.enter > * > *:nth-child(5), .view.enter .now > *:nth-child(5), .view.enter .info-tiles > *:nth-child(5) { animation-delay: .2s; }
+.view.enter > * > *:nth-child(n+6), .view.enter .now > *:nth-child(n+6), .view.enter .info-tiles > *:nth-child(n+6) { animation-delay: .25s; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+
+/* Phones: the page buttons sit in a bar along the bottom and stay there as you scroll */
+@media (max-width: 700px) {
+  .top-right { width: auto; }
+  .nav {
+    position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 30;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; padding: 6px; border-radius: 20px; overflow: visible;
+    background: color-mix(in oklab, var(--panel) 82%, transparent); border: 1px solid var(--line);
+    backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    box-shadow: 0 10px 30px -10px rgb(0 0 0 / .55);
+  }
+  .nav a { flex-direction: column; gap: 2px; padding: 6px 2px; border-radius: 14px; font-size: 11px; font-weight: 600; }
+  .nav a .ic { display: block; width: 22px; height: 22px; }
+  .nav a.active .ic { transform: translateY(-1px); }
+  .view { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(92px + env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

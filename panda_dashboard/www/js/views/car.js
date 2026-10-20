@@ -311,19 +311,55 @@ HD.views = HD.views || {};
     return 'Location unknown';
   }
 
-  function carSvg(tyres, target) {
-    // Top-down car, nose up. Tyre labels sit beside each wheel.
+  // Top-down crossover, nose up — an original drawing, not any maker's design.
+  // It shows what the car is doing: charging (port glows, energy flows down the cable),
+  // plugged in, doors/frunk/boot/windows open, climate running, sentry on, asleep,
+  // lights flashing and low tyres. Tyre pressures sit beside each wheel.
+  let flashUntil = 0;
+  function carSvg(tyres, target, st) {
     const low = (v) => v != null && v < target - 3;
     const lab = (v, x, y, anchor) => `<text x="${x}" y="${y}" text-anchor="${anchor}" class="tp ${low(v) ? 'low' : ''}">${v == null ? '–' : Math.round(v)}<tspan class="u"> psi</tspan></text>`;
-    return `<svg class="car-top" viewBox="0 0 300 300" role="img" aria-label="Tyre pressures">
-      <rect class="wheel" x="92" y="58" width="14" height="44" rx="5"/><rect class="wheel" x="194" y="58" width="14" height="44" rx="5"/>
-      <rect class="wheel" x="92" y="196" width="14" height="44" rx="5"/><rect class="wheel" x="194" y="196" width="14" height="44" rx="5"/>
-      <path class="body" d="M150 18c30 0 44 10 46 34l6 60v86l-4 56c-2 18-18 28-48 28s-46-10-48-28l-4-56v-86l6-60c2-24 16-34 46-34z"/>
-      <path class="glass" d="M114 98c10-8 62-8 72 0l6 34v70l-6 44c-10 8-62 8-72 0l-6-44v-70z"/>
-      <path class="line" d="M122 104c8-4 48-4 56 0M118 240c10 4 54 4 64 0"/>
-      ${lab(tyres[0], 90, 78, 'end')}${lab(tyres[1], 210, 78, 'start')}${lab(tyres[2], 90, 222, 'end')}${lab(tyres[3], 210, 222, 'start')}
+    const wheel = (x, y, v) => `<rect class="wheel ${low(v) ? 'low' : ''}" x="${x}" y="${y}" width="16" height="46" rx="6"/>`;
+    // Doors hinge at their front edge and swing out
+    const door = (side, y0, y1, open) => {
+      const x = side === 'l' ? 97 : 203;
+      if (!open) return `<path class="seam" d="M${x} ${y1}h${side === 'l' ? 7 : -7}"/>`;
+      return `<g class="door-open" transform="rotate(${side === 'l' ? 38 : -38} ${x} ${y0})"><rect x="${side === 'l' ? x - 6 : x}" y="${y0}" width="6" height="${y1 - y0}" rx="3"/></g>`;
+    };
+    const cls = [
+      st.asleep ? 'asleep' : '', st.charging ? 'charging' : '', st.plugged ? 'plugged' : '',
+      st.climate ? 'climate' : '', st.sentry ? 'sentry' : '', Date.now() < flashUntil ? 'flashing' : '',
+    ].filter(Boolean).join(' ');
+    return `<svg class="car-top ${cls}" style="--paint:${esc(C().ev.colour || '#5f7fa8')}" viewBox="0 0 300 340" role="img" aria-label="The car from above: ${esc(st.summary)}">
+      <defs>
+        <linearGradient id="car-paint" x1="0" x2="1"><stop offset="0" class="paint-a"/><stop offset=".5" class="paint-b"/><stop offset="1" class="paint-a"/></linearGradient>
+        <radialGradient id="car-glow"><stop offset="0" class="glow-a"/><stop offset="1" class="glow-b"/></radialGradient>
+      </defs>
+      <ellipse class="shadow" cx="150" cy="172" rx="70" ry="160"/>
+      ${st.plugged ? '<path class="cable" d="M96 268 C 60 274 46 300 22 334"/><path class="cable-flow" d="M22 334 C 46 300 60 274 96 268"/>' : ''}
+      ${wheel(86, 66, tyres[0])}${wheel(198, 66, tyres[1])}${wheel(86, 228, tyres[2])}${wheel(198, 228, tyres[3])}
+      <g class="beams"><path d="M110 30 L84 -20 L136 -20 Z"/><path d="M190 30 L164 -20 L216 -20 Z"/></g>
+      <path class="body" d="M150 22 C181 22 197 30 199 50 L203 104 L203 250 L200 292 C198 310 182 318 150 318 C118 318 102 310 100 292 L97 250 L97 104 L101 50 C103 30 119 22 150 22 Z"/>
+      <ellipse class="mirror" cx="91" cy="114" rx="7" ry="4"/><ellipse class="mirror" cx="209" cy="114" rx="7" ry="4"/>
+      <path class="hood ${st.frunk ? 'open' : ''}" d="M106 52 C120 34 180 34 194 52 L191 92 C172 85 128 85 109 92 Z"/>
+      <path class="lamp head" d="M108 44 Q118 31 136 28"/><path class="lamp head" d="M192 44 Q182 31 164 28"/>
+      <path class="glass screen" d="M110 100 C130 90 170 90 190 100 L184 134 C166 128 134 128 116 134 Z"/>
+      <path class="glass sunroof" d="M116 138 C134 132 166 132 184 138 L186 234 C166 240 134 240 114 234 Z"/>
+      <path class="roof-bar" d="M115 186 H185"/>
+      <path class="glass rear" d="M114 240 C134 246 166 246 186 240 L182 268 C166 274 134 274 118 268 Z"/>
+      <path class="win ${st.windows ? 'open' : ''}" d="M103 110 L110 106 L110 232 L102 228 Z"/><path class="win ${st.windows ? 'open' : ''}" d="M197 110 L190 106 L190 232 L198 228 Z"/>
+      <path class="boot ${st.trunk ? 'open' : ''}" d="M112 278 C134 284 166 284 188 278 L197 292 C192 310 108 310 103 292 Z"/>
+      <path class="lamp tail" d="M108 302 Q150 316 192 302"/>
+      ${door('l', 106, 168, st.doors[0])}${door('r', 106, 168, st.doors[1])}${door('l', 170, 232, st.doors[2])}${door('r', 170, 232, st.doors[3])}
+      <g class="air"><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/></g>
+      <circle class="sentry-eye" cx="150" cy="104" r="4"/>
+      <circle class="port" cx="99" cy="268" r="5"/>
+      ${st.charging ? '<circle class="port-glow" cx="99" cy="268" r="16" fill="url(#car-glow)"/>' : ''}
+      ${st.asleep ? '<text class="zz" x="214" y="40">z<tspan dx="2" dy="-8">z</tspan></text>' : ''}
+      ${lab(tyres[0], 82, 92, 'end')}${lab(tyres[1], 218, 92, 'start')}${lab(tyres[2], 82, 254, 'end')}${lab(tyres[3], 218, 254, 'start')}
     </svg>`;
   }
+
 
   const chip = (on, ic, text, cls = '') => `<span class="car-chip ${on ? 'ok' : 'warn'} ${cls}">${icon(ic)}${esc(text)}</span>`;
 
@@ -384,7 +420,13 @@ HD.views = HD.views || {};
         <span class="pill ${isAsleep === false ? 'ok' : ''}">${!any ? 'Offline' : isAsleep ? 'Asleep' : 'Awake'}</span></header>
       ${any ? `
         <div class="car-main">
-          ${carSvg(tp, target)}
+          ${carSvg(tp, target, {
+            asleep: isAsleep === true, charging: power > 0.1, plugged: !!plugged,
+            climate: climate != null && climate !== 'off', sentry: sentry === 'on',
+            frunk: val('frunk') === 'open', trunk: val('trunk') === 'open', windows: windows != null && windows !== 'closed',
+            doors: ['doorFl', 'doorFr', 'doorRl', 'doorRr'].map((k) => val(k) === 'on'),
+            summary: [statusText, anyDoor ? 'something is open' : '', climate && climate !== 'off' ? 'climate on' : ''].filter(Boolean).join(', '),
+          })}
           <div class="car-side">
             <div class="car-soc"><p class="big">${pct(soc)}</p>${range != null ? `<p>${Math.round(range)} mi<small>estimated range</small></p>` : ''}</div>
             <div class="soc-bar car"><i style="width:${soc || 0}%"></i>${limit ? `<b style="left:${limit}%" title="Charge limit ${limit}%"></b>` : ''}</div>
@@ -412,7 +454,7 @@ HD.views = HD.views || {};
     else if (a === 'climate') call = ['climate', S().state(id) === 'off' ? 'turn_on' : 'turn_off'];
     else if (a === 'open-frunk' || a === 'open') call = [domain, 'open_cover'];
     else if (a === 'close') call = [domain, 'close_cover'];
-    else if (a === 'press') call = ['button', 'press'];
+    else if (a === 'press') { call = ['button', 'press']; flashUntil = Date.now() + 3200; HD.views.car.update(); setTimeout(() => HD.views.car.update(), 3300); }
     if (!call) return;
     b.disabled = true;
     HD.ha.callService(call[0], call[1], { entity_id: id })
