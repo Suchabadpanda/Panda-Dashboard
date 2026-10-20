@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.38
+- Home: washer and dishwasher status as full-width rows that wrap instead of being cut off
+
 ## 0.3.37
 - Floor plan: temperature in narrow rooms such as the hall, shrunk to fit
 
