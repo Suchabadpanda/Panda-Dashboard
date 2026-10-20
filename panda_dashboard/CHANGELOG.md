@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.27
+- Faster updates and a tidier dashboard
+
 ## 0.3.26
 - Energy: drop the end-of-line labels on Power today (legend covers it)
 
