@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.35
+- Vacuum map: load each new picture in the background so the map stops blinking
+
 ## 0.3.34
 - Dishwasher: pick the programme and extras on the Devices card, Auto by default
 
