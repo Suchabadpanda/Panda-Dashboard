@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.37
+- Floor plan: temperature in narrow rooms such as the hall, shrunk to fit
+
 ## 0.3.36
 - Floor plan: same scale and text sizes on every floor; temperatures centred in each room's main part
 
