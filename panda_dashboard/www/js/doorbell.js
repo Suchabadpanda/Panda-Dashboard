@@ -149,6 +149,16 @@ window.HD = window.HD || {};
 
   function since(ts, none) { return ts ? ago(new Date(ts).toISOString()) : none; }
 
+  // Person detection, or a ring (someone pressed the button, so someone was there).
+  // Eufy only reports people while motion detection is on for the current guard mode.
+  function personText(c, who) {
+    if (S().state(c.person) === 'on') return `Now${who && who !== 'No Person' && who !== 'unknown' ? ` · ${esc(who)}` : ''}`;
+    const p = last.person || 0; const r = last.ring || 0;
+    if (!p && !r) return '–';
+    const named = who && who !== 'No Person' && who !== 'unknown' ? ` · ${esc(who)}` : '';
+    return p >= r ? `${since(p, '–')}${named}` : `${since(r, '–')}<small>rang the bell</small>`;
+  }
+
   function cardHtml() {
     if (!enabled()) return '';
     const c = cfg();
@@ -170,7 +180,7 @@ window.HD = window.HD || {};
         </div>
         <dl class="door-facts">
           <div><dt>Last ring</dt><dd>${ringing ? 'Ringing now' : since(last.ring, '–')}</dd></div>
-          <div><dt>Last person</dt><dd>${S().state(c.person) === 'on' ? 'Now' : since(last.person, '–')}${who && who !== 'No Person' && who !== 'unknown' ? ` · ${esc(who)}` : ''}</dd></div>
+          <div><dt>Last person</dt><dd>${personText(c, who)}</dd></div>
           <div><dt>Battery</dt><dd class="${low ? 'warn' : ''}">${bat == null ? '–' : `${Math.round(bat)}%`}${S().state(c.charging) === 'Charging' ? ' · charging' : estimateText() ? `<small>${estimateText()}</small>` : ''}</dd></div>
           <div><dt>Mode</dt><dd>${esc(S().state(c.guardMode) || '–')}</dd></div>
         </dl>

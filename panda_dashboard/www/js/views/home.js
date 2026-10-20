@@ -290,10 +290,6 @@ HD.views = HD.views || {};
     const e = HD.config.energy;
     const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
     const t = HD.tariff.tariffAt(now);
-    const off = HD.tariff.isOffPeak(now);
-    const nextSwitch = new Date(now); nextSwitch.setMinutes(0, 0, 0);
-    nextSwitch.setHours(off ? t.offPeakEnd : 24 + t.offPeakStart);
-    const minsToSwitch = (nextSwitch - now) / 60000;
 
     const soc = S().num(e.soc); const bat = S().num(e.batteryPower) || 0;
     const cap = S().num(e.capacity) || 27.12;
@@ -318,19 +314,10 @@ HD.views = HD.views || {};
     if (HD.doorbell) alerts.push(...HD.doorbell.alerts());
 
     return `
-      <section class="now-block rate ${off ? 'off-peak' : 'peak'}">
-        <div class="now-pair">
-          <div>
-            <h2>${off ? 'Off-peak' : 'Peak'} electricity</h2>
-            <p class="big">${pence(off ? t.offPeak : t.peak)}<small>/kWh</small></p>
-            <p>Ends ${minsToSwitch < 90 ? `in ${Math.round(minsToSwitch)} min` : `at ${String(nextSwitch.getHours()).padStart(2, '0')}:00`} · export ${pence(t.export)}</p>
-          </div>
-          <div>
-            <h2>Battery</h2>
-            <p class="big">${pct(soc)}<small>${bat > 0.05 ? ' charging' : bat < -0.05 ? ' discharging' : ''}</small></p>
-            <p>${batNote || esc(S().state(e.emsMode) || '')}</p>
-          </div>
-        </div>
+      <section class="now-block battery">
+        <h2>Battery</h2>
+        <p class="big">${pct(soc)}<small>${bat > 0.05 ? ' charging' : bat < -0.05 ? ' discharging' : ''}</small></p>
+        <p>${batNote || esc(S().state(e.emsMode) || '')}</p>
         <div class="soc-bar" role="meter" aria-label="Battery charge" aria-valuenow="${soc ?? 0}" aria-valuemin="0" aria-valuemax="100"><i style="width:${soc ?? 0}%"></i></div>
       </section>
       <section class="now-block today">
