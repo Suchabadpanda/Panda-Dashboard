@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.44
+- Home: battery tile shows the charge/discharge rate and kWh stored
+
 ## 0.3.43
 - Home and Rooms: drop the "thermostat" note from the kitchen
 
