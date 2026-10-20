@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.33
+- Heat pump heating/hot water lamps, weather over the roof, house drawn below zero on Power today, car keeps its last known state; Panda Tray 1.1.0
+
 ## 0.3.32
 - Home: landings and hallway in the middle column so rooms line up floor to floor
 
