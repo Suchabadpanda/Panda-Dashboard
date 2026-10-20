@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.39
+- Home: heat pump COP to two decimal places
+
 ## 0.3.38
 - Home: washer and dishwasher status as full-width rows that wrap instead of being cut off
 
