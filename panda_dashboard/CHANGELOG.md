@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.43
+- Home and Rooms: drop the "thermostat" note from the kitchen
+
 ## 0.3.42
 - Steadier layout: fixed-width digits, reserved lines so live values never resize tiles, no pop on redraw; no line-end labels on charts; floor tags removed from Home
 
