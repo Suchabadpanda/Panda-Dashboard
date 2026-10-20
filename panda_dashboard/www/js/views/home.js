@@ -29,7 +29,8 @@ HD.views = HD.views || {};
     if (!id) return '';
     const st = S().state(id);
     const avail = S().available(id);
-    return `<button class="chip light ${st === 'on' ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}">${icon('bulb')}${esc(name)}</button>`;
+    const tip = `${name || 'Light'}: ${!avail ? 'offline' : st === 'on' ? 'on' : 'off'}`;
+    return `<button class="chip light icon-only ${st === 'on' ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon('bulb')}</button>`;
   }
 
   function acBtn(id) {
@@ -39,7 +40,7 @@ HD.views = HD.views || {};
     const target = S().attr(id, 'temperature');
     const mode = { cool: 'Cool', heat: 'Heat', dry: 'Dry', fan_only: 'Fan', heat_cool: 'Auto', auto: 'Auto' }[st] || HD.u.cap(String(st || ''));
     const label = !avail ? 'AC · offline' : on ? `AC · ${mode}${target != null ? ` ${target}°` : ''}` : 'AC · off';
-    return `<button class="chip appliance chip-ac ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${on}" title="Turn the AC ${on ? 'off' : 'on (last mode)'}">${icon('snow')}${esc(label)}</button>`;
+    return `<button class="chip appliance chip-ac icon-only ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${on}" aria-label="${esc(label)}" title="${esc(label)} · tap to turn ${on ? 'off' : 'on (last mode)'}">${icon('snow')}</button>`;
   }
 
   function tvBtn(id) {
@@ -47,7 +48,8 @@ HD.views = HD.views || {};
     const st = S().state(id);
     const avail = S().available(id);
     const on = avail && st !== 'off' && st !== 'standby';
-    return `<button class="chip appliance chip-tv ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled title="TV is offline in Home Assistant"'} aria-pressed="${on}">${icon('tv')}TV${avail ? '' : ' · offline'}</button>`;
+    const tip = `TV: ${!avail ? 'offline' : on ? 'on' : 'off'}`;
+    return `<button class="chip appliance chip-tv icon-only ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${on}" aria-label="${tip}" title="${tip}">${icon('tv')}</button>`;
   }
 
   function washerChip(r) {

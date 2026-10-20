@@ -1021,3 +1021,8 @@ a.chip { text-decoration: none; }
 }
 .room .chip.status .ic { flex: none; }
 @media (max-width: 520px) { .room .chip.status { min-height: 26px; padding: 4px 8px; font-size: 11px; } }
+
+/* Room tiles: lights, AC and TV as icon-only buttons (name and state in the tooltip / screen-reader label) */
+.room .chip.icon-only { width: 38px; height: 34px; padding: 0; flex: none; }
+.room .chip.icon-only .ic { width: 18px; height: 18px; }
+@media (max-width: 520px) { .room .chip.icon-only { width: 32px; height: 28px; } .room .chip.icon-only .ic { width: 16px; height: 16px; } }
