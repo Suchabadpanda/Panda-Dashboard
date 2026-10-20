@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.34
+- Dishwasher: pick the programme and extras on the Devices card, Auto by default
+
 ## 0.3.33
 - Heat pump heating/hot water lamps, weather over the roof, house drawn below zero on Power today, car keeps its last known state; Panda Tray 1.1.0
 
