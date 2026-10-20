@@ -117,9 +117,10 @@ HD.views = HD.views || {};
 
   function floorSvg(f, mode, idx) {
     const vb = f.viewBox.split(/\s+/).map(Number);
-    // Every floor is drawn at the same scale (see .plan-floor svg in the CSS), so one text
-    // size in plan units gives the same size on screen on every floor
-    const fs = commonFs();
+    // Every floor is drawn at the same height on screen (see .plan-floor svg in the CSS), so a
+    // floor that's shorter in plan units is drawn bigger. Text is sized in proportion to the
+    // floor's height in plan units, which makes it come out the same size on every floor.
+    const fs = floorFs(vb);
     const vacAll = HD.vacuum && HD.vacuum.configured() ? HD.vacuum.info() : null;
     const vac = vacAll && vacAll.floor === f.name ? vacAll : null;   // the robot's on this floor
     let bots = '';   // drawn last so later rooms don't cover them
@@ -196,7 +197,7 @@ HD.views = HD.views || {};
 
     const off = mode === 'vac' && vacAll && !vac ? ' vac-elsewhere' : '';
     return `<figure class="plan-floor${off}"><figcaption>${esc(f.name)}${mode === 'vac' && vac ? ' <span class="robot-here">· robot is here</span>' : ''}</figcaption>
-      <svg viewBox="${f.viewBox}" role="group" aria-label="${esc(f.name)}" preserveAspectRatio="xMidYMid meet" style="--vbw:${vb[2]};--vbh:${vb[3]};--maxw:${sizes().w};--maxh:${sizes().h}">
+      <svg viewBox="${f.viewBox}" role="group" aria-label="${esc(f.name)}" preserveAspectRatio="xMidYMid meet" style="--vbw:${vb[2]};--vbh:${vb[3]};--ratio:${minRatio().toFixed(4)}">
         <defs>
           <pattern id="hatch${idx}" width="${fs * 0.6}" height="${fs * 0.6}" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="${fs * 0.6}" height="${fs * 0.6}" fill="var(--panel)"/><line x1="0" y1="0" x2="0" y2="${fs * 0.6}" stroke="var(--line)" stroke-width="${fs * 0.12}"/></pattern>
           ${f.rooms.map((r) => `<clipPath id="clip${idx}-${esc(r.id)}"><polygon points="${r.points}"/></clipPath>`).join('')}
@@ -229,7 +230,9 @@ HD.views = HD.views || {};
     const vbs = C().floorplan.floors.map((f) => f.viewBox.split(/\s+/).map(Number));
     return { w: Math.max(...vbs.map((v) => v[2])), h: Math.max(...vbs.map((v) => v[3])) };
   };
-  const commonFs = () => sizes().w / 24;
+  const floorFs = (vb) => (sizes().w / 24) * (vb[3] / sizes().h);
+  // The squattest floor (height ÷ width) decides how tall they can all be and still fit their columns
+  const minRatio = () => Math.min(...C().floorplan.floors.map((f) => { const v = f.viewBox.split(/\s+/).map(Number); return v[3] / v[2]; }));
 
   function html(mode) {
     const fp = C().floorplan;

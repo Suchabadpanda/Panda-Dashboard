@@ -667,11 +667,12 @@ thead th { color: var(--muted); font-weight: 500; }
 .plan-floors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; align-items: start; }
 .plan-floor { margin: 0; min-width: 0; container-type: inline-size; }
 .plan-floor figcaption { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-/* All floors share one scale (plan units → pixels): the widest floor fills its column and the
-   tallest stays within 72% of the screen height (at least 520px), so text and walls are the same size on every floor */
+/* Every floor is drawn the same height, as tall as the screen allows (72% of it, at least 520px)
+   while the squattest floor still fits its column; each is as wide as its own shape needs.
+   plan.js sizes the text to match, so names and figures are the same size on every floor. */
 .plan-floor svg {
-  --scale: min(100cqw / var(--maxw), max(520px, 72vh) / var(--maxh));
-  width: calc(var(--vbw) * var(--scale)); height: calc(var(--vbh) * var(--scale));
+  --h: min(max(520px, 72vh), calc(100cqw * var(--ratio)));
+  height: var(--h); width: calc(var(--h) * var(--vbw) / var(--vbh));
   max-width: 100%; display: block; overflow: visible; margin-inline: auto;
 }
 .plan-floor polygon { stroke-linejoin: round; }
