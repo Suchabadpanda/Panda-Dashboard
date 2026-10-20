@@ -25,12 +25,15 @@ HD.views = HD.views || {};
     return `<div class="flow ${cls} ${on ? 'on' : ''} ${power < 0 ? 'rev' : ''}" style="--speed:${speed}s" aria-hidden="true"><span>${on ? label : ''}</span></div>`;
   }
 
-  function lightBtn(id, name) {
+  // Icon for a light: config `icon`, else picked from its name, so lights side by side
+  // on one tile (the hallway's entrance and toilet) can be told apart
+  const lightIcon = (name, ic) => ic || (/toilet|wc|loo|bath|shower/i.test(name || '') ? 'toilet' : 'bulb');
+  function lightBtn(id, name, ic) {
     if (!id) return '';
     const st = S().state(id);
     const avail = S().available(id);
     const tip = `${name || 'Light'}: ${!avail ? 'offline' : st === 'on' ? 'on' : 'off'}`;
-    return `<button class="chip light icon-only ${st === 'on' ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon('bulb')}</button>`;
+    return `<button class="chip light icon-only ${st === 'on' ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon(lightIcon(name, ic))}</button>`;
   }
 
   function acBtn(id) {
@@ -65,7 +68,7 @@ HD.views = HD.views || {};
     const t = S().num(r.temp); const h = S().num(r.hum);
     const motion = r.motion && S().state(r.motion) === 'on';
     const lux = r.lux != null ? S().num(r.lux) : null;
-    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name)), acBtn(r.climate), tvBtn(r.tv), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
+    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name, l.icon)), acBtn(r.climate), tvBtn(r.tv), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
     // A room waiting for its sensor (config has area: but nothing's in that area yet)
     const waiting = t == null && !S().get(r.temp);
