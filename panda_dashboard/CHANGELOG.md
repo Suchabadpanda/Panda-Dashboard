@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.45
+- Floor plan: every floor drawn the same height so the first and second floors fill their columns; text still the same size on all floors
+
 ## 0.3.44
 - Home: battery tile shows the charge/discharge rate and kWh stored
 
