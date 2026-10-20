@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.41
+- Home: toilet light gets its own icon
+
 ## 0.3.40
 - Home: lights, AC and TV as icon-only buttons on the room tiles
 
