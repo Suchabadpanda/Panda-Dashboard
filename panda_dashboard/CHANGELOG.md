@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.31
+- Living room FP300, 1F landing and hallway rooms, area-based sensors, dishwasher
+
 ## 0.3.30
 - Home: battery card without the electricity rate; doorbell last person includes rings
 
