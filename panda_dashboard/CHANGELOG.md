@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.30
+- Home: battery card without the electricity rate; doorbell last person includes rings
+
 ## 0.3.29
 - New car drawing, more colour and motion, bottom page bar on phones
 
