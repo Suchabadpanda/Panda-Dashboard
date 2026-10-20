@@ -335,6 +335,10 @@ HD.views = HD.views || {};
       <section class="now-block battery">
         <h2>Battery</h2>
         <p class="big">${pct(soc)}<small>${bat > 0.05 ? ' charging' : bat < -0.05 ? ' discharging' : ''}</small></p>
+        <dl class="bat-facts">
+          <div><dt>${bat > 0.05 ? 'Charging at' : bat < -0.05 ? 'Discharging at' : 'Power'}</dt><dd>${Math.abs(bat) >= 0.05 ? kw(Math.abs(bat)) : 'Idle'}</dd></div>
+          <div><dt>Stored</dt><dd>${soc != null ? `${(soc / 100 * cap).toFixed(1)}<small> of ${cap.toFixed(1)} kWh</small>` : '–'}</dd></div>
+        </dl>
         <p>${batNote || esc(S().state(e.emsMode) || '')}</p>
         <div class="soc-bar" role="meter" aria-label="Battery charge" aria-valuenow="${soc ?? 0}" aria-valuemin="0" aria-valuemax="100"><i style="width:${soc ?? 0}%"></i></div>
       </section>
