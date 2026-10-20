@@ -10,6 +10,9 @@ HD.views = HD.views || {};
   const C = () => HD.config;
 
   const pts = (rows) => (rows || []).map((r) => [r.start, r.mean]);
+  // Battery is drawn the other way up (+ = supplying the house), so it mirrors the grid:
+  // charging from the grid shows grid above zero and battery below.
+  const flip = (rows) => (rows || []).map((r) => [r.start, r.mean == null ? null : -r.mean]);
 
   function drawToday() {
     const d = HD.data.today; const e = C().energy;
@@ -26,7 +29,7 @@ HD.views = HD.views || {};
       format: (v, tick) => (tick ? `${v}` : `${v.toFixed(2)} kW`),
       series: [
         { name: 'House', points: pts(c[e.loadPower]), color: 'var(--s-load)' },
-        { name: 'Battery (+ charging)', short: 'Battery', points: pts(c[e.batteryPower]), color: 'var(--s-battery)' },
+        { name: 'Battery (+ supplying)', short: 'Battery', points: flip(c[e.batteryPower]), color: 'var(--s-battery)' },
         { name: 'Solar', points: pts(c[e.pvPower]), color: 'var(--s-solar)', area: true },
         { name: 'Grid (+ buying)', short: 'Grid', points: pts(c[e.gridPower]), color: 'var(--s-grid)' },
       ],
@@ -73,7 +76,7 @@ HD.views = HD.views || {};
       root.innerHTML = `
       <div class="panel-grid energy">
         <section class="panel wide">
-          <header><h2>Power today</h2><p>Shaded: ${String(t.offPeakStart).padStart(2, '0')}:00–${String(t.offPeakEnd).padStart(2, '0')}:00 at ${pence(t.offPeak)}. Above zero the battery is charging and the house is buying.</p></header>
+          <header><h2>Power today</h2><p>Shaded: ${String(t.offPeakStart).padStart(2, '0')}:00–${String(t.offPeakEnd).padStart(2, '0')}:00 at ${pence(t.offPeak)}. Above zero the grid and battery are supplying the house; below zero the battery is charging or the house is selling.</p></header>
           <div id="chart-power" class="chart-box"></div>
           <div id="chart-soc" class="chart-box"></div>
         </section>

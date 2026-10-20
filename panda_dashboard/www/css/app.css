@@ -676,3 +676,33 @@ thead th { color: var(--muted); font-weight: 500; }
 .vac-map p { padding: 16px; text-align: center; }
 @media (max-width: 760px) { .vac { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .pr .pulse, .doorcam.ringing circle, .robot .halo, .pr.vac-active .hl { animation: none; } }
+
+/* Rooms: hot water tank */
+.tank-panel .big { margin: 0; }
+.tank-note { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }
+
+/* Car: Charge now? — plan, solar hint, recent charging */
+.verdict.mid { color: var(--warning) !important; }
+.charge-block { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.sub-head { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+.price-strip { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; height: 22px; }
+.price-strip i { border-radius: 3px; background: color-mix(in oklab, var(--s-import) 40%, var(--room)); position: relative; }
+.price-strip i.cheap { background: color-mix(in oklab, var(--s-battery) 40%, var(--room)); }
+.price-strip i.plan { box-shadow: inset 0 -6px 0 var(--accent); }
+.strip-axis { position: relative; height: 16px; margin: 4px 0 10px; font-size: 11px; color: var(--faint); }
+.strip-axis span { position: absolute; top: 0; }
+.plan-line { margin: 0 0 6px; }
+.plan-kv, .month-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 16px; margin: 6px 0 10px; }
+.plan-kv dd small { font-size: 12px; color: var(--faint); font-weight: 400; }
+.solar-hint { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: color-mix(in oklab, var(--s-solar) 12%, var(--room)); }
+.solar-hint .ic { color: var(--s-solar); width: 22px; height: 22px; margin-top: 2px; }
+.solar-hint strong { display: block; }
+.solar-hint span { color: var(--muted); font-size: 13px; }
+.sessions { list-style: none; margin: 0 0 8px; padding: 0; }
+.sessions li { display: grid; grid-template-columns: 1fr auto 72px 60px; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.sessions li:last-child { border-bottom: 0; }
+.sessions small { display: block; color: var(--faint); font-size: 12px; }
+.sessions b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.sessions .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.sessions .tag.cheap { color: var(--s-battery); border-color: color-mix(in oklab, var(--s-battery) 45%, var(--line)); }
+.sessions .tag.peak { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 50%, var(--line)); }

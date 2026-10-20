@@ -250,6 +250,36 @@ window.HD = window.HD || {};
     return out;
   }
 
+  // Car charging by the hour: each day's kWh charged from 00:00 at 7.2 kW
+  function evHourly(start) {
+    const out = [];
+    DAILY[HD.config.energy.totals.ev].forEach((v, i) => {
+      let left = v; let h = 0;
+      while (left > 0.05) {
+        const ts = D0 + i * 864e5 + h * 3600e3; const c = Math.min(7.2, left);
+        if (ts >= start) out.push({ start: ts, end: ts + 3600e3, change: +c.toFixed(2) });
+        left -= c; h += 1;
+      }
+    });
+    return out;
+  }
+  // Odometer: about 30 miles a day, ending at the snapshot reading
+  function odometerDaily(start, id) {
+    const s = HD.store.states[id]; const end = s ? parseFloat(s.state) : 7431;
+    const out = []; const days = Math.max(1, Math.round((DAY0 - start) / 864e5));
+    for (let i = 0; i <= days; i++) { const ts = DAY0 - (days - i) * 864e5; out.push({ start: ts, end: ts + 864e5, state: +(end - (days - i) * 30.5).toFixed(1) }); }
+    return out;
+  }
+  // Hourly forecast for the solar hint: a sunny spell tomorrow
+  function forecast() {
+    const out = [];
+    for (let i = 0; i < 48; i++) {
+      const ts = SNAP + i * 3600e3; const h = new Date(ts).getHours();
+      out.push({ datetime: new Date(ts).toISOString(), cloud_coverage: h >= 10 && h < 16 ? 18 : 70, condition: h >= 10 && h < 16 ? 'sunny' : 'cloudy' });
+    }
+    return { response: { [HD.config.weather]: { forecast: out } } };
+  }
+
   function callWS(msg) {
     if (msg.type !== 'recorder/statistics_during_period') return Promise.resolve(null);
     const res = {};
@@ -259,6 +289,8 @@ window.HD = window.HD || {};
       else if (msg.period === 'hour' && TEMPS[id]) res[id] = TEMPS[id].map((v, i) => ({ start: T0 + i * 3600e3, end: T0 + (i + 1) * 3600e3, mean: v }));
       else if (msg.period === 'hour' && id === HD.config.energy.totals.import) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(1) : null;
       else if (msg.period === 'hour' && id === HD.config.energy.totals.export) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(-1) : null;
+      else if (msg.period === 'hour' && id === HD.config.energy.totals.ev && DAILY[id]) res[id] = evHourly(start);
+      else if (msg.period === 'day' && /odometer/.test(id)) res[id] = odometerDaily(start, id);
       else if (msg.period === 'day' && DAILY[id]) res[id] = DAILY[id].map((v, i) => ({ start: D0 + i * 864e5, end: D0 + (i + 1) * 864e5, change: v }));
       if (res[id] === null || res[id] === undefined) delete res[id];
     });
@@ -273,6 +305,7 @@ window.HD = window.HD || {};
       HD.store.setStatus('demo', 'Demo · snapshot from 18 Oct 2026, 23:20');
     },
     callWS,
+    forecast,
     callService(domain, service, data) {
       // Make toggles feel real in the demo
       const id = data && data.entity_id;

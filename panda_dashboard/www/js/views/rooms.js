@@ -1,7 +1,7 @@
 /*
  * Rooms view: the floor plan (lights and presence, temperatures, or the robot vacuum),
  * how balanced the house is around the comfort target, 24 hours of room temperatures,
- * and the AC units.
+ * the hot water tank, and the AC units.
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -56,6 +56,14 @@ HD.views = HD.views || {};
     </ul>`;
   }
 
+  function tankHtml() {
+    const hp = HD.config.heatPump;
+    const t = S().num(hp.tankTemp);
+    const legion = hp.legionella && S().state(hp.legionella) === 'on';
+    return `<p class="big">${temp(t)}<small> now</small></p>
+      <p class="tank-note">${legion ? 'Legionella cycle running. ' : ''}Heat pump ${HD.u.kw(S().num(hp.power))} now · ${S().num(hp.energyToday)?.toFixed(1) ?? '–'} kWh today</p>`;
+  }
+
   function drawCharts() {
     const d = HD.data.temps; if (!d) return;
     const list = rooms();
@@ -64,6 +72,14 @@ HD.views = HD.views || {};
       format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`), xTicks: 6,
       series: list.map((r, i) => ({ name: r.name, short: r.name.replace("'s room", ''), points: d[r.temp], color: ROOM_COLORS[i] })),
     });
+    const tank = HD.config.heatPump && HD.config.heatPump.tankTemp;
+    if (tank && document.getElementById('chart-tank')) {
+      HD.chart.line(document.getElementById('chart-tank'), {
+        label: 'Hot water tank, last 24 hours', height: 150, endLabels: false, ticks: 3, xTicks: 4,
+        format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`),
+        series: [{ name: 'Tank', points: d[tank], color: 'var(--c2)', area: true }],
+      });
+    }
   }
 
   let planMode = 'live';
@@ -104,7 +120,8 @@ HD.views = HD.views || {};
         ${HD.config.floorplan ? `<section class="panel wide plan-panel"><header id="plan-head">${planHeader()}</header><div id="climate-plan"></div></section>` : ''}
         <section class="panel"><header><h2>Balance</h2></header><div id="balance"></div></section>
         <section class="panel wide-2"><header><h2>Last 24 hours</h2><p>Band shows ${HD.config.comfortTarget}° ±0.75°.</p></header><div id="chart-temps" class="chart-box"></div></section>
-        <section class="panel wide ac-panel"><header><h2>Air conditioning</h2></header><div id="ac"></div></section>
+        ${HD.config.heatPump && HD.config.heatPump.tankTemp ? '<section class="panel tank-panel"><header><h2>Hot water tank</h2><p>Last 24 hours</p></header><div id="tank"></div><div id="chart-tank" class="chart-box"></div></section>' : ''}
+        <section class="panel wide-2 ac-panel"><header><h2>Air conditioning</h2></header><div id="ac"></div></section>
       </div>`;
       this.update(); this.redraw();
     },
@@ -115,6 +132,7 @@ HD.views = HD.views || {};
       // The Dreame map <img> is kept so it only reloads when the map changes
       HD.u.setHTML(document.getElementById('climate-plan'), HD.plan.html(planMode), '.vac-map img');
       HD.u.setHTML(document.getElementById('ac'), acHtml());
+      const tk = document.getElementById('tank'); if (tk) HD.u.setHTML(tk, tankHtml());
     },
     redraw: drawCharts,
   };
