@@ -27,8 +27,8 @@ window.HD = window.HD || {};
   }
 
   function renderHeader() {
-    document.getElementById('top').innerHTML = headerHtml();
-    document.getElementById('status-slot').innerHTML = statusHtml();
+    HD.u.setHTML(document.getElementById('top'), headerHtml());
+    HD.u.setHTML(document.getElementById('status-slot'), statusHtml());
   }
 
   function navHtml() {
@@ -43,15 +43,18 @@ window.HD = window.HD || {};
     HD.views[name].mount(document.getElementById('view'));
   }
 
-  let pendingUpdate = false;
+  // Redraw at most once a second however many entities change; sensors like the
+  // inverter's report every few seconds, and nothing on screen needs to be quicker.
+  let pendingUpdate = false; let lastUpdate = 0;
   function scheduleUpdate() {
     if (pendingUpdate) return;
     pendingUpdate = true;
-    requestAnimationFrame(() => setTimeout(() => {
-      pendingUpdate = false;
+    const wait = Math.max(0, lastUpdate + 1000 - Date.now());
+    setTimeout(() => requestAnimationFrame(() => {
+      pendingUpdate = false; lastUpdate = Date.now();
       renderHeader();
       HD.views[current] && HD.views[current].update();
-    }, 250));
+    }), wait);
   }
 
   // ── Settings dialog ──
@@ -151,7 +154,7 @@ window.HD = window.HD || {};
       if (t.id === 'open-settings') return openSettings();
       if (t.dataset.toggle) {
         t.classList.toggle('on'); // optimistic
-        HD.ha.toggle(t.dataset.toggle).catch((e) => toast(`Couldn't switch that: ${e.message}`));
+        HD.ha.toggle(t.dataset.toggle).catch((e) => { toast(`Couldn't switch that: ${e.message}`); HD.u.invalidate(); scheduleUpdate(); });
       } else if (t.dataset.hvac) {
         HD.ha.callService('climate', 'set_hvac_mode', { entity_id: t.dataset.hvac, hvac_mode: t.dataset.mode }).catch((e) => toast(e.message));
       } else if (t.dataset.press) {
@@ -266,6 +269,8 @@ window.HD = window.HD || {};
     if (live) await loadSupervisorOptions();
     if (!live) {
       const why = S.mode === 'error' ? S.message : '';
+      // The demo snapshot is only fetched when it's needed
+      if (!HD.demo) await new Promise((ok, fail) => { const sc = document.createElement('script'); sc.src = 'js/demo.js'; sc.onload = ok; sc.onerror = () => fail(new Error('demo data missing')); document.head.appendChild(sc); });
       HD.demo.start();
       if (why) toast(`${why} Showing the demo snapshot.`);
     }

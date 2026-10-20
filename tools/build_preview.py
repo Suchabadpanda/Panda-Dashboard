@@ -21,6 +21,8 @@ def inline(m):
 
 html = html.replace('<script src="js/config.js"></script>', '<script>window.HD_FORCE_DEMO = true;</script>\n  <script src="js/config.js"></script>')
 html = re.sub(r"<script>document\.write\(.*?data/config\.js.*?</script>\n?", "", html)
+# demo.js is loaded on demand by the app; the preview always needs it
+html = html.replace('<script src="js/app.js"></script>', '<script src="js/demo.js"></script>\n  <script src="js/app.js"></script>')
 html = re.sub(r'<script src="(js/[^"]+)"></script>', inline, html)
 out = repo / "dist/preview.html"
 out.parent.mkdir(exist_ok=True)

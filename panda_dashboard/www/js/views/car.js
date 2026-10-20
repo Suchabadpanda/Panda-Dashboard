@@ -270,8 +270,8 @@ HD.views = HD.views || {};
     },
     update() {
       const c = document.getElementById('car-card'); if (!c) return;
-      c.innerHTML = carHtml();
-      document.getElementById('car-advice').innerHTML = adviceHtml();
+      HD.u.setHTML(c, carHtml());
+      HD.u.setHTML(document.getElementById('car-advice'), adviceHtml());
     },
     redraw: drawHistory,
   };

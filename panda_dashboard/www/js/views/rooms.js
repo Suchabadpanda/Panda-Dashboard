@@ -1,7 +1,7 @@
 /*
- * Rooms view: the floor plan (lights and presence, or temperatures), how balanced
- * the house is around the comfort target, 24 hours of room temperatures, hot
- * water, and the AC units.
+ * Rooms view: the floor plan (lights and presence, temperatures, or the robot vacuum),
+ * how balanced the house is around the comfort target, 24 hours of room temperatures,
+ * and the AC units.
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -39,26 +39,21 @@ HD.views = HD.views || {};
       </ol>`;
   }
 
+  // One compact row per unit: name, what it's doing, and the mode buttons.
+  // (Turning every unit on at once is the "All AC" shortcut on Home.)
   function acHtml() {
     const units = rooms().filter((r) => r.climate).map((r) => ({ id: r.climate, name: r.name }));
-    const quick = HD.config.devices.acQuickCool;
-    return `<div class="ac-list">
+    const ORDER = ['off', 'cool', 'heat', 'dry', 'fan_only'];
+    return `<ul class="ac-rows">
       ${units.map((u) => {
         const st = S().state(u.id); const avail = S().available(u.id);
-        const modes = (S().attr(u.id, 'hvac_modes') || ['off', 'cool', 'heat']).filter((m) => ['off', 'cool', 'heat', 'dry', 'fan_only'].includes(m)).sort((a, b) => ['off', 'cool', 'heat', 'dry', 'fan_only'].indexOf(a) - ['off', 'cool', 'heat', 'dry', 'fan_only'].indexOf(b));
+        const modes = (S().attr(u.id, 'hvac_modes') || ['off', 'cool', 'heat']).filter((m) => ORDER.includes(m)).sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
         const target = S().attr(u.id, 'temperature');
-        return `<div class="ac"><h3>${esc(u.name)}</h3><p class="state">${avail ? (st === 'off' ? 'Off' : `${esc(st)}${target ? ` to ${target}°` : ''}`) : 'Unavailable'}</p>
-          <div class="seg" role="group" aria-label="${esc(u.name)} mode">${modes.map((m) => `<button data-hvac="${u.id}" data-mode="${m}" class="${st === m ? 'on' : ''}" ${avail ? '' : 'disabled'}>${esc(m.replace('_', ' '))}</button>`).join('')}</div></div>`;
+        return `<li><span class="name">${esc(u.name)}</span>
+          <span class="state">${avail ? (st === 'off' ? 'Off' : `${esc(HD.u.cap(st.replace('_', ' ')))}${target ? ` to ${target}°` : ''}`) : 'Unavailable'}</span>
+          <div class="seg" role="group" aria-label="${esc(u.name)} mode">${modes.map((m) => `<button data-hvac="${u.id}" data-mode="${m}" class="${st === m ? 'on' : ''}" ${avail ? '' : 'disabled'}>${esc(m.replace('_', ' '))}</button>`).join('')}</div></li>`;
       }).join('')}
-      <div class="ac"><h3>Quick cool</h3><p>Turns every AC unit to cool</p>
-        <button class="chip ${S().state(quick) === 'on' ? 'on' : ''}" data-toggle="${quick}" ${S().available(quick) ? '' : 'disabled'}>${icon('snow')}${S().state(quick) === 'on' ? 'On' : 'Off'}</button></div>
-    </div>`;
-  }
-
-  function hotWaterHtml() {
-    const hp = HD.config.heatPump;
-    return `<p class="big">${temp(S().num(hp.tankTemp))}<small> tank</small></p>
-      <p>${S().state(hp.legionella) === 'on' ? 'Legionella cycle running. ' : ''}Heat pump has used ${S().num(hp.energyToday)?.toFixed(1) ?? '–'} kWh today, drawing ${HD.u.kw(S().num(hp.power))} now.</p>`;
+    </ul>`;
   }
 
   function drawCharts() {
@@ -68,11 +63,6 @@ HD.views = HD.views || {};
       label: 'Room temperatures, last 24 hours', height: 260, band: [HD.config.comfortTarget - 0.75, HD.config.comfortTarget + 0.75],
       format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`), xTicks: 6,
       series: list.map((r, i) => ({ name: r.name, short: r.name.replace("'s room", ''), points: d[r.temp], color: ROOM_COLORS[i] })),
-    });
-    HD.chart.line(document.getElementById('chart-tank'), {
-      label: 'Hot water tank, last 24 hours', height: 150, endLabels: false, ticks: 3, xTicks: 4,
-      format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`),
-      series: [{ name: 'Tank', points: d[HD.config.heatPump.tankTemp], color: 'var(--c2)', area: true }],
     });
   }
 
@@ -102,7 +92,7 @@ HD.views = HD.views || {};
     if (!b || !head) return;
     planMode = b.dataset.planMode;
     try { localStorage.setItem('hd.planMode', planMode); } catch (e) { /* storage blocked */ }
-    head.innerHTML = planHeader();
+    HD.u.setHTML(head, planHeader());
     HD.views.rooms.update();
   });
 
@@ -114,26 +104,17 @@ HD.views = HD.views || {};
         ${HD.config.floorplan ? `<section class="panel wide plan-panel"><header id="plan-head">${planHeader()}</header><div id="climate-plan"></div></section>` : ''}
         <section class="panel"><header><h2>Balance</h2></header><div id="balance"></div></section>
         <section class="panel wide-2"><header><h2>Last 24 hours</h2><p>Band shows ${HD.config.comfortTarget}° ±0.75°.</p></header><div id="chart-temps" class="chart-box"></div></section>
-        <section class="panel"><header><h2>Hot water</h2></header><div id="hotwater"></div><div id="chart-tank" class="chart-box"></div></section>
-        <section class="panel wide-2"><header><h2>Air conditioning</h2></header><div id="ac"></div></section>
+        <section class="panel wide ac-panel"><header><h2>Air conditioning</h2></header><div id="ac"></div></section>
       </div>`;
       this.update(); this.redraw();
     },
     update() {
       const b = document.getElementById('balance'); if (!b) return;
-      b.innerHTML = balanceHtml();
-      const head = document.getElementById('plan-head');
-      if (head) { const h = planHeader(); if (head.dataset.h !== h) { head.innerHTML = h; head.dataset.h = h; } }
-      const cp = document.getElementById('climate-plan');
-      if (cp) {
-        // Keep the Dreame map <img> across re-renders so it only reloads when the map changes
-        const old = cp.querySelector('.vac-map img');
-        cp.innerHTML = HD.plan.html(planMode);
-        const fresh = cp.querySelector('.vac-map img');
-        if (old && fresh && old.getAttribute('src') === fresh.getAttribute('src')) fresh.replaceWith(old);
-      }
-      document.getElementById('ac').innerHTML = acHtml();
-      document.getElementById('hotwater').innerHTML = hotWaterHtml();
+      HD.u.setHTML(b, balanceHtml());
+      HD.u.setHTML(document.getElementById('plan-head'), planHeader());
+      // The Dreame map <img> is kept so it only reloads when the map changes
+      HD.u.setHTML(document.getElementById('climate-plan'), HD.plan.html(planMode), '.vac-map img');
+      HD.u.setHTML(document.getElementById('ac'), acHtml());
     },
     redraw: drawCharts,
   };

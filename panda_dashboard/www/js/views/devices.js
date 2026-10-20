@@ -1,5 +1,7 @@
 /*
- * Devices view: every light, smart plug, TV and HA's own housekeeping.
+ * Devices view: what isn't on the other pages — smart plugs and their use, the
+ * SigenStor hardware, and Home Assistant's own housekeeping. (Lights, TVs, the washer
+ * and the PC are on Home and Rooms.)
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -8,24 +10,8 @@ HD.views = HD.views || {};
   const { esc, kwh, pct, ago, until, icon } = HD.u;
   const S = () => HD.store;
 
-  function lights() {
-    const out = [];
-    HD.config.floors.forEach((f) => f.rooms.forEach((r) => {
-      if (r.light) out.push({ id: r.light, name: `${r.lightName}`, where: `${f.short} ${r.lightWhere || r.name}` });
-      (r.extraLights || []).forEach((l) => out.push({ id: l.id, name: l.name, where: `${f.short} ${l.where || r.lightWhere || r.name}` }));
-    }));
-    return out;
-  }
-
   function html() {
     const d = HD.config.devices;
-    const lightRows = lights().map((l) => {
-      const on = S().state(l.id) === 'on';
-      return `<li><button class="tile ${on ? 'on' : ''}" data-toggle="${l.id}" aria-pressed="${on}" ${S().available(l.id) ? '' : 'disabled'}>
-        ${icon('bulb')}<span><strong>${esc(l.name)}</strong><small>${esc(l.where)}</small></span><em>${on ? 'On' : 'Off'}</em></button></li>`;
-    }).join('');
-    const onCount = lights().filter((l) => S().state(l.id) === 'on').length;
-
     const plugRows = d.plugs.map((p) => {
       const sw = p.switch || p.switchSelect;
       const on = S().state(sw) === 'on';
@@ -35,21 +21,10 @@ HD.views = HD.views || {};
         ${icon('plug')}<span><strong>${esc(p.name)}</strong><small>${extra}</small></span><em>${w != null ? `${Math.round(w)} W` : on ? 'On' : 'Off'}</em></button></li>`;
     }).join('');
 
-    const media = d.media.map((id) => {
-      const st = S().state(id);
-      return `<li class="row">${icon('tv')}<span>${esc(S().attr(id, 'friendly_name') || id)}</span><em>${st === 'unavailable' ? 'Offline' : esc(st || '–')}</em></li>`;
-    }).join('');
-
-
-    const washer = S().state(d.washer);
     const e = HD.config.energy;
     return `
       <div class="panel-grid devices">
-        <section class="panel"><header><h2>Lights</h2><p>${onCount} on</p></header><ul class="tiles">${lightRows}</ul></section>
-        <section class="panel"><header><h2>Smart plugs</h2></header><ul class="tiles">${plugRows}</ul>
-          <button class="btn" data-press="${d.pcWake}" ${S().available(d.pcWake) ? '' : 'disabled'}>${icon('power')}Wake ${esc(d.pcName || 'PC')}</button></section>
-        <section class="panel"><header><h2>Media and appliances</h2></header>
-          <ul class="rows">${media}<li class="row">${icon('drop')}<span>Washing machine</span><em>${washer === 'unavailable' || !washer ? 'Offline' : esc(washer)}</em></li></ul></section>
+        <section class="panel"><header><h2>Smart plugs</h2></header><ul class="tiles">${plugRows}</ul></section>
         <section class="panel"><header><h2>Solar and battery hardware</h2></header>
           <dl class="kv">
             <div><dt>EMS mode</dt><dd>${esc(S().state(e.emsMode) || '–')}</dd></div>
@@ -71,6 +46,6 @@ HD.views = HD.views || {};
   HD.views.devices = {
     title: 'Devices',
     mount(root) { root.innerHTML = '<div id="devices"></div>'; this.update(); },
-    update() { const el = document.getElementById('devices'); if (el) el.innerHTML = html(); },
+    update() { HD.u.setHTML(document.getElementById('devices'), html()); },
   };
 })();

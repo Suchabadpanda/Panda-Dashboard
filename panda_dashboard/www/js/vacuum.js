@@ -206,5 +206,8 @@ window.HD = window.HD || {};
     </div>`;
   }
 
-  HD.vacuum = { configured, entity, info, rooms, planRoomFor, segmentFor, planFloor, selected, panelHtml, toggleRoom };
+  // Auto-detected entities, so the dashboard's filtered subscription includes them
+  const extraIds = () => (HD.config.vacuum === false ? [] : [entity(), mapCamera()].filter(Boolean));
+
+  HD.vacuum = { configured, entity, info, rooms, planRoomFor, segmentFor, planFloor, selected, panelHtml, toggleRoom, extraIds };
 })();

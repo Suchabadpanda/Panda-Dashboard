@@ -106,10 +106,71 @@ window.HD = window.HD || {};
       if (!p) return;
       pending.delete(m.id);
       m.success ? p.resolve(m.result) : p.reject(new Error((m.error && m.error.message) || 'Request failed'));
+    } else if (m.type === 'event' && m.id === entitySubId && m.event) {
+      applyCompressed(m.event);
     } else if (m.type === 'event' && m.event && m.event.event_type === 'state_changed') {
       const d = m.event.data;
       if (d.new_state) store.states[d.entity_id] = d.new_state; else delete store.states[d.entity_id];
       store.emit(d.entity_id);
+    }
+  }
+
+  // ── Only the entities the dashboard uses ──
+  // Every entity id mentioned anywhere in the config, plus a few found at run time
+  // (the auto-detected vacuum and its map, home zone). Home Assistant then sends changes
+  // for those alone, instead of every state change in the house.
+  function watchedIds() {
+    const ids = new Set(['zone.home', 'sun.sun']);
+    const walk = (v) => {
+      if (typeof v === 'string') { if (/^[a-z_]+\.[a-z0-9_]+$/.test(v)) ids.add(v); }
+      else if (Array.isArray(v)) v.forEach(walk);
+      else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    };
+    walk(HD.config);
+    if (HD.vacuum && HD.vacuum.extraIds) HD.vacuum.extraIds().forEach((id) => ids.add(id));
+    return [...ids].filter((id) => !/^(js|css|data)\./.test(id));
+  }
+
+  // subscribe_entities sends compact diffs: a = added (full), c = changed (+ / -), r = removed
+  let entitySubId = null;
+  const iso = (sec) => new Date(sec * 1000).toISOString();
+  function applyCompressed(ev) {
+    const changed = [];
+    if (ev.a) Object.entries(ev.a).forEach(([id, e]) => {
+      const lc = iso(e.lc);
+      store.states[id] = { entity_id: id, state: e.s, attributes: e.a || {}, context: e.c, last_changed: lc, last_updated: e.lu ? iso(e.lu) : lc };
+      changed.push(id);
+    });
+    if (ev.c) Object.entries(ev.c).forEach(([id, diff]) => {
+      const cur = store.states[id]; if (!cur) return;
+      const next = { ...cur, attributes: { ...cur.attributes } };
+      const add = diff['+'];
+      if (add) {
+        if (add.s !== undefined) next.state = add.s;
+        if (add.c) next.context = add.c;
+        if (add.lc) { next.last_changed = iso(add.lc); next.last_updated = next.last_changed; } else if (add.lu) next.last_updated = iso(add.lu);
+        if (add.a) Object.assign(next.attributes, add.a);
+      }
+      const rem = diff['-'];
+      if (rem && rem.a) rem.a.forEach((k) => { delete next.attributes[k]; });
+      store.states[id] = next;
+      changed.push(id);
+    });
+    if (ev.r) ev.r.forEach((id) => { delete store.states[id]; changed.push(id); });
+    changed.forEach((id) => store.emit(id));
+  }
+
+  async function subscribeWatched() {
+    const ids = watchedIds();
+    try {
+      const id = msgId;   // send() uses this id; events for the subscription carry it
+      entitySubId = id;
+      await send({ type: 'subscribe_entities', entity_ids: ids });
+      return ids.length;
+    } catch (e) {
+      entitySubId = null;
+      await send({ type: 'subscribe_events', event_type: 'state_changed' });   // older Home Assistant
+      return null;
     }
   }
 
@@ -133,9 +194,11 @@ window.HD = window.HD || {};
             authed = true; retry = 0;
             ws.onmessage = onMessage;
             try {
+              // One full read to start (auto-detection needs it), then only the watched entities
               const states = await send({ type: 'get_states' });
+              store.states = {};
               states.forEach((s) => { store.states[s.entity_id] = s; });
-              await send({ type: 'subscribe_events', event_type: 'state_changed' });
+              await subscribeWatched();
               store.setStatus('live', `Live · ${authKind}`);
               resolve(true);
             } catch (e) { store.setStatus('error', e.message); resolve(false); }

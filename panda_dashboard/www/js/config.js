@@ -272,18 +272,4 @@ HD.config = {
     // Export fix ends Nov 2026; ~12p expected. Confirm the date and rate, then edit this row.
     { from: '2026-12-01', offPeak: 0.076, peak: 0.2666, offPeakStart: 0, offPeakEnd: 6, export: 0.12, standing: 0.60, provisional: true },
   ],
-
-  // ── Return on investment (carried over from the energy tracker) ──
-  roi: {
-    systemCost: 25000,
-    installDate: '2025-10-29',
-    // What a kWh of household load would have cost with no solar/battery
-    // (pre-install average unit price from the billing history).
-    baselineRate: 0.23,
-    priceRise: 0.055,          // ONS long-run average; 8–10% for the elevated scenario
-    horizonYears: 25,
-    // Monthly history from the energy tracker (label,import_kwh,export_kwh,import_cost,export_credit,standing_charge).
-    // Either path is tried; the first that loads wins. It fills months before HA started recording.
-    csvUrls: ['data/energy_monthly.csv', '/local/energy-export.csv'],
-  },
 };

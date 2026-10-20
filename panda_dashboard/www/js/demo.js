@@ -1,7 +1,7 @@
 /*
  * Demo mode: a snapshot of a real Home Assistant instance (solar, SigenStor
  * battery, heat pump, EV) on 18 Oct 2026 at 23:20, with names made generic.
- * Used when the dashboard isn't connected, and for the offline preview. Daily, monthly and temperature history are
+ * Used when the dashboard isn't connected, and for the offline preview. Daily and temperature history are
  * the real long-term statistics; today's power curves are keyframes traced
  * from the real 5-minute statistics.
  */
@@ -225,18 +225,6 @@ window.HD = window.HD || {};
     'sensor.tesla_wall_connector_energy': [0, 0, 0, 0, 34.96, 0, 0, 0, 0, 24.91, 0, 0, 0, 0, 0, 0, 24.36, 0, 0, 0, 0, 0, 24.4, 0, 0, 0, 0, 0, 0, 22.71, 0],
   };
 
-  // ── Real monthly kWh (HA statistics begin April 2026; Oct is month-to-date) ──
-  const MONTHLY = {
-    'sensor.sigen_plant_total_load_consumption': [['2026-04', 498.6], ['2026-05', 928.4], ['2026-06', 996.8], ['2026-07', 1137.1], ['2026-08', 1032.7], ['2026-09', 813.3], ['2026-10', 511.5]],
-    'sensor.sigen_plant_total_imported_energy': [['2026-04', 696], ['2026-05', 1089.5], ['2026-06', 1075.5], ['2026-07', 1048.4], ['2026-08', 1107.3], ['2026-09', 1022.9], ['2026-10', 665.2]],
-    'sensor.sigen_plant_total_exported_energy': [['2026-04', 583.9], ['2026-05', 644.6], ['2026-06', 552.4], ['2026-07', 730.9], ['2026-08', 609.5], ['2026-09', 500.5], ['2026-10', 297.8]],
-    'sensor.sigen_plant_total_pv_generation': [['2026-04', 417.8], ['2026-05', 563.3], ['2026-06', 551.4], ['2026-07', 892.9], ['2026-08', 616.4], ['2026-09', 373.9], ['2026-10', 166]],
-    'sensor.sigen_plant_total_charged_energy_of_the_ess': [['2026-04', 553.7], ['2026-05', 825.8], ['2026-06', 805.1], ['2026-07', 792.9], ['2026-08', 839.7], ['2026-09', 819.7], ['2026-10', 508.3]],
-    'sensor.sigen_plant_total_discharged_energy_of_the_ess': [['2026-04', 522.5], ['2026-05', 746.1], ['2026-06', 727.4], ['2026-07', 719.5], ['2026-08', 758.2], ['2026-09', 736.7], ['2026-10', 486.3]],
-    'sensor.heat_pump_energy': [['2026-05', 173.5], ['2026-06', 85.3], ['2026-07', 63.6], ['2026-08', 66.8], ['2026-09', 79.4], ['2026-10', 88.9]],
-    'sensor.tesla_wall_connector_energy': [['2026-02', 176.7], ['2026-03', 116.7], ['2026-04', 147.2], ['2026-05', 105], ['2026-06', 142.5], ['2026-07', 167.4], ['2026-08', 146.2], ['2026-09', 115.9], ['2026-10', 71.5]],
-  };
-
   // ── Real hourly room temperatures, last 24 h (00:00 → 22:00 local) ──
   const T0 = DAY0;
   const TEMPS = {
@@ -248,8 +236,6 @@ window.HD = window.HD || {};
     'sensor.temp_humidity_kitchen_temperature': [21.6, 21.5, 21.1, 21, 21.1, 21.5, 22, 22.2, 23, 24.3, 24, 23.3, 23, 22.6, 22.4, 22.3, 22.1, 21.9, 22.2, 22.2, 22.3, 22.6, 22.3],
     'sensor.hot_water_tank_temperature': [35.5, 37, 55.7, 64.8, 64.7, 64.3, 63.8, 63.4, 62.7, 61.9, 58.4, 54.1, 51.1, 48.3, 46.4, 44.7, 43, 46.7, 46.3, 34.7, 28.5, 28.2, 26.4],
   };
-
-  function monthStart(ym) { return Date.parse(`${ym}-01T00:00:00${['2026-11', '2026-12', '2026-01', '2026-02', '2026-03'].includes(ym) ? 'Z' : '+01:00'}`); }
 
   // Hourly grid import/export derived from today's grid curve (for today's cost)
   function hourlyGrid(sign) {
@@ -274,7 +260,6 @@ window.HD = window.HD || {};
       else if (msg.period === 'hour' && id === HD.config.energy.totals.import) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(1) : null;
       else if (msg.period === 'hour' && id === HD.config.energy.totals.export) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(-1) : null;
       else if (msg.period === 'day' && DAILY[id]) res[id] = DAILY[id].map((v, i) => ({ start: D0 + i * 864e5, end: D0 + (i + 1) * 864e5, change: v }));
-      else if (msg.period === 'month' && MONTHLY[id]) res[id] = MONTHLY[id].map(([ym, v]) => ({ start: monthStart(ym), change: v }));
       if (res[id] === null || res[id] === undefined) delete res[id];
     });
     return Promise.resolve(res);
@@ -283,7 +268,6 @@ window.HD = window.HD || {};
   HD.demo = {
     snapshotTime: SNAP,
     trackerCop: { today: 4.42, todayKwh: 7.1, todayHeat: 31, heating: 4.47, hotWater: 4.76, yesterday: 2.9, month: 3.63, design: 3.78, eta: 0.495, measured: true },
-    statsStart: Date.parse('2026-04-09T08:00:00+01:00'),   // first HA statistics row
     start() {
       HD.store.states = buildStates();
       HD.store.setStatus('demo', 'Demo · snapshot from 18 Oct 2026, 23:20');

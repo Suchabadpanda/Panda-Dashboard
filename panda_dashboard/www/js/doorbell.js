@@ -271,7 +271,7 @@ window.HD = window.HD || {};
         video.addEventListener('error', () => { if (dlg.open && tries++ < 5) setTimeout(() => { video.src = src; video.play().catch(() => {}); }, 3000); });
         video.src = src;
       } else {
-        if (!window.Hls) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js');
+        if (!window.Hls) await loadScript('vendor/hls.min.js');   // bundled with the add-on
         if (!dlg.open) return;
         let retries = 0;
         hls = new window.Hls({

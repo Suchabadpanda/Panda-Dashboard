@@ -275,14 +275,12 @@ HD.views = HD.views || {};
   }
 
   function tilesHtml() {
-    const d = HD.config.devices; const hp = HD.config.heatPump;
+    const d = HD.config.devices;
     const vac = S().num(d.vacuumPower);
-    const tank = S().num(hp.tankTemp);
     const shortcuts = (HD.config.shortcuts || []).map(shortcutHtml).join('');
     return `<section class="around"><h2>Shortcuts</h2><div class="info-tiles">
       ${shortcuts}
       ${vacTile(vac)}
-      ${tile('flame', temp(tank), tank != null && tank < 40 ? 'Hot water · low' : 'Hot water', tank != null && tank < 40 ? 'warn' : '')}
     </div></section>`;
   }
 
@@ -319,15 +317,19 @@ HD.views = HD.views || {};
 
     return `
       <section class="now-block rate ${off ? 'off-peak' : 'peak'}">
-        <h2>${off ? 'Off-peak' : 'Peak'} electricity</h2>
-        <p class="big">${pence(off ? t.offPeak : t.peak)}<small>/kWh</small></p>
-        <p>${off ? 'Cheap rate' : 'Peak rate'} ends ${minsToSwitch < 90 ? `in ${Math.round(minsToSwitch)} min` : `at ${String(nextSwitch.getHours()).padStart(2, '0')}:00`} · export ${pence(t.export)}</p>
-      </section>
-      <section class="now-block">
-        <h2>Battery</h2>
-        <div class="soc-bar" role="meter" aria-valuenow="${soc ?? 0}" aria-valuemin="0" aria-valuemax="100"><i style="width:${soc ?? 0}%"></i></div>
-        <p class="big">${pct(soc)}<small>${bat > 0.05 ? ' charging' : bat < -0.05 ? ' discharging' : ''}</small></p>
-        <p>${batNote || esc(S().state(e.emsMode) || '')}</p>
+        <div class="now-pair">
+          <div>
+            <h2>${off ? 'Off-peak' : 'Peak'} electricity</h2>
+            <p class="big">${pence(off ? t.offPeak : t.peak)}<small>/kWh</small></p>
+            <p>Ends ${minsToSwitch < 90 ? `in ${Math.round(minsToSwitch)} min` : `at ${String(nextSwitch.getHours()).padStart(2, '0')}:00`} · export ${pence(t.export)}</p>
+          </div>
+          <div>
+            <h2>Battery</h2>
+            <p class="big">${pct(soc)}<small>${bat > 0.05 ? ' charging' : bat < -0.05 ? ' discharging' : ''}</small></p>
+            <p>${batNote || esc(S().state(e.emsMode) || '')}</p>
+          </div>
+        </div>
+        <div class="soc-bar" role="meter" aria-label="Battery charge" aria-valuenow="${soc ?? 0}" aria-valuemin="0" aria-valuemax="100"><i style="width:${soc ?? 0}%"></i></div>
       </section>
       <section class="now-block today">
         <h2>Today so far</h2>
@@ -342,11 +344,10 @@ HD.views = HD.views || {};
       </section>
       ${HD.doorbell ? HD.doorbell.cardHtml() : ''}
       ${copBlock()}
-      <section class="now-block alerts">
+      ${alerts.length ? `<section class="now-block alerts">
         <h2>Attention</h2>
-        ${alerts.length ? `<ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>`
-          : `<p class="all-clear">${icon('check')}Inverter, battery and backups all fine</p>`}
-      </section>`;
+        <ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>
+      </section>` : ''}`;
   }
 
   HD.views.home = {
@@ -358,15 +359,12 @@ HD.views = HD.views || {};
     update() {
       const house = document.getElementById('house'); const now = document.getElementById('now');
       if (!house) return;
-      house.innerHTML = houseHtml();
-      // Keep the doorbell picture element across re-renders so it isn't re-fetched
-      // (and the camera isn't asked for a frame) on every state change
-      const oldPic = now.querySelector('.door-pic img');
-      now.innerHTML = nowHtml();
-      const newPic = now.querySelector('.door-pic img');
-      if (oldPic && newPic && oldPic.getAttribute('src') === newPic.getAttribute('src')) newPic.replaceWith(oldPic);
-      document.getElementById('greeting').innerHTML = greetingHtml();
-      document.getElementById('tiles').innerHTML = tilesHtml();
+      HD.u.setHTML(house, houseHtml());
+      // The doorbell picture element is kept so it isn't re-fetched (and the camera isn't
+      // asked for a frame) on every update
+      HD.u.setHTML(now, nowHtml(), '.door-pic img');
+      HD.u.setHTML(document.getElementById('greeting'), greetingHtml());
+      HD.u.setHTML(document.getElementById('tiles'), tilesHtml());
     },
   };
 })();

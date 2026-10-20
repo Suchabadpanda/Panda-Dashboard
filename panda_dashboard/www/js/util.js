@@ -63,5 +63,18 @@ window.HD = window.HD || {};
   };
   const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[name] || ''}</svg>`;
 
-  HD.u = { cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon };
+  // Write HTML only when it differs from what was last written there, so updates that
+  // change nothing don't rebuild (and repaint) the page. `keep` names an <img> to carry
+  // over when its src is unchanged, so pictures aren't re-fetched.
+  let epoch = 0;
+  function setHTML(el, html, keep) {
+    if (!el || (el._html === html && el._epoch === epoch)) return false;
+    const old = keep ? el.querySelector(keep) : null;
+    el.innerHTML = html; el._html = html; el._epoch = epoch;
+    if (old) { const fresh = el.querySelector(keep); if (fresh && fresh.getAttribute('src') === old.getAttribute('src')) fresh.replaceWith(old); }
+    return true;
+  }
+  const invalidate = () => { epoch++; };   // next update redraws everything (e.g. after a failed toggle)
+
+  HD.u = { cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate };
 })();
