@@ -65,6 +65,8 @@ window.HD = window.HD || {};
     rooms: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h9M12 4v16M16 12v8"/>',
     car: '<path d="M5 16l1.5-5.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.9 1.5L19 16M4 16h16v3H4zM7 19v1.5M17 19v1.5"/><circle cx="8" cy="17.5" r=".6"/><circle cx="16" cy="17.5" r=".6"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    radiator: '<path d="M4 7v11M8 6v13M12 6v13M16 6v13M20 7v11M3 10h18M3 16h18"/>',
+    tap: '<path d="M4 9h9a3 3 0 0 1 3 3v1M7 9V6M4 6h6M16 16v.01M16 19.5v.01"/>',
     update: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',
   };
   const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[name] || ''}</svg>`;

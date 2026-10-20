@@ -85,6 +85,7 @@ HD.views = HD.views || {};
     const hpP = S().num(HD.config.heatPump.power) || 0;
     // Standby draw (controls, circulation) isn't "running"; config.heatPump.runningAbove sets the line
     const hpOn = hpP > (HD.config.heatPump.runningAbove ?? 0.1);
+    const hpm = HD.heatpump.mode();
     const evP = S().num(HD.config.ev.power) || 0;
     const evState = S().state(HD.config.ev.status);
     const tank = S().num(HD.config.heatPump.tankTemp);
@@ -129,7 +130,6 @@ HD.views = HD.views || {};
       </div>
 
       <div class="house">
-        <div class="sky ${isNight() ? 'night' : 'day'}" aria-hidden="true"><i class="orb"></i></div>
         <div class="roof ${pv > 0.05 ? 'generating' : ''}">
           <div class="panels" aria-hidden="true">${'<i></i>'.repeat(10)}</div>
           <p><strong>${pv > 0.05 ? kw(pv) : 'No sun'}</strong><span>Solar · ${kwh(S().num(e.pvToday))} today</span></p>
@@ -143,10 +143,12 @@ HD.views = HD.views || {};
       <div class="side right">
         <div class="link">
         ${flow('f-hp', hpOn ? hpP : 0, kw(hpP))}
-        <div class="node heatpump ${hpOn ? 'running' : ''}">
+        <div class="node heatpump ${hpOn ? 'running' : ''} mode-${hpm.key}">
           <svg class="fan" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="34" rx="4"/><circle cx="24" cy="24" r="11"/><path d="M24 24c0-6 3-9 6-9M24 24c6 0 9 3 9 6M24 24c0 6-3 9-6 9M24 24c-6 0-9-3-9-6"/></svg>
           <h4>Heat pump</h4>
-          <p>${hpOn ? `Running ${kw(hpP)}` : `Resting${hpP >= 0.05 ? ` · ${kw(hpP)} standby` : ''}`}</p>
+          <p>${hpOn ? `${esc(hpm.label)} · ${kw(hpP)}` : `Resting${hpP >= 0.05 ? ` · ${kw(hpP)} standby` : ''}`}</p>
+          ${HD.heatpump.lampsHtml(hpm)}
+          <p class="sub hp-note">${esc(hpm.note)}</p>
           <p class="sub">Tank ${temp(tank)} · ${kwh(S().num(HD.config.heatPump.energyToday))} today${S().state(HD.config.heatPump.legionella) === 'on' ? ' · legionella cycle' : ''}</p>
         </div>
         </div>
@@ -161,12 +163,6 @@ HD.views = HD.views || {};
         </div>
       </div>
     </div>`;
-  }
-
-  function isNight() {
-    const sun = S().state(HD.config.sun.state);
-    if (sun) return sun === 'below_horizon';
-    const h = new Date().getHours(); return h < 7 || h >= 19;
   }
 
   function roomTemps() {
@@ -360,13 +356,15 @@ HD.views = HD.views || {};
   HD.views.home = {
     title: 'Home',
     mount(root) {
-      root.innerHTML = '<div id="greeting"></div><div class="home-grid"><div class="home-main"><div id="house"></div><div id="tiles"></div></div><aside id="now" class="now"></aside></div>';
+      root.innerHTML = '<div id="greeting"></div><div class="home-grid"><div class="home-main"><div class="house-wrap"><div id="sky-host" aria-hidden="false"></div><div id="house"></div></div><div id="tiles"></div></div><aside id="now" class="now"></aside></div>';
+      if (HD.sky) HD.sky.reset();
       this.update();
     },
     update() {
       const house = document.getElementById('house'); const now = document.getElementById('now');
       if (!house) return;
       HD.u.setHTML(house, houseHtml());
+      if (HD.sky) HD.sky.place(document.getElementById('sky-host'), house);
       // The doorbell picture element is kept so it isn't re-fetched (and the camera isn't
       // asked for a frame) on every update
       HD.u.setHTML(now, nowHtml(), '.door-pic img');

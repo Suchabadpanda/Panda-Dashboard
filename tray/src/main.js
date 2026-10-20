@@ -2,8 +2,9 @@
 /*
  * Panda Tray — a Windows tray companion for Panda Dashboard.
  *
- *  - Left-click the tray icon: quick panel (rate now, battery, solar, house, heat pump,
- *    room lights and the dashboard's Shortcuts). It hides when you click away.
+ *  - Left-click the tray icon: quick panel, laid out like the dashboard's Home page: weather,
+ *    rate now, battery, power flows, heat pump (heating / hot water / both), the car, today
+ *    so far, Attention, the dashboard's Shortcuts and room lights. It hides when you click away.
  *  - "Open dashboard": Panda Dashboard itself, in its own window.
  *  - Right-click: menu (dashboard, settings, start with Windows, quit).
  *
@@ -16,6 +17,7 @@ const fs = require('node:fs');
 const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, safeStorage, screen, shell, Notification } = require('electron');
 const { HAClient } = require('./ha');
 const panda = require('./panda-config');
+const view = require('./snapshot');
 
 // One copy only: a second launch just shows the panel
 if (!app.requestSingleInstanceLock()) app.exit(0);
@@ -109,7 +111,7 @@ function snapshot() {
   const c = pandaInfo && pandaInfo.config;
   const base = { status: ha.status, error: pandaError, ready: !!c, personal: pandaInfo ? pandaInfo.personal : null };
   if (!c) return base;
-  const e = c.energy || {}; const hp = c.heatPump || {};
+  const e = c.energy || {};
   const rate = panda.rateNow(c.tariffs);
   const lights = [];
   (c.floors || []).forEach((f) => (f.rooms || []).forEach((r) => {
@@ -130,13 +132,18 @@ function snapshot() {
     else if (sc.service && sc.entities === 'lights') { const n = allLights.filter((id) => st(id) === 'on').length; sub = n ? `${n} on now` : 'All off'; }
     return { i, name: sc.name, icon: sc.icon || 'power', sub, on, ok, confirm: sc.confirm || null, danger: !!sc.danger };
   });
-  const hpPower = num(hp.power);
+  const r = view.reader(ha.states);
   return {
     ...base,
     title: c.title || 'Panda Dashboard',
     rate: rate && { offPeak: rate.offPeak, pence: rate.rate * 100, exportPence: rate.export * 100, until: rate.until },
     soc: num(e.soc), battery: num(e.batteryPower), pv: num(e.pvPower), load: num(e.loadPower), grid: num(e.gridPower),
-    heatPump: hp.power ? { kw: hpPower, running: hpPower != null && hpPower > (hp.runningAbove ?? 0.1), tank: num(hp.tankTemp) } : null,
+    heatPump: view.heatPumpMode(c, r),
+    car: view.carSummary(c, r),
+    weather: view.weatherNow(c, r),
+    today: view.today(c, r),
+    attention: view.attention(c, r),
+    vacuum: view.vacuum(c, r),
     lights: lightList,
     shortcuts,
   };
@@ -155,6 +162,7 @@ function updateTray() {
   if (s.soc != null) bits.push(`Battery ${Math.round(s.soc)}%`);
   if (s.rate) bits.push(`${s.rate.pence.toFixed(1)}p ${s.rate.offPeak ? 'cheap' : 'peak'}`);
   if (s.pv != null && s.pv > 0.05) bits.push(`Solar ${s.pv.toFixed(1)} kW`);
+  if (s.heatPump && s.heatPump.key !== 'rest') bits.push(`Heat pump: ${s.heatPump.label.toLowerCase()}`);
   tray.setToolTip(`Panda — ${bits.join(' · ')}`.slice(0, 127));
 }
 
@@ -290,7 +298,7 @@ ipcMain.handle('panel:openSettings', () => openSettings());
 ipcMain.handle('panel:hide', () => { if (panelWin) panelWin.hide(); });
 ipcMain.handle('panel:resize', (_e, h) => {
   if (!panelWin) return;
-  const height = Math.max(240, Math.min(760, Math.round(h)));
+  const height = Math.max(240, Math.min(900, Math.round(h)));
   if (panelWin.getSize()[1] !== height) { panelWin.setSize(380, height); if (panelWin.isVisible()) placeNearTray(panelWin); }
 });
 

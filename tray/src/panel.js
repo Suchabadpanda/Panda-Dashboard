@@ -15,7 +15,13 @@
     flame: '<path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-4 5-4 7-1-1-2-2-2-4-2 2-3 5-3 9 0 4 3 7 7 7z"/>',
     plug: '<path d="M9 2v6M15 2v6M6 8h12v3a6 6 0 0 1-12 0zM12 17v5"/>',
     tv: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/>',
+    radiator: '<path d="M4 7v11M8 6v13M12 6v13M16 6v13M20 7v11M3 10h18M3 16h18"/>',
+    tap: '<path d="M4 9h9a3 3 0 0 1 3 3v1M7 9V6M4 6h6M16 16v.01M16 19.5v.01"/>',
+    car: '<path d="M5 16l1.5-5.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.9 1.5L19 16M4 16h16v3H4zM7 19v1.5M17 19v1.5"/>',
+    alert: '<path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>',
+    gauge: '<path d="M12 14l4-6M3.5 17a9 9 0 1 1 17 0"/>',
   };
+  const kwh = (v) => (v == null ? '–' : `${v.toFixed(1)} kWh`);
   const icon = (n) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${I[n] || I.power}</svg>`;
 
   let armed = null; let armTimer = null;   // shortcut waiting for its confirming second tap
@@ -37,6 +43,7 @@
     const bat = s.battery == null ? '' : s.battery > 0.05 ? `charging ${kw(s.battery)}` : s.battery < -0.05 ? `supplying ${kw(s.battery)}` : 'idle';
     $('body').innerHTML = `
       ${s.error ? `<p class="note">${esc(s.error)}</p>` : ''}
+      ${s.weather ? `<p class="weather"><strong>${s.weather.temp != null ? `${Math.round(s.weather.temp)}°` : ''}</strong> ${esc(s.weather.text)}</p>` : ''}
       <section class="now">
         ${r ? `<div class="rate ${r.offPeak ? 'cheap' : 'peak'}"><span>${r.offPeak ? 'Cheap rate' : 'Peak rate'}</span>
           <strong>${r.pence.toFixed(2).replace(/\.?0+$/, '')}p</strong><small>until ${hhmm(r.until)} · export ${r.exportPence.toFixed(1)}p</small></div>` : ''}
@@ -47,8 +54,14 @@
         <div><span>Solar</span><strong>${kw(s.pv)}</strong></div>
         <div><span>House</span><strong>${kw(s.load)}</strong></div>
         <div><span>Grid</span><strong>${esc(grid || '–')}</strong></div>
-        ${s.heatPump ? `<div><span>Heat pump</span><strong>${s.heatPump.running ? kw(s.heatPump.kw) : 'Resting'}</strong>${s.heatPump.tank != null ? `<small>tank ${s.heatPump.tank.toFixed(0)}°</small>` : ''}</div>` : ''}
       </section>
+      ${heatPumpHtml(s.heatPump)}
+      ${carHtml(s.car)}
+      ${s.vacuum ? `<p class="line">${icon('gauge')}<span>Robot vacuum ${esc(s.vacuum.state)}${s.vacuum.battery != null ? ` · ${Math.round(s.vacuum.battery)}%` : ''}</span></p>` : ''}
+      ${s.today ? `<h2>Today so far</h2><section class="today">
+        <div><span>Solar</span><strong>${kwh(s.today.pv)}</strong></div><div><span>Used</span><strong>${kwh(s.today.load)}</strong></div>
+        <div><span>Bought</span><strong>${kwh(s.today.bought)}</strong></div><div><span>Sold</span><strong>${kwh(s.today.sold)}</strong></div></section>` : ''}
+      ${s.attention && s.attention.length ? `<h2>Attention</h2><ul class="attention">${s.attention.map((a) => `<li class="${esc(a.level)}">${icon('alert')}${esc(a.text)}</li>`).join('')}</ul>` : ''}
       ${s.shortcuts.length ? `<h2>Shortcuts</h2><section class="shortcuts">
         ${s.shortcuts.map((sc) => `<button class="sc ${sc.on ? 'on' : ''} ${sc.danger ? 'danger' : ''} ${armed === sc.i ? 'armed' : ''}" data-sc="${sc.i}" ${sc.ok ? '' : 'disabled'}>
           ${icon(sc.icon)}<strong>${armed === sc.i ? 'Tap again' : esc(sc.name)}</strong><small>${esc(armed === sc.i ? (sc.confirm || '') : sc.sub)}</small></button>`).join('')}
@@ -59,6 +72,23 @@
       ${s.personal === false ? '<p class="note">Using the example settings: Panda Dashboard has no config.js of your own yet.</p>' : ''}`;
     document.querySelectorAll('[data-w]').forEach((b) => { b.style.width = `${b.dataset.w}%`; });   // CSP-safe
     fit();
+  }
+
+  // Heat pump: what it's doing, with the dashboard's two lamps (radiator, tap)
+  function heatPumpHtml(h) {
+    if (!h) return '';
+    const heatCls = h.heating ? 'on' : h.heatingOn ? 'armed' : '';
+    const sub = [h.running ? kw(h.kw) : '', h.heating && h.flow != null ? `flow ${Math.round(h.flow)}°` : '', h.tank != null ? `tank ${Math.round(h.tank)}°` : '', h.today != null ? `${h.today.toFixed(1)} kWh today` : ''].filter(Boolean).join(' · ');
+    return `<section class="hp hp-${esc(h.key)}">
+      <div><span>Heat pump</span><strong>${esc(h.label)}${h.legionella ? ' · legionella' : ''}</strong><small>${esc(sub)}</small></div>
+      <div class="lamps"><span class="lamp heat ${heatCls}">${icon('radiator')}Heating</span><span class="lamp water ${h.hotWater ? 'on' : ''}">${icon('tap')}Hot water</span></div>
+    </section>`;
+  }
+
+  function carHtml(c) {
+    if (!c) return '';
+    const what = !c.live ? 'No live data' : c.chargingKw ? `Charging ${kw(c.chargingKw)}` : c.plugged ? 'Plugged in' : c.asleep ? 'Asleep' : 'Awake';
+    return `<p class="line car">${icon('car')}<span><strong>${esc(c.name)}</strong> ${c.soc != null ? `${Math.round(c.soc)}%${c.limit ? ` of ${Math.round(c.limit)}%` : ''} · ` : ''}${esc(what)}${c.live && c.via ? ` <small>via ${esc(c.via)}</small>` : ''}</span></p>`;
   }
 
   function fit() { requestAnimationFrame(() => window.panda.resize(document.body.scrollHeight)); }

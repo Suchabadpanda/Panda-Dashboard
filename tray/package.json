@@ -1,7 +1,7 @@
 {
   "name": "panda-tray",
   "productName": "Panda Tray",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Windows tray companion for Panda Dashboard (Home Assistant): quick panel, shortcuts and the dashboard one click away",
   "main": "src/main.js",
   "author": "Suchabadpanda",

@@ -269,18 +269,81 @@ HD.views = HD.views || {};
   // Bluetooth bridge listed first, it's used whenever the car is in range, and Tesla
   // Fleet (cloud) fills in everything else — including when the car is away.
   const sources = () => ((C().ev && C().ev.car && C().ev.car.sources) || []);
-  function pick(key) {
+  const usable = (id) => (id.startsWith('button.') ? S().get(id) && S().state(id) !== 'unavailable' : S().get(id) && S().available(id));
+  // A source whose own awake/asleep entity reads unknown hasn't really heard from the car
+  // (Tesla Fleet straight after a restart reports the boot and frunk as "open", for one), so
+  // none of its readings count as live — buttons still work, they go via the cloud.
+  const heard = (src) => { const s = src.awake || src.asleep; return !s || !S().get(s) || S().available(s); };
+  function live(key) {
     for (const src of sources()) {
       const id = src[key]; if (!id) continue;
+      if (!id.startsWith('button.') && !heard(src)) continue;
       // Buttons sit at 'unknown' until first pressed, which still means usable
-      const ok = id.startsWith('button.') ? S().get(id) && S().state(id) !== 'unavailable' : S().get(id) && S().available(id);
-      if (ok) return { id, src: src.name };
+      if (usable(id)) return { id, src: src.name };
     }
     return null;
   }
-  const val = (key) => { const p = pick(key); return p ? S().state(p.id) : null; };
-  const num = (key) => { const p = pick(key); return p ? S().num(p.id) : null; };
+
+  // ── Last known values ──
+  // When the Bluetooth bridge is out of range/offline and Tesla Fleet has nothing (the car
+  // has been asleep since Home Assistant restarted, so Fleet won't wake it to ask), every
+  // entity reads unknown. Rather than the car vanishing, show the last good reading of each
+  // from the recorder, marked as old.
+  let lastKnown = {}; let lastKnownAt = 0; let lastKnownBusy = false;
+  async function loadLastKnown() {
+    if (lastKnownBusy || S().mode === 'demo' || Date.now() - lastKnownAt < 10 * 60e3) return;
+    const ids = [...new Set(sources().flatMap((src) => Object.entries(src).filter(([k, v]) => k !== 'name' && typeof v === 'string' && !v.startsWith('button.')).map(([, v]) => v)))]
+      .filter((id) => S().get(id));
+    if (!ids.length) return;
+    lastKnownBusy = true;
+    try {
+      const r = await HD.ha.callWS({ type: 'history/history_during_period', start_time: new Date(Date.now() - 7 * 864e5).toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true, significant_changes_only: false });
+      const t = (row) => ((row.lu || row.lc) * 1000) || Date.parse(row.last_updated || row.last_changed);
+      const good = (row) => { const st = row.s ?? row.state; return st != null && st !== 'unknown' && st !== 'unavailable'; };
+      // Readings after a source lost touch with the car (its awake/asleep entity went unknown)
+      // are not trusted, so each source's values stop at that moment
+      const cutoff = (src) => {
+        const rows = (r || {})[src.awake || src.asleep] || [];
+        for (let i = rows.length - 1; i >= 0; i--) if (good(rows[i])) return i + 1 < rows.length ? t(rows[i + 1]) : Infinity;
+        return Infinity;
+      };
+      const out = {};
+      sources().forEach((src) => {
+        const until = cutoff(src);
+        Object.entries(src).forEach(([k, id]) => {
+          if (k === 'name' || typeof id !== 'string') return;
+          const rows = (r || {})[id] || [];
+          for (let i = rows.length - 1; i >= 0; i--) {
+            if (good(rows[i]) && t(rows[i]) < until) { out[id] = { state: String(rows[i].s ?? rows[i].state), at: t(rows[i]) }; break; }
+          }
+        });
+      });
+      lastKnown = out; lastKnownAt = Date.now();
+      if (HD.views.car && document.getElementById('car-card')) HD.views.car.update();
+    } catch (e) { console.warn('Last known car values unavailable', e); } finally { lastKnownBusy = false; }
+  }
+
+  // Live value from the first source that has one, else the newest last-known value
+  function pick(key) {
+    const l = live(key); if (l) return l;
+    let best = null;
+    for (const src of sources()) {
+      const id = src[key]; const k = id && lastKnown[id];
+      if (k && (!best || k.at > best.at)) best = { id, src: src.name, stale: true, state: k.state, at: k.at };
+    }
+    return best;
+  }
+  const val = (key) => { const p = pick(key); return p ? (p.stale ? p.state : S().state(p.id)) : null; };
+  const num = (key) => { const p = pick(key); if (!p) return null; if (!p.stale) return S().num(p.id); const v = parseFloat(p.state); return Number.isFinite(v) ? v : null; };
   const unit = (key) => { const p = pick(key); return p ? S().attr(p.id, 'unit_of_measurement') : null; };
+  // A wake button: config `wake`, else the integration's usual name next to the flash button
+  function wakeId() {
+    for (const src of sources()) {
+      const cands = [src.wake, src.flash && src.flash.replace(/flash_lights$/, 'wake'), src.flash && src.flash.replace(/flash_lights$/, 'wake_up')].filter(Boolean);
+      const id = cands.find((c) => usable(c)); if (id) return { id, src: src.name };
+    }
+    return null;
+  }
   const toMiles = (v, u) => (v == null ? null : /mi/i.test(u || '') ? v : v * 0.621371);
   const toPsi = (v, u) => (v == null ? null : /psi/i.test(u || '') ? v : /kpa/i.test(u || '') ? v * 0.145038 : v * 14.5038);
 
@@ -388,8 +451,13 @@ HD.views = HD.views || {};
     const version = upd ? S().attr(upd.id, 'installed_version') : null;
     const odo = toMiles(num('odometer'), unit('odometer'));
     const via = pick('soc');
-    const updated = via ? S().get(via.id).last_updated : null;
+    const stale = !!(via && via.stale);
+    if (!via || stale) loadLastKnown();
+    const updated = via ? (stale ? new Date(via.at).toISOString() : S().get(via.id).last_updated) : null;
     const any = !!via;
+    const bleSrc = sources().find((src) => /bluetooth/i.test(src.name || ''));
+    const bleDown = bleSrc && bleSrc.soc && !S().available(bleSrc.soc);
+    const wake = wakeId();
 
     const chips = [
       locked != null ? chip(locked === 'locked', locked === 'locked' ? 'lock' : 'unlock', locked === 'locked' ? 'Locked' : 'Unlocked') : '',
@@ -417,7 +485,8 @@ HD.views = HD.views || {};
     return `
       <header class="car-head"><div><p class="eyebrow-label">${esc(ev.name || 'Car')}</p>
         <h2>${icon('pin')}${esc(whereText())}</h2></div>
-        <span class="pill ${isAsleep === false ? 'ok' : ''}">${!any ? 'Offline' : isAsleep ? 'Asleep' : 'Awake'}</span></header>
+        <span class="pill ${!stale && isAsleep === false ? 'ok' : ''}">${!any ? 'No data' : stale ? `Last seen ${esc(ago(updated))}` : isAsleep ? 'Asleep' : 'Awake'}</span></header>
+      ${stale || !any ? `<p class="note car-stale">${icon('alert')}<span>No live data from the car${bleDown ? ': the Bluetooth bridge is offline' : ''}${bleDown ? ' and' : ':'} Tesla Fleet has had nothing since ${updated ? HD.u.time(updated) + (Date.now() - Date.parse(updated) > 12 * 3600e3 ? ` on ${new Date(updated).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : '') : 'Home Assistant restarted'} (it doesn't wake a sleeping car). ${any ? 'Showing the last known state.' : ''}</span>${wake ? `<button class="car-btn" data-car="wake" data-entity="${wake.id}">${icon('power')}<span>Wake car</span></button>` : ''}</p>` : ''}
       ${any ? `
         <div class="car-main">
           ${carSvg(tp, target, {
@@ -434,9 +503,9 @@ HD.views = HD.views || {};
             <div class="car-chips">${chips}</div>
           </div>
         </div>
-        <div class="car-controls">${controls}</div>
-        <p class="sub car-foot">${[odo != null ? `${Math.round(odo).toLocaleString('en-GB')} mi` : '', inside != null ? `${Math.round(inside)}° inside` : '', outside != null ? `${Math.round(outside)}° outside` : '', via ? `via ${via.src}` : '', updated ? `updated ${ago(updated)}` : ''].filter(Boolean).join(' · ')}</p>`
-      : '<p class="note">No car data. Tesla Fleet or the Bluetooth bridge needs to be connected in Home Assistant.</p>'}
+        ${stale ? '' : `<div class="car-controls">${controls}</div>`}
+        <p class="sub car-foot">${[odo != null ? `${Math.round(odo).toLocaleString('en-GB')} mi` : '', inside != null ? `${Math.round(inside)}° inside` : '', outside != null ? `${Math.round(outside)}° outside` : '', via ? `via ${via.src}${stale ? ' (last known)' : ''}` : '', updated ? `updated ${ago(updated)}` : ''].filter(Boolean).join(' · ')}</p>`
+      : '<p class="note">No car data yet. Tesla Fleet or the Bluetooth bridge needs to be connected in Home Assistant.</p>'}
       <dl class="kv car-kv">
         <div><dt>Wall Connector</dt><dd>${esc(HD.u.cap((S().state(ev.status) || '').replace(/_/g, ' ')) || '–')}</dd></div>
         <div><dt>Grid voltage</dt><dd>${S().num(ev.voltage) != null ? `${Math.round(S().num(ev.voltage))} V` : '–'}</dd></div>
@@ -454,6 +523,7 @@ HD.views = HD.views || {};
     else if (a === 'climate') call = ['climate', S().state(id) === 'off' ? 'turn_on' : 'turn_off'];
     else if (a === 'open-frunk' || a === 'open') call = [domain, 'open_cover'];
     else if (a === 'close') call = [domain, 'close_cover'];
+    else if (a === 'wake') { call = ['button', 'press']; lastKnownAt = 0; setTimeout(() => { lastKnownAt = 0; HD.views.car.update(); }, 60e3); }
     else if (a === 'press') { call = ['button', 'press']; flashUntil = Date.now() + 3200; HD.views.car.update(); setTimeout(() => HD.views.car.update(), 3300); }
     if (!call) return;
     b.disabled = true;

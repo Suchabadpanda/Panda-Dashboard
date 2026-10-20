@@ -61,7 +61,8 @@ HD.views = HD.views || {};
     const t = S().num(hp.tankTemp);
     const legion = hp.legionella && S().state(hp.legionella) === 'on';
     return `<p class="big">${temp(t)}<small> now</small></p>
-      <p class="tank-note">${legion ? 'Legionella cycle running. ' : ''}Heat pump ${HD.u.kw(S().num(hp.power))} now · ${S().num(hp.energyToday)?.toFixed(1) ?? '–'} kWh today</p>`;
+      <p class="tank-note">${legion ? 'Legionella cycle running. ' : ''}Heat pump ${HD.u.kw(S().num(hp.power))} now · ${S().num(hp.energyToday)?.toFixed(1) ?? '–'} kWh today</p>
+      ${HD.heatpump ? HD.heatpump.lampsHtml(HD.heatpump.mode()) : ''}`;
   }
 
   function drawCharts() {

@@ -434,28 +434,103 @@ thead th { color: var(--muted); font-weight: 500; }
 .greeting .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--s-battery); align-self: center; }
 .greeting .dot.busy { background: var(--s-solar); }
 
-/* ── Sky behind the roof ── */
-.house { position: relative; }
+/* ── Sky behind the roof (js/sky.js) ── */
+.house-wrap { position: relative; }
+#house { position: relative; z-index: 1; }
+#sky-host { position: absolute; z-index: 0; height: 178px; pointer-events: none; }
+.roof, .f-solar, .floors { position: relative; z-index: 1; }
 .sky {
-  position: absolute; left: 0; right: 0; top: 0; height: 178px; border-radius: var(--r-lg) var(--r-lg) 0 0; overflow: hidden;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--cool) 22%, var(--bg)), var(--bg));
+  --sky-a: color-mix(in oklab, var(--cool) 26%, var(--bg)); --sky-b: var(--bg);
+  position: absolute; inset: 0; border-radius: var(--r-lg) var(--r-lg) 0 0; overflow: hidden;
+  background: linear-gradient(180deg, var(--sky-a), var(--sky-b));
+  transition: background .8s;
 }
-.sky.night {
-  background:
-    radial-gradient(1.5px 1.5px at 12% 22%, var(--ink) 50%, transparent 51%),
-    radial-gradient(1px 1px at 28% 12%, var(--ink) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 72% 18%, var(--ink) 50%, transparent 51%),
-    radial-gradient(1px 1px at 86% 34%, var(--muted) 50%, transparent 51%),
-    radial-gradient(1px 1px at 18% 48%, var(--muted) 50%, transparent 51%),
-    radial-gradient(1px 1px at 62% 8%, var(--muted) 50%, transparent 51%),
-    radial-gradient(1px 1px at 92% 10%, var(--ink) 50%, transparent 51%),
-    linear-gradient(180deg, color-mix(in oklab, #0a1430 60%, var(--bg)), var(--bg));
+.sky.grey-1 { --sky-a: color-mix(in oklab, #8b97a6 30%, var(--bg)); }
+.sky.grey-2 { --sky-a: color-mix(in oklab, #5f6b79 40%, var(--bg)); }
+.sky.grey-3 { --sky-a: color-mix(in oklab, #3c4552 55%, var(--bg)); }
+.sky.night { --sky-a: color-mix(in oklab, #13203f 85%, var(--bg)); --sky-b: color-mix(in oklab, #13203f 35%, var(--bg)); }
+.sky.night.grey-1, .sky.night.grey-2, .sky.night.grey-3 { --sky-a: color-mix(in oklab, #1a1f29 85%, var(--bg)); --sky-b: color-mix(in oklab, #1a1f29 35%, var(--bg)); }
+
+/* sun and moon */
+.sky .orb { position: absolute; right: 9%; top: 20px; width: 30px; height: 30px; border-radius: 50%; }
+.sky .orb.sun {
+  background: var(--s-solar);
+  box-shadow: 0 0 22px 4px color-mix(in oklab, var(--s-solar) 55%, transparent);
+  animation: sun-glow 5s ease-in-out infinite;
 }
-.sky .orb { position: absolute; right: 9%; top: 22px; width: 30px; height: 30px; border-radius: 50%; }
-.sky.night .orb { box-shadow: inset -8px -3px 0 0 #f1e4b8; transform: rotate(-20deg); }
-.sky.day .orb { background: var(--s-solar); box-shadow: 0 0 24px color-mix(in oklab, var(--s-solar) 60%, transparent); }
-.roof { position: relative; z-index: 1; }
-.f-solar, .floors { position: relative; z-index: 1; }
+.sky .orb.sun::before {
+  content: ""; position: absolute; inset: -14px; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--s-solar) 55%, transparent) 0 6deg, transparent 6deg 30deg);
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%, #000 72%, transparent 74%);
+          mask: radial-gradient(circle, transparent 58%, #000 60%, #000 72%, transparent 74%);
+  animation: spin 40s linear infinite;
+}
+.sky .orb.moon { box-shadow: inset -8px -3px 0 0 #f1e4b8; transform: rotate(-20deg); filter: drop-shadow(0 0 6px rgba(241, 228, 184, .35)); }
+@keyframes sun-glow { 50% { box-shadow: 0 0 34px 8px color-mix(in oklab, var(--s-solar) 40%, transparent); } }
+
+/* stars */
+.sky .stars i { position: absolute; width: var(--z); height: var(--z); border-radius: 50%; background: #f4f1e0; opacity: .85; animation: twinkle 4s ease-in-out infinite; }
+@keyframes twinkle { 50% { opacity: .2; } }
+
+/* clouds: three overlapping circles from one element */
+.sky .cloud {
+  --c: color-mix(in oklab, #ffffff 82%, var(--bg));
+  position: absolute; left: 0; width: 64px; height: 20px; border-radius: 20px; background: var(--c);
+  transform: translateX(-90px) scale(var(--s)); opacity: .9;
+  animation: drift calc(var(--d) * var(--wind, 1)) linear infinite;
+}
+.sky .cloud::before, .sky .cloud::after { content: ""; position: absolute; border-radius: 50%; background: inherit; }
+.sky .cloud::before { width: 28px; height: 28px; left: 10px; top: -14px; }
+.sky .cloud::after { width: 34px; height: 34px; left: 26px; top: -20px; }
+.sky.grey-1 .cloud { --c: color-mix(in oklab, #c9d0d8 75%, var(--bg)); }
+.sky.grey-2 .cloud, .sky.grey-3 .cloud { --c: color-mix(in oklab, #7c8794 70%, var(--bg)); }
+.sky .cloud.n { --c: color-mix(in oklab, #4a5566 70%, var(--bg)); opacity: .85; }
+@keyframes drift { from { transform: translateX(-90px) scale(var(--s)); } to { transform: translateX(calc(100cqw + 90px)) scale(var(--s)); } }
+#sky-host { container-type: inline-size; }
+
+/* rain, downpour and hail */
+.sky .precip { position: absolute; inset: -20px -30px 0; transform: skewX(calc(var(--tilt, 0deg) * -1)); }
+.sky .precip i {
+  position: absolute; top: -20px; width: 2px; height: 15px; border-radius: 1px;
+  background: linear-gradient(transparent, color-mix(in oklab, #4f8fdc 85%, transparent));
+  animation: fall .8s linear infinite;
+}
+.sky .precip.pour i { height: 20px; width: 2px; }
+.sky .precip.hail i { width: 4px; height: 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 2px 1px rgba(70, 90, 120, .45); }
+@keyframes fall { to { transform: translateY(220px); } }
+
+/* snow */
+.sky .precip.snow i { width: 4px; height: 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 2px 1px rgba(70, 90, 120, .45); opacity: .95; animation-name: snow; animation-timing-function: linear; }
+@keyframes snow {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(8px, 100px); }
+  100% { transform: translate(-4px, 210px); }
+}
+
+/* fog */
+.sky .fog { position: absolute; left: -30%; width: 160%; height: 26px; border-radius: 50%; background: color-mix(in oklab, var(--muted) 38%, transparent); filter: blur(7px); animation: fog 14s ease-in-out infinite alternate; }
+.sky .fog.a { top: 60px; height: 34px; } .sky .fog.b { top: 112px; height: 40px; animation-duration: 19s; animation-direction: alternate-reverse; }
+@keyframes fog { to { transform: translateX(14%); } }
+
+/* wind */
+.sky .gusts i {
+  position: absolute; left: -40%; width: 40%; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--ink) 30%, transparent), transparent);
+  animation: gust 3s ease-in infinite;
+}
+@keyframes gust { to { transform: translateX(380%); } }
+
+/* lightning */
+.sky .bolt-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: flash 7s infinite; }
+.sky .bolt { position: absolute; left: 22%; top: 30px; width: 16px; height: 32px; fill: #ffe36e; opacity: 0; animation: flash 7s infinite; filter: drop-shadow(0 0 6px #ffe36e); }
+@keyframes flash { 0%, 89%, 93%, 100% { opacity: 0; } 90%, 92% { opacity: .55; } 91% { opacity: .1; } }
+.sky .bolt { animation-name: bolt; }
+@keyframes bolt { 0%, 89%, 94%, 100% { opacity: 0; } 90%, 93% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sky .precip, .sky .bolt-flash, .sky .bolt, .sky .gusts { display: none; }
+  .sky .cloud { animation: none; transform: translateX(calc(var(--s) * 60px)) scale(var(--s)); }
+}
 
 /* ── Temperature legend ── */
 .temp-legend { display: grid; grid-template-columns: auto 1fr auto 1fr auto; align-items: center; gap: 8px; margin-top: 10px; font: 600 11px/1 var(--font-num); color: var(--faint); }
@@ -892,3 +967,33 @@ a.chip { text-decoration: none; }
   .room .chip .ic { width: 13px; height: 13px; }
   .room-wait { font-size: 12px; }
 }
+
+/* ── Heat pump: heating / hot water lamps ── */
+.hp-mode { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.hp-lamp {
+  --lamp: var(--muted);
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px;
+  font: 600 11px/1.6 var(--font-num); color: var(--faint); border: 1px solid var(--line); background: transparent;
+}
+.hp-lamp .ic { width: 13px; height: 13px; }
+.hp-lamp.heat { --lamp: var(--warm); }
+.hp-lamp.water { --lamp: #4aa8e8; }
+.hp-lamp.armed { color: var(--muted); border-color: color-mix(in oklab, var(--lamp) 45%, var(--line)); }
+.hp-lamp.on {
+  color: var(--ink); border-color: var(--lamp);
+  background: color-mix(in oklab, var(--lamp) 22%, transparent);
+  box-shadow: 0 0 12px color-mix(in oklab, var(--lamp) 40%, transparent);
+  animation: lamp-pulse 2.4s ease-in-out infinite;
+}
+.hp-lamp.on .ic { color: var(--lamp); }
+@keyframes lamp-pulse { 50% { box-shadow: 0 0 4px color-mix(in oklab, var(--lamp) 20%, transparent); } }
+.hp-note { min-height: 1em; }
+.link:has(.mode-heat) .f-hp { --c: var(--warm); }
+.link:has(.mode-water) .f-hp, .link:has(.mode-both) .f-hp { --c: #4aa8e8; }
+@media (forced-colors: active) { .hp-lamp.on { border: 2px solid CanvasText; } }
+
+/* Car: no live data, showing the last known state */
+.car-stale { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin: 0 0 12px; max-width: none;
+  border: 1px solid color-mix(in oklab, var(--warning) 45%, var(--line)); border-radius: var(--r-md); background: color-mix(in oklab, var(--warning) 8%, transparent); }
+.car-stale > .ic { color: var(--warning); flex: none; }
+.car-stale > span { flex: 1 1 260px; }

@@ -2,7 +2,7 @@
 
 A Windows tray companion for Panda Dashboard.
 
-- **Left-click the tray icon** for the quick panel: the electricity rate now and when it changes, battery, solar, house and grid power, the heat pump, your room lights and the dashboard's **Shortcuts** (the same ones as on its Home page, with the same confirmations).
+- **Left-click the tray icon** for the quick panel, laid out like the dashboard's Home page: the weather, the electricity rate now and when it changes, battery, solar, house and grid power, the heat pump (heating, hot water or both, with the same two lamps as the dashboard), the car, today so far, Attention, the dashboard's **Shortcuts** (the same ones, with the same confirmations) and your room lights.
 - **Open dashboard** shows Panda Dashboard in its own window (wide or compact), signed in with the same token.
 - **Right-click** for the menu: dashboard, settings, start with Windows, reconnect, quit.
 
