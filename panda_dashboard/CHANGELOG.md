@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.28
+- Tank chart back, mirrored battery line, fuller Charge now? card
+
 ## 0.3.27
 - Faster updates and a tidier dashboard
 
