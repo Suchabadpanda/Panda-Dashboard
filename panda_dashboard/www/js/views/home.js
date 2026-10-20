@@ -90,10 +90,19 @@ HD.views = HD.views || {};
     const tank = S().num(HD.config.heatPump.tankTemp);
     const cap = S().num(e.capacity) || 27.12;
 
-    const floors = HD.config.floors.map((f) => `
-      <section class="floor" style="grid-template-columns:${f.rooms.map((r) => (r.slim ? 'minmax(0, .72fr)' : 'minmax(0, 1fr)')).join(' ')}" aria-label="${esc(f.name)}">
+    // Landings and hallways (slim rooms) sit in the middle column, like the stairwell they
+    // belong to, so the columns line up floor to floor whatever order the config lists them in.
+    const arrange = (rooms) => {
+      const slim = rooms.filter((r) => r.slim); const wide = rooms.filter((r) => !r.slim);
+      if (slim.length === 1 && wide.length === 2) return [wide[0], slim[0], wide[1]];
+      return rooms;
+    };
+    const layouts = HD.config.floors.map((f) => arrange(f.rooms));
+    const cols = (rooms) => rooms.map((r) => (r.slim ? 'minmax(0, .72fr)' : 'minmax(0, 1fr)')).join(' ');
+    const floors = HD.config.floors.map((f, i) => `
+      <section class="floor" style="grid-template-columns:${cols(layouts[i])}" aria-label="${esc(f.name)}">
         <span class="floor-tag">${esc(f.short)}</span>
-        ${f.rooms.map(room).join('')}
+        ${layouts[i].map(room).join('')}
       </section>`).join('');
 
     return `

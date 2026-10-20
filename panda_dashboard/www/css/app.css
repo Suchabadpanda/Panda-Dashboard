@@ -875,3 +875,20 @@ a.chip { text-decoration: none; }
 .bat-list li.mid .bat-meter b { background: var(--warning); }
 .bat-list li.low .bat-meter b { background: var(--critical); }
 .bat-list li.low strong { color: var(--critical); }
+
+/* Three rooms a floor on a phone: smaller type, chips that shrink rather than spill */
+.room { min-width: 0; }
+.room .chip { max-width: 100%; min-width: 0; }
+.room .chip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 520px) {
+  .room { padding: 10px 8px; }
+  .room h3 { font-size: 13px; }
+  .room-temp { font-size: 26px; }
+  .room.slim .room-temp { font-size: 24px; }
+  .room-temp small { display: block; margin-left: 0; font-size: 12px; }
+  .room-meta { font-size: 12px; }
+  .room-controls { gap: 4px; }
+  .room .chip { height: 28px; padding: 0 8px; font-size: 12px; gap: 4px; }
+  .room .chip .ic { width: 13px; height: 13px; }
+  .room-wait { font-size: 12px; }
+}

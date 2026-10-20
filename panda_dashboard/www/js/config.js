@@ -33,7 +33,7 @@ HD.config = {
       rooms: [
         { name: 'Bedroom 2', temp: 'sensor.ewelink_snzb_02p_temperature', hum: 'sensor.ewelink_snzb_02p_humidity',
           climate: 'climate.bedroom_2_ac' },
-        { name: 'Upstairs', temp: 'sensor.extra_temperature', hum: 'sensor.extra_humidity',
+        { name: 'Upstairs', slim: true, temp: 'sensor.extra_temperature', hum: 'sensor.extra_humidity',
           light: 'switch.2f_landing', lightName: 'Landing', lightWhere: 'landing', motion: 'binary_sensor.2f_hallway_motion_sensor_occupancy',
           socket: 'switch.sonoff_s60zbtpg_2', socketName: 'Landing socket' },
         // A room can name a Home Assistant area instead of sensors: the first temperature and
