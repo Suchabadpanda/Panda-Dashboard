@@ -1,7 +1,7 @@
 /*
  * Devices view: what isn't on the other pages — smart plugs and their use, the
- * SigenStor hardware, and Home Assistant's own housekeeping. (Lights, TVs, the washer
- * and the PC are on Home and Rooms.)
+ * dishwasher, the SigenStor hardware, sensor batteries and Home Assistant's own
+ * housekeeping. (Lights, TVs, the washer and the PC are on Home and Rooms.)
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -21,10 +21,17 @@ HD.views = HD.views || {};
         ${icon('plug')}<span><strong>${esc(p.name)}</strong><small>${extra}</small></span><em>${w != null ? `${Math.round(w)} W` : on ? 'On' : 'Off'}</em></button></li>`;
     }).join('');
 
+    // Battery-powered sensors, lowest first
+    const bats = (d.sensorBatteries || []).map((id) => ({ id, v: S().num(id), name: (S().attr(id, 'friendly_name') || id).replace(/\s*battery( percentage| level)?$/i, '') }))
+      .filter((b) => S().get(b.id)).sort((a, b) => (a.v ?? 101) - (b.v ?? 101));
+    const batRows = bats.map((b) => `<li class="${b.v != null && b.v < 15 ? 'low' : b.v != null && b.v < 30 ? 'mid' : ''}"><span>${esc(b.name)}</span>
+      <i class="bat-meter"><b style="width:${b.v ?? 0}%"></b></i><strong>${b.v == null ? '–' : `${Math.round(b.v)}%`}</strong></li>`).join('');
+
     const e = HD.config.energy;
     return `
       <div class="panel-grid devices">
         <section class="panel"><header><h2>Smart plugs</h2></header><ul class="tiles">${plugRows}</ul></section>
+        ${HD.dishwasher ? HD.dishwasher.cardHtml() : ''}
         <section class="panel"><header><h2>Solar and battery hardware</h2></header>
           <dl class="kv">
             <div><dt>EMS mode</dt><dd>${esc(S().state(e.emsMode) || '–')}</dd></div>
@@ -40,6 +47,7 @@ HD.views = HD.views || {};
             <div><dt>Next backup</dt><dd>${S().state(d.backupNext) ? until(S().state(d.backupNext)) : '–'}</dd></div>
             <div><dt>Connection</dt><dd>${esc(S().message)}</dd></div>
           </dl></section>
+        ${bats.length ? `<section class="panel"><header><h2>Sensor batteries</h2><p>Lowest first</p></header><ul class="bat-list">${batRows}</ul></section>` : ''}
       </div>`;
   }
 

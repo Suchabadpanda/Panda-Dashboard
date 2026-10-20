@@ -57,7 +57,7 @@ window.HD = window.HD || {};
 
   async function loadTemps() {
     const ids = [];
-    C().floors.forEach((f) => f.rooms.forEach((r) => ids.push(r.temp)));
+    C().floors.forEach((f) => f.rooms.forEach((r) => { if (r.temp) ids.push(r.temp); }));
     if (C().heatPump && C().heatPump.tankTemp) ids.push(C().heatPump.tankTemp);
     const end = HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now();
     const res = await HD.ha.stats(ids, end - 24 * 3600e3, end, 'hour', ['mean']);

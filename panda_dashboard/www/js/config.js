@@ -36,18 +36,25 @@ HD.config = {
         { name: 'Upstairs', temp: 'sensor.extra_temperature', hum: 'sensor.extra_humidity',
           light: 'switch.2f_landing', lightName: 'Landing', lightWhere: 'landing', motion: 'binary_sensor.2f_hallway_motion_sensor_occupancy',
           socket: 'switch.sonoff_s60zbtpg_2', socketName: 'Landing socket' },
+        // A room can name a Home Assistant area instead of sensors: the first temperature and
+        // humidity sensors in that area are used, so a new sensor only needs putting in the area.
+        { name: 'Bedroom 3', area: ['Bedroom 3'] },
       ],
     },
     {
       name: 'First floor', short: '1F',
       rooms: [
         { name: 'Bedroom 1', temp: 'sensor.1f_bedroom_temperature', hum: 'sensor.1f_bedroom_humidity' },
-        { name: 'Living room', temp: 'sensor.ewelink_snzb_02p_temperature_2', hum: 'sensor.ewelink_snzb_02p_humidity_2',
+        // lux: a light-level sensor, shown on the room tile
+        { name: 'Living room', temp: 'sensor.livingroomsensor_temperature', hum: 'sensor.livingroomsensor_humidity',
+          lux: 'sensor.livingroomsensor_illuminance',
           climate: 'climate.living_room', light: 'switch.living_room_light_switch', lightName: 'Main light',
           tv: 'media_player.living_room_tv',
-          extraLights: [{ id: 'switch.1f_landing', name: 'Landing', where: 'landing' }],
-          motion: 'binary_sensor.1f_motion_sensor_occupancy',
+          motion: 'binary_sensor.living_room_livingroomsensor_occupancy',
           socket: 'switch.sonoff_s60zbtpg', socketName: 'TV socket', socketPower: 'sensor.sonoff_s60zbtpg_power' },
+        // slim: a narrower tile in the house drawing (landings, hallways)
+        { name: '1F landing', slim: true, temp: 'sensor.ewelink_snzb_02p_temperature_2', hum: 'sensor.ewelink_snzb_02p_humidity_2',
+          light: 'switch.1f_landing', lightName: 'Landing', lightWhere: 'landing', motion: 'binary_sensor.1f_motion_sensor_occupancy' },
       ],
     },
     {
@@ -60,7 +67,8 @@ HD.config = {
           plugPower: 'sensor.sonoff_10026839a2_power', plugName: 'Computer' },
         { name: 'Kitchen', temp: 'sensor.temp_humidity_kitchen_temperature', hum: 'sensor.temp_humidity_kitchen_humidity',
           thermostat: true,
-          washer: 'sensor.washing_machine_machine_state', washerDone: 'sensor.washing_machine_completion_time',
+          washer: 'sensor.washing_machine_machine_state', washerDone: 'sensor.washing_machine_completion_time' },
+        { name: 'Hallway', slim: true, area: ['Hallway'],
           light: 'switch.entrance_light', lightName: 'Entrance', lightWhere: 'hallway',
           extraLights: [{ id: 'switch.ground_floor_toilet', name: 'Toilet' }],
           motion: 'binary_sensor.downstair_corridor_motion_sensor_occupancy' },
@@ -176,7 +184,7 @@ HD.config = {
         rooms: [
           { id: 'kitchen', name: 'Kitchen', sensor: 'Kitchen', points: '10,10 390,10 390,170 10,170' },
           { id: 'office', name: 'Office', sensor: 'Office', lights: ['switch.office_light'], occupancy: 'binary_sensor.office_motion_detector_occupancy', points: '10,170 230,170 230,310 10,310' },
-          { id: 'hall', name: 'Hall', lights: ['switch.entrance_light'], occupancy: 'binary_sensor.downstair_corridor_motion_sensor_occupancy', points: '230,170 310,170 310,310 230,310' },
+          { id: 'hall', name: 'Hall', sensor: 'Hallway', lights: ['switch.entrance_light'], occupancy: 'binary_sensor.downstair_corridor_motion_sensor_occupancy', points: '230,170 310,170 310,310 230,310' },
           { id: 'wc', name: 'WC', kind: 'wet', lights: ['switch.ground_floor_toilet'], points: '310,170 390,170 390,310 310,310' },
         ],
         doorbell: { x: 270, y: 310, facing: 'down' },
@@ -185,7 +193,7 @@ HD.config = {
         name: 'First floor', viewBox: '0 0 400 330',
         rooms: [
           { id: 'living', name: 'Living room', sensor: 'Living room', lights: ['switch.living_room_light_switch'], points: '10,10 390,10 390,160 10,160' },
-          { id: 'landing', name: 'Landing', lights: ['switch.1f_landing'], occupancy: 'binary_sensor.1f_motion_sensor_occupancy', points: '270,160 390,160 390,220 270,220' },
+          { id: 'landing', name: 'Landing', sensor: '1F landing', lights: ['switch.1f_landing'], occupancy: 'binary_sensor.1f_motion_sensor_occupancy', points: '270,160 390,160 390,220 270,220' },
           { id: 'bed1', name: 'Bedroom 1', sensor: 'Bedroom 1', points: '10,160 270,160 270,220 390,220 390,310 10,310' },
         ],
       },
@@ -264,6 +272,19 @@ HD.config = {
     acQuickCool: 'input_boolean.ac_all_cool',
     backupLast: 'sensor.backup_last_successful_automatic_backup',
     backupNext: 'sensor.backup_next_scheduled_automatic_backup',
+    // Battery-powered sensors: listed on Devices, and flagged on Home under 15%
+    sensorBatteries: ['sensor.livingroomsensor_battery', 'sensor.ewelink_snzb_02p_battery', 'sensor.office_temp_humidity_battery', 'sensor.1f_motion_sensor_battery'],
+  },
+
+  // Dishwasher via Home Connect (Bosch, Siemens, Neff). Remove this block if you don't have one.
+  dishwasher: {
+    name: 'Dishwasher', room: 'Kitchen',
+    state: 'sensor.dishwasher_operation_state', door: 'sensor.dishwasher_door',
+    progress: 'sensor.dishwasher_programme_progress', finish: 'sensor.dishwasher_programme_finish_time',
+    active: 'select.dishwasher_active_programme', selected: 'select.dishwasher_selected_programme',
+    remoteStart: 'binary_sensor.dishwasher_remote_start', stop: 'button.dishwasher_stop_programme',
+    saltLow: 'sensor.dishwasher_salt_nearly_empty', rinseLow: 'sensor.dishwasher_rinse_aid_nearly_empty',
+    program: 'dishcare_dishwasher_program_eco_50',   // programme the Start buttons use
   },
 
   tariffName: '',          // e.g. 'Octopus Go' — shown on the Energy view

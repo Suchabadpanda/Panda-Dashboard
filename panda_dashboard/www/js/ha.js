@@ -160,6 +160,27 @@ window.HD = window.HD || {};
     changed.forEach((id) => store.emit(id));
   }
 
+  // Rooms can name a Home Assistant area instead of entity ids (config: area: 'hallway').
+  // The first temperature / humidity sensor in that area is used, so a sensor added later
+  // just needs putting in the right area — no dashboard change. Matches area id or name.
+  async function resolveAreaSensors() {
+    const rooms = (HD.config.floors || []).flatMap((f) => f.rooms).filter((r) => r.area && (!r.temp || !store.states[r.temp]));
+    if (!rooms.length) return;
+    const [ents, devs, areas] = await Promise.all([
+      send({ type: 'config/entity_registry/list' }), send({ type: 'config/device_registry/list' }), send({ type: 'config/area_registry/list' }),
+    ]);
+    const devArea = Object.fromEntries(devs.map((d) => [d.id, d.area_id]));
+    const norm = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    rooms.forEach((r) => {
+      const want = [].concat(r.area).map(norm);
+      const ids = new Set(areas.filter((a) => want.includes(norm(a.area_id)) || want.includes(norm(a.name))).map((a) => a.area_id));
+      const inArea = ents.filter((e) => !e.disabled_by && ids.has(e.area_id || devArea[e.device_id]));
+      const find = (dc) => (inArea.find((e) => { const st = store.states[e.entity_id]; return st && e.entity_id.startsWith('sensor.') && st.attributes.device_class === dc; }) || {}).entity_id;
+      if (!r.temp || !store.states[r.temp]) r.temp = find('temperature') || r.temp;
+      if (!r.hum || !store.states[r.hum]) r.hum = find('humidity') || r.hum;
+    });
+  }
+
   async function subscribeWatched() {
     const ids = watchedIds();
     try {
@@ -198,6 +219,7 @@ window.HD = window.HD || {};
               const states = await send({ type: 'get_states' });
               store.states = {};
               states.forEach((s) => { store.states[s.entity_id] = s; });
+              await resolveAreaSensors().catch((e) => console.warn('Area sensors', e));
               await subscribeWatched();
               store.setStatus('live', `Live · ${authKind}`);
               resolve(true);

@@ -62,12 +62,15 @@ HD.views = HD.views || {};
   function room(r) {
     const t = S().num(r.temp); const h = S().num(r.hum);
     const motion = r.motion && S().state(r.motion) === 'on';
-    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name)), acBtn(r.climate), tvBtn(r.tv), washerChip(r)].join('');
+    const lux = r.lux != null ? S().num(r.lux) : null;
+    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name)), acBtn(r.climate), tvBtn(r.tv), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
-    return `<article class="room" style="${tint(t)}" aria-label="${esc(r.name)}">
+    // A room waiting for its sensor (config has area: but nothing's in that area yet)
+    const waiting = t == null && !S().get(r.temp);
+    return `<article class="room ${r.slim ? 'slim' : ''}" style="${tint(t)}" aria-label="${esc(r.name)}">
       <header><h3>${esc(r.name)}</h3>${motion ? `<span class="motion" title="Someone here · since ${HD.u.time(S().get(r.motion).last_changed)}">${icon('motion')}</span>` : ''}</header>
-      <p class="room-temp">${temp(t)}<small>${delta === '' ? '' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}</small></p>
-      <p class="room-meta">${icon('drop')}${pct(h)}${r.thermostat ? ' · thermostat' : ''}</p>
+      ${waiting ? '<p class="room-wait">Sensor not set up yet</p>' : `<p class="room-temp">${temp(t)}<small>${delta === '' ? '' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}</small></p>
+      <p class="room-meta">${icon('drop')}${pct(h)}${lux != null ? ` <span class="lux" title="Light level">${icon('lux')}${Math.round(lux)} lx</span>` : ''}${r.thermostat ? ' · thermostat' : ''}</p>`}
       ${lights ? `<div class="room-controls">${lights}</div>` : ''}
     </article>`;
   }
@@ -88,7 +91,7 @@ HD.views = HD.views || {};
     const cap = S().num(e.capacity) || 27.12;
 
     const floors = HD.config.floors.map((f) => `
-      <section class="floor" aria-label="${esc(f.name)}">
+      <section class="floor" style="grid-template-columns:${f.rooms.map((r) => (r.slim ? 'minmax(0, .72fr)' : 'minmax(0, 1fr)')).join(' ')}" aria-label="${esc(f.name)}">
         <span class="floor-tag">${esc(f.short)}</span>
         ${f.rooms.map(room).join('')}
       </section>`).join('');
@@ -312,6 +315,12 @@ HD.views = HD.views || {};
     if (lastBackup && Date.now() - Date.parse(lastBackup) > 8 * 864e5) alerts.push(['alert', `No HA backup since ${ago(lastBackup)}`, 'warning']);
     if (S().state(HD.config.heatPump.legionella) === 'on') alerts.push(['flame', 'Legionella cycle running', 'info']);
     if (HD.doorbell) alerts.push(...HD.doorbell.alerts());
+    if (HD.dishwasher) alerts.push(...HD.dishwasher.alerts());
+    // Battery-powered sensors running low
+    (HD.config.devices.sensorBatteries || []).forEach((id) => {
+      const v = S().num(id);
+      if (v != null && v < 15) alerts.push(['alert', `${S().attr(id, 'friendly_name') || id} is at ${Math.round(v)}%`, 'warning']);
+    });
 
     return `
       <section class="now-block battery">

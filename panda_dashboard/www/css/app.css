@@ -842,3 +842,36 @@ button:active:not(:disabled), .nav a:active, .car-btn:active:not(:disabled), .in
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Rooms waiting for a sensor, light level, slim rooms (landings, hallway) */
+.room-wait { color: var(--faint); font-size: 13px; margin: 6px 0 2px; }
+.room-meta .lux { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; }
+.room.slim { padding-left: 12px; padding-right: 12px; }
+.room.slim .room-temp { font-size: 32px; }
+.chip.status.warn { border-style: solid; border-color: var(--warning); color: var(--warning); }
+a.chip { text-decoration: none; }
+
+/* Dishwasher */
+.dw-main { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.dw-icon { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in oklab, var(--cool) 16%, transparent); color: var(--cool); flex: none; }
+.dw-icon .ic { width: 28px; height: 28px; }
+.dw-icon.running .ic circle { animation: dw-spin 2.4s linear infinite; transform-box: fill-box; transform-origin: center; stroke-dasharray: 4 3; }
+@keyframes dw-spin { to { transform: rotate(360deg); } }
+.dw-state { font: 600 20px/1.2 var(--font-num); }
+.dw-bar { margin: 8px 0 4px; }
+.dw-kv { margin: 6px 0 10px; }
+.dw-warn { display: flex; align-items: center; gap: 6px; color: var(--warning); font-size: 14px; margin-bottom: 10px; }
+.dw-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.dw-actions .btn { flex: 1 1 180px; margin-top: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* Sensor batteries */
+.bat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.bat-list li { display: grid; grid-template-columns: 1fr 70px 44px; gap: 10px; align-items: center; padding: 6px 0; font-size: 14px; border-bottom: 1px solid var(--line); }
+.bat-list li:last-child { border-bottom: 0; }
+.bat-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bat-list strong { text-align: right; font: 600 14px var(--font-num); }
+.bat-meter { display: block; height: 6px; border-radius: 3px; background: var(--room); overflow: hidden; }
+.bat-meter b { display: block; height: 100%; background: var(--s-battery); }
+.bat-list li.mid .bat-meter b { background: var(--warning); }
+.bat-list li.low .bat-meter b { background: var(--critical); }
+.bat-list li.low strong { color: var(--critical); }

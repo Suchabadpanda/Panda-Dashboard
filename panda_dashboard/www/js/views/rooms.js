@@ -9,7 +9,7 @@ HD.views = HD.views || {};
 (function () {
   const { esc, temp, pct, icon } = HD.u;
   const S = () => HD.store;
-  const ROOM_COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)'];
+  const ROOM_COLORS = ['var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)', 'var(--s-grid)', '#3fb7c4', 'var(--s-solar)'];
 
   function rooms() { return HD.config.floors.flatMap((f) => f.rooms.map((r) => ({ ...r, floor: f.short }))); }
 
@@ -66,7 +66,7 @@ HD.views = HD.views || {};
 
   function drawCharts() {
     const d = HD.data.temps; if (!d) return;
-    const list = rooms();
+    const list = rooms().filter((r) => r.temp && d[r.temp]);
     HD.chart.line(document.getElementById('chart-temps'), {
       label: 'Room temperatures, last 24 hours', height: 260, band: [HD.config.comfortTarget - 0.75, HD.config.comfortTarget + 0.75],
       format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`), xTicks: 6,
