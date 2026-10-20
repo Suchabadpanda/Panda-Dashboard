@@ -11,8 +11,11 @@
  *   active, selected,                // select entities: active and selected programme
  *   remoteStart, power, stop,        // binary_sensor / switch / button
  *   saltLow, rinseLow, careDue,      // optional event sensors ('present' = needs attention)
- *   program,                         // programme started by the buttons, e.g. 'dishcare_dishwasher_program_eco_50'
+ *   program,                         // fallback programme if the machine doesn't offer Auto
+ *   options,                         // optional { half_load: 'switch.…', … }; found from the entity names if left out
  * }
+ * The programme and extras are picked on the Devices card (list from the selected-programme
+ * entity) and remembered on this screen. With nothing picked, Auto is used.
  * Starting uses home_connect.set_program_and_options, which needs the device id; it's
  * looked up from the entity registry, so nothing extra goes in the config. The machine
  * only accepts remote starts while its Remote Start is switched on (a button on the door).
@@ -40,6 +43,38 @@ window.HD = window.HD || {};
     inactive: 'Off', ready: 'Ready', delayedstart: 'Starting later', run: 'Washing', pause: 'Paused',
     actionrequired: 'Needs attention', finished: 'Finished', error: 'Error', aborting: 'Stopping',
   };
+  // Extras the machine has, as Home Connect option keys for set_program_and_options.
+  // Home Assistant names the switches after them (switch.<name>_half_load …).
+  const EXTRAS = [
+    ['half_load', 'dishcare_dishwasher_option_half_load', 'Half load'],
+    ['vario_speed', 'dishcare_dishwasher_option_vario_speed_plus', 'Speed+'],
+    ['intensive_zone', 'dishcare_dishwasher_option_intensiv_zone', 'Intensive zone'],
+    ['hygiene', 'dishcare_dishwasher_option_hygiene_plus', 'Hygiene+'],
+    ['extra_dry', 'dishcare_dishwasher_option_extra_dry', 'Extra dry'],
+    ['brilliance_dry', 'dishcare_dishwasher_option_brilliance_dry', 'Brilliance dry'],
+    ['silence_on_demand', 'dishcare_dishwasher_option_silence_on_demand', 'Silence on demand'],
+  ];
+  const prefix = () => { const id = cfg().selected || cfg().active || cfg().state || ''; const m = id.match(/^\w+\.(.+?)_(selected|active)_programme$/) || id.match(/^\w+\.(.+?)_operation_state$/); return m ? m[1] : 'dishwasher'; };
+  const extras = () => EXTRAS.filter(([k]) => {
+    const id = (cfg().options && cfg().options[k]) || `switch.${prefix()}_${k}`;
+    return !!S().get(id);
+  });
+  // Programmes the machine offers (the selected-programme entity lists them), minus machine care
+  const programmes = () => (S().attr(cfg().selected, 'options') || S().attr(cfg().active, 'options') || []).filter((p) => !/machine_care/.test(p));
+
+  // The pick, remembered on this screen
+  const LS = 'hd.dishwasher';
+  const saved = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } };
+  const save = (v) => { try { localStorage.setItem(LS, JSON.stringify({ ...saved(), ...v })); } catch (e) { /* not kept; still used this time */ } memo = { ...memo, ...v }; };
+  let memo = null;
+  const choice = () => { memo = memo || saved(); return memo; };
+  function chosenProgram() {
+    const list = programmes(); const p = choice().program;
+    if (p && (!list.length || list.includes(p))) return p;
+    return list.find((x) => /_program_auto_2$/.test(x)) || list.find((x) => /_program_auto/.test(x)) || cfg().program || list[0] || null;
+  }
+  const chosenExtras = () => (choice().extras || []).filter((k) => extras().some(([e]) => e === k));
+
   const st = () => String(S().state(cfg().state) || '').toLowerCase();
   const running = () => ['run', 'delayedstart', 'pause'].includes(st());
   const present = (id) => id && S().state(id) === 'present';
@@ -86,7 +121,11 @@ window.HD = window.HD || {};
     const remote = S().state(c.remoteStart) === 'on';
     const t = HD.tariff.tariffAt(nowTs());
     const cheapAt = secondsToCheap();
-    const startProg = progName(c.program) || prog || 'the selected programme';
+    const pick = chosenProgram();
+    const startProg = progName(pick) || prog || 'the selected programme';
+    const picks = chosenExtras();
+    const ex = extras();
+    const progs = programmes();
     const warn = [
       present(c.saltLow) ? 'Salt is running low' : '',
       present(c.rinseLow) ? 'Rinse aid is running low' : '',
@@ -107,11 +146,18 @@ window.HD = window.HD || {};
           </div>
         </div>
         <dl class="kv dw-kv">
-          <div><dt>Programme</dt><dd>${esc(prog || '–')}</dd></div>
+          <div><dt>Programme</dt><dd>${esc((running() ? prog : startProg) || '–')}</dd></div>
           <div><dt>Door</dt><dd>${esc(HD.u.cap(door || '–'))}</dd></div>
           <div><dt>Finishes</dt><dd>${time(c.finish) || '–'}</dd></div>
           <div><dt>Remote start</dt><dd>${remote ? 'On' : 'Off'}</dd></div>
         </dl>
+        ${!running() && progs.length ? `
+        <p class="dw-label">Programme</p><div class="dw-pick" role="radiogroup" aria-label="Programme">
+          ${progs.map((p) => `<button class="chip ${p === pick ? 'on' : ''}" role="radio" aria-checked="${p === pick}" data-dw-prog="${esc(p)}">${esc(progName(p))}</button>`).join('')}
+        </div>
+        ${ex.length ? `<p class="dw-label">Extras</p><div class="dw-pick extras" aria-label="Extras">
+          ${ex.map(([k, , label]) => `<button class="chip ${picks.includes(k) ? 'on' : ''}" aria-pressed="${picks.includes(k)}" data-dw-extra="${k}">${esc(label)}</button>`).join('')}
+        </div>` : ''}` : ''}
         ${warn.length ? `<p class="dw-warn">${icon('alert')}${warn.map(esc).join(' · ')}</p>` : ''}
         <div class="dw-actions">
           ${running()
@@ -145,20 +191,33 @@ window.HD = window.HD || {};
 
   async function start(delaySecs) {
     const c = cfg();
-    const program = c.program || S().state(c.selected);
+    const program = chosenProgram() || S().state(c.selected);
     if (S().mode === 'demo') {
       const s = HD.store.states[c.state]; if (s) { s.state = delaySecs ? 'delayedstart' : 'run'; HD.store.emit(c.state); }
       return;
     }
     const data = { device_id: await device(), affects_to: 'active_program', program };
     if (delaySecs) data.b_s_h_common_option_start_in_relative = delaySecs;
+    // Extras picked on. Only those are sent: not every programme takes every extra, and the
+    // machine refuses a start that names one it doesn't support for that programme.
+    const on = chosenExtras();
+    if (!/machine_care|pre_rinse/.test(program)) extras().forEach(([k, key]) => { if (on.includes(k)) data[key] = true; });
     return HD.ha.callService('home_connect', 'set_program_and_options', data);
   }
 
   document.addEventListener('click', (ev) => {
+    const pb = ev.target.closest('[data-dw-prog]');
+    if (pb && enabled()) { save({ program: pb.dataset.dwProg }); HD.app.refresh(); return; }
+    const xb = ev.target.closest('[data-dw-extra]');
+    if (xb && enabled()) {
+      const k = xb.dataset.dwExtra; const cur = chosenExtras();
+      save({ extras: cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k] });
+      HD.app.refresh(); return;
+    }
     const b = ev.target.closest('[data-dw]'); if (!b || !enabled()) return;
     const c = cfg(); const a = b.dataset.dw;
-    const prog = progName(c.program) || progName(S().state(c.selected)) || 'the selected programme';
+    const extraText = chosenExtras().map((k) => (EXTRAS.find(([e]) => e === k) || [])[2]).filter(Boolean);
+    const prog = `${progName(chosenProgram()) || progName(S().state(c.selected)) || 'the selected programme'}${extraText.length ? ` with ${extraText.join(', ').toLowerCase()}` : ''}`;
     let go;
     if (a === 'stop') {
       if (!window.confirm(`Stop the ${(c.name || 'dishwasher').toLowerCase()}?`)) return;

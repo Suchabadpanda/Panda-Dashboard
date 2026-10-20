@@ -284,7 +284,7 @@ HD.config = {
     active: 'select.dishwasher_active_programme', selected: 'select.dishwasher_selected_programme',
     remoteStart: 'binary_sensor.dishwasher_remote_start', stop: 'button.dishwasher_stop_programme',
     saltLow: 'sensor.dishwasher_salt_nearly_empty', rinseLow: 'sensor.dishwasher_rinse_aid_nearly_empty',
-    program: 'dishcare_dishwasher_program_eco_50',   // programme the Start buttons use
+    program: 'dishcare_dishwasher_program_eco_50',   // used only if the machine doesn't offer Auto; pick on the Devices card
   },
 
   tariffName: '',          // e.g. 'Octopus Go' — shown on the Energy view
