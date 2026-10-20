@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.36
+- Floor plan: same scale and text sizes on every floor; temperatures centred in each room's main part
+
 ## 0.3.35
 - Vacuum map: load each new picture in the background so the map stops blinking
 
