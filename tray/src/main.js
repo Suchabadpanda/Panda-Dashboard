@@ -298,7 +298,10 @@ ipcMain.handle('panel:openSettings', () => openSettings());
 ipcMain.handle('panel:hide', () => { if (panelWin) panelWin.hide(); });
 ipcMain.handle('panel:resize', (_e, h) => {
   if (!panelWin) return;
-  const height = Math.max(240, Math.min(900, Math.round(h)));
+  // Never taller than the screen the tray is on (the middle of the panel scrolls instead)
+  const b = tray ? tray.getBounds() : { x: 0, y: 0 };
+  const wa = screen.getDisplayNearestPoint({ x: b.x, y: b.y }).workArea;
+  const height = Math.max(240, Math.min(wa.height - 16, 760, Math.round(Number(h) || 0)));
   if (panelWin.getSize()[1] !== height) { panelWin.setSize(380, height); if (panelWin.isVisible()) placeNearTray(panelWin); }
 });
 

@@ -91,7 +91,24 @@
     return `<p class="line car">${icon('car')}<span><strong>${esc(c.name)}</strong> ${c.soc != null ? `${Math.round(c.soc)}%${c.limit ? ` of ${Math.round(c.limit)}%` : ''} · ` : ''}${esc(what)}${c.live && c.via ? ` <small>via ${esc(c.via)}</small>` : ''}</span></p>`;
   }
 
-  function fit() { requestAnimationFrame(() => window.panda.resize(document.body.scrollHeight)); }
+  // The height the panel wants: header + everything in the middle + footer. Measured from the
+  // content itself (main's scrollHeight), not from the window, so resizing the window can't
+  // feed back into the next measurement. The main process caps it to the screen.
+  let lastAsked = 0;
+  function fit() {
+    requestAnimationFrame(() => {
+      const bar = document.querySelector('.bar'); const foot = document.querySelector('.foot'); const main = $('body');
+      // Bottom of the last thing in the middle (scrollHeight would never report less than the
+      // current window, so the panel could only ever grow)
+      const top = main.getBoundingClientRect().top - main.scrollTop;
+      const kids = [...main.children];
+      const content = kids.length ? Math.max(...kids.map((k) => k.getBoundingClientRect().bottom + parseFloat(getComputedStyle(k).marginBottom || 0))) - top : 0;
+      const want = Math.ceil(bar.offsetHeight + content + parseFloat(getComputedStyle(main).paddingBottom || 0) + foot.offsetHeight + 2);
+      if (Math.abs(want - lastAsked) < 3) return;
+      lastAsked = want;
+      window.panda.resize(want);
+    });
+  }
 
   function flash(el, text) {
     const n = document.createElement('div'); n.className = 'toast'; n.textContent = text;

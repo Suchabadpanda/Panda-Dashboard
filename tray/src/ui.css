@@ -24,7 +24,10 @@ button { font: inherit; color: inherit; }
 h2 { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--muted); margin: 14px 0 6px; }
 
 /* ── Panel ── */
-body.panel { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+/* Header and button stay put; the middle scrolls if the panel is taller than the screen allows */
+body.panel { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+body.panel > .bar, body.panel > .foot { flex: none; }
+body.panel > main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; -webkit-app-region: drag; }
 .brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; flex: 1; }
 .brand img { width: 18px; height: 18px; }
