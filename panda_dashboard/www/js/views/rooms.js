@@ -35,7 +35,7 @@ HD.views = HD.views || {};
         ${list.sort((a, b) => a.t - b.t).map((r) => `<span class="pin ${r.t < target ? 'cool' : 'warm'}" style="left:${x(r.t)}%" title="${esc(r.name)} ${temp(r.t)}"></span>`).join('')}
       </div>
       <ol class="room-list">
-        ${list.sort((a, b) => b.t - a.t).map((r) => `<li><span class="floor-chip">${r.floor}</span><span class="name">${esc(r.name)}${r.thermostat ? ' <small>thermostat</small>' : ''}</span><span class="t ${r.t < target ? 'cool' : 'warm'}">${temp(r.t)}</span><span class="h">${icon('drop')}${pct(r.h)}</span></li>`).join('')}
+        ${list.sort((a, b) => b.t - a.t).map((r) => `<li><span class="floor-chip">${r.floor}</span><span class="name">${esc(r.name)}</span><span class="t ${r.t < target ? 'cool' : 'warm'}">${temp(r.t)}</span><span class="h">${icon('drop')}${pct(r.h)}</span></li>`).join('')}
       </ol>`;
   }
 

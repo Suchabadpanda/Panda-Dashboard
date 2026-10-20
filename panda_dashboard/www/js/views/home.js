@@ -75,7 +75,7 @@ HD.views = HD.views || {};
     return `<article class="room ${r.slim ? 'slim' : ''}" style="${tint(t)}" aria-label="${esc(r.name)}">
       <header><h3>${esc(r.name)}</h3>${motion ? `<span class="motion" title="Someone here · since ${HD.u.time(S().get(r.motion).last_changed)}">${icon('motion')}</span>` : ''}</header>
       ${waiting ? '<p class="room-wait">Sensor not set up yet</p>' : `<p class="room-temp">${temp(t)}<small>${delta === '' ? '' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}</small></p>
-      <p class="room-meta">${icon('drop')}${pct(h)}${lux != null ? ` <span class="lux" title="Light level">${icon('lux')}${Math.round(lux)} lx</span>` : ''}${r.thermostat ? ' · thermostat' : ''}</p>`}
+      <p class="room-meta">${icon('drop')}${pct(h)}${lux != null ? ` <span class="lux" title="Light level">${icon('lux')}${Math.round(lux)} lx</span>` : ''}</p>`}
       ${lights ? `<div class="room-controls">${lights}</div>` : ''}
     </article>`;
   }
