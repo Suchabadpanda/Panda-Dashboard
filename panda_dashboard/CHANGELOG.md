@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.50
+- Rooms: fuller AC controls — target temperature, fan speed, swing, preset, device extras
+
 ## 0.3.49
 - Colour themes, Lock PC, HA storage; faster updates and a slimmer image
 
