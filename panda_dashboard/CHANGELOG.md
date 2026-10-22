@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.46
+- Doorbell: live view straight from go2rtc, reconnects when the doorbell drops; Last person removed
+
 ## 0.3.45
 - Floor plan: every floor drawn the same height so the first and second floors fill their columns; text still the same size on all floors
 
