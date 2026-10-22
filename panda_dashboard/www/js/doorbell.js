@@ -1,8 +1,10 @@
 /*
  * Doorbell (Eufy via the eufy_security integration):
- *  - front-door card with the latest picture, last ring / person, battery
+ *  - front-door card with the latest picture, last ring, battery and mode
  *  - full-screen alert when someone rings, on whichever view is open
- *  - live view on tap, using HA's own camera stream (HLS)
+ *  - live view on tap: straight from the go2rtc add-on (MSE over a WebSocket, about a
+ *    second behind), falling back to Home Assistant's own HLS stream if go2rtc isn't there
+ *    or the browser can't play MSE
  *  - a "refresh" that wakes the doorbell just long enough to take a new picture
  * The S220 is battery powered, so live video only starts when asked for (or on a
  * ring, so the live view is ready sooner).
@@ -60,11 +62,29 @@ window.HD = window.HD || {};
       const t = setTimeout(() => { off(); resolve(false); }, timeoutMs);
     });
   }
+  // The start call itself takes 10–15 s to return even though the doorbell is streaming
+  // after 3–5 s, so callers watch the camera state rather than waiting for this.
+  // When a stream has ended on its own, the integration sometimes still thinks it's
+  // running, tries to stop it first and fails with "livestream not running" without
+  // starting anything; one retry gets past that.
   async function startP2P() {
     const c = cfg(); if (!c.streamService || S().mode !== 'live') return;
-    try { await HD.ha.callService(c.streamService, 'start_p2p_livestream', { entity_id: c.camera }); }
-    catch (e) { if (!/already_running|AlreadyRunning/i.test(e.message)) throw e; }  // already streaming is fine
     p2pStarted = true;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try { await HD.ha.callService(c.streamService, 'start_p2p_livestream', { entity_id: c.camera }); return; }
+      catch (e) {
+        if (/already_running|AlreadyRunning/i.test(e.message) || S().state(c.camera) === 'streaming') return;   // streaming is fine
+        if (attempt === 1) throw e;
+        // Reset the integration's idea of the stream, then try again
+        await HD.ha.callService(c.streamService, 'stop_p2p_livestream', { entity_id: c.camera }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+    }
+  }
+  // Start, and resolve once the doorbell is actually streaming (or false after timeoutMs)
+  function wake(timeoutMs) {
+    const started = startP2P();
+    return Promise.race([waitForStreaming(timeoutMs), started.then(() => waitForStreaming(timeoutMs))]);
   }
   // Grab a fresh frame while the stream is up; the camera's picture becomes that frame
   function grabFrame() {
@@ -79,8 +99,7 @@ window.HD = window.HD || {};
     if (refreshing || S().mode !== 'live') return;
     refreshing = true; HD.store.emit(null);
     try {
-      await startP2P();
-      if (await waitForStreaming(45000)) await grabFrame();
+      if (await wake(45000)) await grabFrame();
       else HD.app.toast("The doorbell didn't wake up in time. Try again.");
     } catch (e) { HD.app.toast(`Couldn't refresh the picture (${e.message})`); }
     if (!document.getElementById('doorbell-live').open) stopP2P();
@@ -149,16 +168,6 @@ window.HD = window.HD || {};
 
   function since(ts, none) { return ts ? ago(new Date(ts).toISOString()) : none; }
 
-  // Person detection, or a ring (someone pressed the button, so someone was there).
-  // Eufy only reports people while motion detection is on for the current guard mode.
-  function personText(c, who) {
-    if (S().state(c.person) === 'on') return `Now${who && who !== 'No Person' && who !== 'unknown' ? ` · ${esc(who)}` : ''}`;
-    const p = last.person || 0; const r = last.ring || 0;
-    if (!p && !r) return '–';
-    const named = who && who !== 'No Person' && who !== 'unknown' ? ` · ${esc(who)}` : '';
-    return p >= r ? `${since(p, '–')}${named}` : `${since(r, '–')}<small>rang the bell</small>`;
-  }
-
   function cardHtml() {
     if (!enabled()) return '';
     const c = cfg();
@@ -166,7 +175,6 @@ window.HD = window.HD || {};
     const bat = S().num(c.battery);
     const low = bat != null && bat < (c.lowBattery || 20);
     const ringing = S().state(c.ringing) === 'on';
-    const who = S().state(c.personName);
     return `
       <section class="now-block doorbell ${ringing ? 'ringing' : ''}">
         <h2>${esc(c.name || 'Front door')}</h2>
@@ -180,9 +188,8 @@ window.HD = window.HD || {};
         </div>
         <dl class="door-facts">
           <div><dt>Last ring</dt><dd>${ringing ? 'Ringing now' : since(last.ring, '–')}</dd></div>
-          <div><dt>Last person</dt><dd>${personText(c, who)}</dd></div>
-          <div><dt>Battery</dt><dd class="${low ? 'warn' : ''}">${bat == null ? '–' : `${Math.round(bat)}%`}${S().state(c.charging) === 'Charging' ? ' · charging' : estimateText() ? `<small>${estimateText()}</small>` : ''}</dd></div>
           <div><dt>Mode</dt><dd>${esc(S().state(c.guardMode) || '–')}</dd></div>
+          <div class="wide"><dt>Battery</dt><dd class="${low ? 'warn' : ''}">${bat == null ? '–' : `${Math.round(bat)}%`}${S().state(c.charging) === 'Charging' ? ' · charging' : estimateText() ? `<small>${estimateText()}</small>` : ''}</dd></div>
         </dl>
       </section>`;
   }
@@ -194,7 +201,8 @@ window.HD = window.HD || {};
     const est = batteryEstimate();
     if (bat != null && bat < (c.lowBattery || 20)) out.push(['alert', `Doorbell battery at ${Math.round(bat)}% — time to charge it`, 'warning']);
     else if (est && est.days < 7) out.push(['alert', `Doorbell battery runs out in about ${Math.max(1, Math.round(est.days))} days`, 'warning']);
-    if (S().state(c.baseConnected) === 'off') out.push(['alert', 'Eufy HomeBase is disconnected', 'critical']);
+    const base = S().get(c.baseConnected);
+    if (base && base.state === 'off' && Date.now() - Date.parse(base.last_changed) > 120e3) out.push(['alert', 'Eufy HomeBase is disconnected', 'critical']);
     return out;
   }
 
@@ -244,69 +252,199 @@ window.HD = window.HD || {};
     if (liveReached && p2pStarted && S().mode === 'live') { liveReached = false; grabFrame().finally(stopP2P); }
     else stopP2P();
   }
+  // go2rtc add-on: where the Eufy integration publishes the doorbell's video. Found once
+  // (the add-on through the Supervisor, the stream by listing go2rtc's streams through the
+  // add-on's ingress); config.doorbell.go2rtcStream picks one if go2rtc has several.
+  let g2 = null; let g2At = 0;
+  async function go2rtc() {
+    if (g2 && Date.now() - g2At < 3600e3) return g2;
+    if (g2 === false && Date.now() - g2At < 300e3) return false;
+    g2At = Date.now(); g2 = false;
+    try {
+      const c = cfg();
+      const list = await HD.ha.callWS({ type: 'supervisor/api', endpoint: '/addons', method: 'get' });
+      const a = ((list && list.addons) || []).find((x) => /go2rtc/i.test(`${x.slug} ${x.name}`) && x.state === 'started');
+      if (!a) return g2;
+      const info = await HD.ha.callWS({ type: 'supervisor/api', endpoint: `/addons/${a.slug}/info`, method: 'get' });
+      if (!info || !info.ingress_entry) return g2;
+      const r = await fetch(`${HD.ha.baseUrl()}${info.ingress_entry}/api/streams`, { credentials: 'include' });
+      const names = Object.keys(await r.json());
+      const src = c.go2rtcStream || (names.length === 1 ? names[0] : names.find((n) => /^T82/i.test(n)));
+      if (src) g2 = { ws: `${HD.ha.baseUrl().replace(/^http/, 'ws')}${info.ingress_entry}/api/ws?src=${encodeURIComponent(src)}` };
+    } catch (e) { console.warn('go2rtc not available for the doorbell', e); }
+    return g2;
+  }
+
+  // go2rtc's MSE player: fragmented MP4 over a WebSocket into a MediaSource, kept at the
+  // live edge. ManagedMediaSource is the iPad/iPhone (Safari 17+) version of MediaSource.
+  const MSClass = () => window.ManagedMediaSource || window.MediaSource;
+  function mse(video, url, on) {
+    const MS = MSClass();
+    const ms = new MS();
+    video.disableRemotePlayback = true;   // ManagedMediaSource needs this
+    video.src = URL.createObjectURL(ms);
+    const ws = new WebSocket(url); ws.binaryType = 'arraybuffer';
+    const queue = []; let sb = null; let closed = false;
+    const codecs = ['avc1.640029', 'avc1.64002A', 'avc1.640033', 'hvc1.1.6.L153.B0', 'mp4a.40.2', 'mp4a.40.5', 'flac', 'opus']
+      .filter((c) => MS.isTypeSupported(`video/mp4; codecs="${c}"`)).join(',');
+    function pump() {
+      if (!sb || sb.updating || closed) return;
+      try {
+        const b = sb.buffered;
+        if (b.length && b.end(b.length - 1) - b.start(0) > 30) { sb.remove(b.start(0), b.end(b.length - 1) - 8); return; }
+        if (queue.length) sb.appendBuffer(queue.shift());
+        if (b.length) { const end = b.end(b.length - 1); if (end - video.currentTime > 3) video.currentTime = Math.max(0, end - 0.6); }
+      } catch (e) { queue.length = 0; }
+    }
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'mse', value: codecs }));
+    ws.onmessage = (m) => {
+      if (typeof m.data === 'string') {
+        let msg = {}; try { msg = JSON.parse(m.data); } catch (e) { /* not ours */ }
+        if (msg.type === 'mse') {
+          const add = () => { if (closed) return; sb = ms.addSourceBuffer(msg.value); sb.mode = 'segments'; sb.addEventListener('updateend', pump); pump(); };
+          if (ms.readyState === 'open') add(); else ms.addEventListener('sourceopen', add, { once: true });
+        } else if (msg.type === 'error') on.error(new Error(msg.value), /connection refused|no such|not found/i.test(msg.value));
+        return;
+      }
+      queue.push(m.data); pump(); on.data();
+    };
+    ws.onclose = () => { if (!closed) on.closed(); };
+    return { close() { closed = true; try { ws.close(); } catch (e) { /* gone */ } try { if (ms.readyState === 'open') ms.endOfStream(); } catch (e) { /* gone */ } } };
+  }
+
+  // Live view. The S220 wakes in 3–5 s and video follows a few seconds later. Eufy ends a
+  // battery doorbell's live view after about a minute, so while this is open it's
+  // restarted automatically (a few times, then it asks you to tap to carry on).
+  let session = 0;
   async function openLive() {
     hideRing(); clearTimeout(prewarmTimer); liveReached = false;
+    teardown(); clearInterval(snapTimer);
+    const my = ++session;
     const dlg = document.getElementById('doorbell-live');
     const c = cfg();
     dlg.innerHTML = `
       <div class="live-head"><h2>${esc(c.name || 'Front door')}</h2><button class="btn ghost" data-doorbell-close>Close</button></div>
-      <div class="live-body"><video id="door-video" playsinline muted autoplay controls poster="${esc(pictureUrl() || '')}"></video>
-      <p class="sub" id="live-status">Connecting… the doorbell has to wake up first. Streaming uses a little of its battery.</p></div>`;
-    dlg.showModal();
+      <div class="live-body"><video id="door-video" playsinline muted autoplay poster="${esc(pictureUrl() || '')}"></video>
+      <p class="sub" id="live-status">Waking the doorbell… Streaming uses a little of its battery.</p></div>`;
+    if (!dlg.open) dlg.showModal();
     if (S().mode !== 'live') { dlg.querySelector('#live-status').textContent = 'Live view needs a connection to Home Assistant.'; return; }
     const video = dlg.querySelector('#door-video');
     const status = dlg.querySelector('#live-status');
     const t0 = Date.now();
     const secs = () => `${Math.round((Date.now() - t0) / 1000)} s`;
+    const still = () => dlg.open && my === session;
     try {
-      if (c.streamService) {
-        await startP2P();
-        // Ask HA for the stream the moment the doorbell is up, rather than polling blind
-        status.textContent = 'Waking the doorbell…';
-        await waitForStreaming(40000);
-        if (!dlg.open) return;
-        status.textContent = `Doorbell awake after ${secs()}. Starting video…`;
-      }
-      let url = null; let lastErr = null;
-      for (let i = 0; i < 20 && !url && dlg.open; i++) {
-        try { ({ url } = await HD.ha.callWS({ type: 'camera/stream', entity_id: c.camera, format: 'hls' })); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 1000)); }
-      }
-      if (!dlg.open) return;
-      if (!url) throw lastErr || new Error('the doorbell did not start streaming');
-      const src = `${HD.ha.baseUrl()}${url}`;
-      // First video arrives ~20 s after waking (HA retries the stream after a fixed 10 s),
-      // so be patient: generous loader timeouts, retry network errors, only say "Live" once frames move.
-      if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        let tries = 0;
-        video.addEventListener('error', () => { if (dlg.open && tries++ < 5) setTimeout(() => { video.src = src; video.play().catch(() => {}); }, 3000); });
-        video.src = src;
-      } else {
-        if (!window.Hls) await loadScript('vendor/hls.min.js');   // bundled with the add-on
-        if (!dlg.open) return;
-        let retries = 0;
-        hls = new window.Hls({
-          lowLatencyMode: true, liveSyncDurationCount: 1, maxLiveSyncPlaybackRate: 1.5,
-          manifestLoadingTimeOut: 30000, manifestLoadingMaxRetry: 6, manifestLoadingRetryDelay: 2000,
-          levelLoadingTimeOut: 30000, levelLoadingMaxRetry: 6,
-          fragLoadingTimeOut: 30000, fragLoadingMaxRetry: 6,
-        });
-        hls.loadSource(src); hls.attachMedia(video);
-        hls.on(window.Hls.Events.ERROR, (_, d) => {
-          if (!d.fatal || !hls) return;
-          if (d.type === window.Hls.ErrorTypes.NETWORK_ERROR && retries++ < 5) { setTimeout(() => hls && hls.startLoad(), 3000); return; }
-          if (d.type === window.Hls.ErrorTypes.MEDIA_ERROR) { hls.recoverMediaError(); return; }
-          status.textContent = 'The stream stopped. Close and try again.';
-        });
-      }
-      let live = false;
-      video.addEventListener('timeupdate', () => {
-        if (!live && video.currentTime > 0) { live = true; liveReached = true; status.textContent = `Live (took ${secs()}). Close this when you’re done to save the doorbell’s battery.`; }
-      });
-      setTimeout(() => { if (!live && dlg.open) { status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 45000);
+      const [g, awake] = await Promise.all([go2rtc(), c.streamService ? wake(40000) : Promise.resolve(true)]);
+      if (!still()) return;
+      if (!awake) throw new Error("the doorbell didn't wake up");
+      status.textContent = `Doorbell awake after ${secs()}. Starting video…`;
+      if (g && MSClass()) playGo2rtc(dlg, video, status, g, secs, still);
+      else await playHls(dlg, video, status, c, secs, still);
     } catch (e) {
+      if (!still()) return;
       status.textContent = `Couldn't start live video (${e.message}).`;
       startSnapshotFallback(dlg, status);
     }
+  }
+
+  let player = null; let keepAlive = null;
+  function playGo2rtc(dlg, video, status, g, secs, still) {
+    const c = cfg();
+    let live = false; let everLive = false; let restarts = 0; let waking = false; let tries = 0; let retryTimer = null; let idleTimer = null;
+    // The Eufy integration opens the feed go2rtc reads from a few seconds after the doorbell
+    // reports "streaming"; until then go2rtc says "connection refused", so keep trying.
+    // (If nothing reads the stream within ~10 s the doorbell gives up, hence the short gaps.)
+    const connect = () => {
+      clearTimeout(retryTimer);
+      if (player) player.close();
+      player = mse(video, g.ws, {
+        data() { tries = 0; if (!live) video.play().catch(() => {}); },
+        error(e, notYet) {
+          if (!still()) return;
+          if (notYet) {
+            // The doorbell's video isn't in go2rtc (yet, or any more): keep trying while it
+            // streams; otherwise wait for it to stream again (handled below)
+            if (tries++ < 20 && S().state(c.camera) === 'streaming') retryTimer = setTimeout(() => { retryTimer = null; if (still()) connect(); }, 700);
+            else status.textContent = 'Waiting for the doorbell…';
+            return;
+          }
+          status.textContent = `Video error: ${e.message}`;
+        },
+        closed() { if (still() && !waking && !retryTimer) status.textContent = 'Video connection closed. Close and try again.'; },
+      });
+    };
+    video.addEventListener('timeupdate', () => {
+      if (!live && video.currentTime > 0) {
+        live = true; liveReached = true;
+        status.textContent = everLive ? 'Live again. The doorbell keeps dropping the video (weak Wi-Fi), so expect short pauses.' : `Live (took ${secs()}). Close this when you’re done to save the doorbell’s battery.`;
+        everLive = true;
+      }
+    });
+    connect();
+    // The doorbell drops its stream every so often (after about a minute at best, after a few
+    // seconds on a weak Wi-Fi link). While this is open: when it streams again, reconnect the
+    // video; when it's gone idle, give the integration a moment to restart it itself, then
+    // wake it (a few times, then ask before carrying on).
+    if (keepAlive) keepAlive();
+    let prev = S().state(c.camera);
+    keepAlive = S().on((id) => {
+      if (id !== c.camera || !still()) return;
+      const now = S().state(c.camera); const was = prev; prev = now;
+      if (now === was) return;   // attribute updates only
+      if (now === 'streaming') { clearTimeout(idleTimer); idleTimer = null; if (!waking) { live = false; tries = 0; connect(); } return; }
+      if (waking || idleTimer) return;
+      status.textContent = 'The doorbell dropped the video. Reconnecting…';
+      idleTimer = setTimeout(async () => {
+        idleTimer = null;
+        if (!still() || S().state(c.camera) === 'streaming') return;
+        if (restarts >= 4) { status.innerHTML = 'Live view paused to save the doorbell’s battery. <button class="btn ghost" data-doorbell-live>Carry on watching</button>'; return; }
+        restarts++; waking = true;
+        const ok = await wake(40000).catch(() => false);
+        waking = false;
+        if (!still()) return;
+        if (ok) { live = false; tries = 0; connect(); } else status.textContent = "The doorbell didn't wake up again. Close and try again.";
+      }, 2500);
+    });
+    setTimeout(() => { if (!everLive && still()) { clearTimeout(retryTimer); clearTimeout(idleTimer); status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 40000);
+  }
+
+  // Home Assistant's own stream (HLS): the fallback. Slower, and HA's stream worker often
+  // asks go2rtc for the video before it's there and then waits 10 s to try again.
+  async function playHls(dlg, video, status, c, secs, still) {
+    let url = null; let lastErr = null;
+    for (let i = 0; i < 20 && !url && still(); i++) {
+      try { ({ url } = await HD.ha.callWS({ type: 'camera/stream', entity_id: c.camera, format: 'hls' })); } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 1000)); }
+    }
+    if (!still()) return;
+    if (!url) throw lastErr || new Error('the doorbell did not start streaming');
+    const src = `${HD.ha.baseUrl()}${url}`;
+    if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      let tries = 0;
+      video.addEventListener('error', () => { if (still() && tries++ < 5) setTimeout(() => { video.src = src; video.play().catch(() => {}); }, 3000); });
+      video.src = src;
+    } else {
+      if (!window.Hls) await loadScript('vendor/hls.min.js');   // bundled with the add-on
+      if (!still()) return;
+      let retries = 0;
+      hls = new window.Hls({
+        lowLatencyMode: true, liveSyncDurationCount: 1, maxLiveSyncPlaybackRate: 1.5,
+        manifestLoadingTimeOut: 30000, manifestLoadingMaxRetry: 6, manifestLoadingRetryDelay: 2000,
+        levelLoadingTimeOut: 30000, levelLoadingMaxRetry: 6,
+        fragLoadingTimeOut: 30000, fragLoadingMaxRetry: 6,
+      });
+      hls.loadSource(src); hls.attachMedia(video);
+      hls.on(window.Hls.Events.ERROR, (_, d) => {
+        if (!d.fatal || !hls) return;
+        if (d.type === window.Hls.ErrorTypes.NETWORK_ERROR && retries++ < 5) { setTimeout(() => hls && hls.startLoad(), 3000); return; }
+        if (d.type === window.Hls.ErrorTypes.MEDIA_ERROR) { hls.recoverMediaError(); return; }
+        status.textContent = 'The stream stopped. Close and try again.';
+      });
+    }
+    let live = false;
+    video.addEventListener('timeupdate', () => {
+      if (!live && video.currentTime > 0) { live = true; liveReached = true; status.textContent = `Live (took ${secs()}). Close this when you’re done to save the doorbell’s battery.`; }
+    });
+    setTimeout(() => { if (!live && still()) { status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 45000);
   }
 
   // While the doorbell is awake its picture refreshes; show that every 2 s instead of video
@@ -319,6 +457,7 @@ window.HD = window.HD || {};
     if (!camPic && !evtPic) return;
     const body = dlg.querySelector('.live-body');
     if (hls) { hls.destroy(); hls = null; }
+    if (player) { player.close(); player = null; }
     const video = body.querySelector('video');
     if (video) video.replaceWith(Object.assign(document.createElement('img'), { className: 'live-snap', alt: 'Doorbell picture, refreshing' }));
     const el = body.querySelector('.live-snap');
@@ -330,9 +469,15 @@ window.HD = window.HD || {};
     status.textContent = `${status.textContent} Showing the doorbell's picture, refreshed every 2 seconds, instead.`.trim();
   }
 
+  function teardown() {
+    session++;
+    if (hls) { hls.destroy(); hls = null; }
+    if (player) { player.close(); player = null; }
+    if (keepAlive) { keepAlive(); keepAlive = null; }
+  }
   function closeLive() {
     const dlg = document.getElementById('doorbell-live');
-    if (hls) { hls.destroy(); hls = null; }
+    teardown();
     const v = dlg.querySelector('video'); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
     endLive(); clearInterval(snapTimer);
     dlg.close(); dlg.innerHTML = '';
@@ -349,7 +494,7 @@ window.HD = window.HD || {};
       else if (ev.target.closest('[data-doorbell-close]')) closeLive();
       else if (ev.target.closest('[data-doorbell-refresh]')) refreshPicture();
     });
-    document.getElementById('doorbell-live').addEventListener('close', () => { if (hls) { hls.destroy(); hls = null; } endLive(); clearInterval(snapTimer); });
+    document.getElementById('doorbell-live').addEventListener('close', () => { teardown(); endLive(); clearInterval(snapTimer); });
     // Don't leave the doorbell streaming if the page is closed mid-view
     window.addEventListener('pagehide', stopP2P);
     S().on((id) => {
