@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.47
+- Vacuum cleaning settings, car charging totals, solar strings chart
+
 ## 0.3.46
 - Doorbell: live view straight from go2rtc, reconnects when the doorbell drops; Last person removed
 
