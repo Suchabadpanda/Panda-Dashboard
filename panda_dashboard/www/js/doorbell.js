@@ -350,7 +350,7 @@ window.HD = window.HD || {};
   let player = null; let keepAlive = null;
   function playGo2rtc(dlg, video, status, g, secs, still) {
     const c = cfg();
-    let live = false; let restarts = 0; let waking = false; let tries = 0; let retryTimer = null;
+    let live = false; let everLive = false; let restarts = 0; let waking = false; let tries = 0; let retryTimer = null; let idleTimer = null;
     // The Eufy integration opens the feed go2rtc reads from a few seconds after the doorbell
     // reports "streaming"; until then go2rtc says "connection refused", so keep trying.
     // (If nothing reads the stream within ~10 s the doorbell gives up, hence the short gaps.)
@@ -368,22 +368,35 @@ window.HD = window.HD || {};
       });
     };
     video.addEventListener('timeupdate', () => {
-      if (!live && video.currentTime > 0) { live = true; liveReached = true; status.textContent = `Live (took ${secs()}). Close this when you’re done to save the doorbell’s battery.`; }
+      if (!live && video.currentTime > 0) {
+        live = true; liveReached = true;
+        status.textContent = everLive ? 'Live again. The doorbell keeps dropping the video (weak Wi-Fi), so expect short pauses.' : `Live (took ${secs()}). Close this when you’re done to save the doorbell’s battery.`;
+        everLive = true;
+      }
     });
     connect();
-    // The doorbell ends its stream after about a minute: start it again while this is open
+    // The doorbell drops its stream every so often (after about a minute at best, after a few
+    // seconds on a weak Wi-Fi link). While this is open: when it streams again, reconnect the
+    // video; when it's gone idle, give the integration a moment to restart it itself, then
+    // wake it (a few times, then ask before carrying on).
     if (keepAlive) keepAlive();
-    keepAlive = S().on(async (id) => {
-      if (id !== c.camera || !still() || S().state(c.camera) === 'streaming' || waking) return;
-      if (restarts >= 4) { status.innerHTML = 'Live view paused to save the doorbell’s battery. <button class="btn ghost" data-doorbell-live>Carry on watching</button>'; return; }
-      restarts++; waking = true;
-      status.textContent = 'The doorbell ended the stream (it does that after about a minute). Reconnecting…';
-      const ok = await wake(40000).catch(() => false);
-      waking = false;
-      if (!still()) return;
-      if (ok) { live = false; tries = 0; connect(); } else status.textContent = "The doorbell didn't wake up again. Close and try again.";
+    keepAlive = S().on((id) => {
+      if (id !== c.camera || !still()) return;
+      if (S().state(c.camera) === 'streaming') { clearTimeout(idleTimer); if (!waking) { live = false; tries = 0; connect(); } return; }
+      if (waking || idleTimer) return;
+      status.textContent = 'The doorbell dropped the video. Reconnecting…';
+      idleTimer = setTimeout(async () => {
+        idleTimer = null;
+        if (!still() || S().state(c.camera) === 'streaming') return;
+        if (restarts >= 4) { status.innerHTML = 'Live view paused to save the doorbell’s battery. <button class="btn ghost" data-doorbell-live>Carry on watching</button>'; return; }
+        restarts++; waking = true;
+        const ok = await wake(40000).catch(() => false);
+        waking = false;
+        if (!still()) return;
+        if (ok) { live = false; tries = 0; connect(); } else status.textContent = "The doorbell didn't wake up again. Close and try again.";
+      }, 2500);
     });
-    setTimeout(() => { if (!live && still()) { clearTimeout(retryTimer); status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 40000);
+    setTimeout(() => { if (!everLive && still()) { clearTimeout(retryTimer); clearTimeout(idleTimer); status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 40000);
   }
 
   // Home Assistant's own stream (HLS): the fallback. Slower, and HA's stream worker often
