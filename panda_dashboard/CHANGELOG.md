@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.51
+- AC badge in each room's corner: blue cooling, red heating, spins while running
+
 ## 0.3.50
 - Rooms: fuller AC controls — target temperature, fan speed, swing, preset, device extras
 
