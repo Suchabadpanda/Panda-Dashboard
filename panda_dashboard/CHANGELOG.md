@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.49
+- Colour themes, Lock PC, HA storage; faster updates and a slimmer image
+
 ## 0.3.48
 - Charging totals: price with the Energy Tracker's tariff history
 
