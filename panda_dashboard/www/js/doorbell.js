@@ -73,9 +73,11 @@ window.HD = window.HD || {};
     for (let attempt = 0; attempt < 2; attempt++) {
       try { await HD.ha.callService(c.streamService, 'start_p2p_livestream', { entity_id: c.camera }); return; }
       catch (e) {
-        if (/already_running|AlreadyRunning/i.test(e.message)) return;   // already streaming is fine
-        if (attempt === 1 || S().state(c.camera) === 'streaming') { if (S().state(c.camera) === 'streaming') return; throw e; }
-        await new Promise((r) => setTimeout(r, 1000));
+        if (/already_running|AlreadyRunning/i.test(e.message) || S().state(c.camera) === 'streaming') return;   // streaming is fine
+        if (attempt === 1) throw e;
+        // Reset the integration's idea of the stream, then try again
+        await HD.ha.callService(c.streamService, 'stop_p2p_livestream', { entity_id: c.camera }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 1500));
       }
     }
   }
@@ -301,7 +303,7 @@ window.HD = window.HD || {};
         if (msg.type === 'mse') {
           const add = () => { if (closed) return; sb = ms.addSourceBuffer(msg.value); sb.mode = 'segments'; sb.addEventListener('updateend', pump); pump(); };
           if (ms.readyState === 'open') add(); else ms.addEventListener('sourceopen', add, { once: true });
-        } else if (msg.type === 'error') on.error(new Error(msg.value));
+        } else if (msg.type === 'error') on.error(new Error(msg.value), /connection refused|no such|not found/i.test(msg.value));
         return;
       }
       queue.push(m.data); pump(); on.data();
@@ -348,15 +350,21 @@ window.HD = window.HD || {};
   let player = null; let keepAlive = null;
   function playGo2rtc(dlg, video, status, g, secs, still) {
     const c = cfg();
-    let live = false; let restarts = 0; let waking = false;
+    let live = false; let restarts = 0; let waking = false; let tries = 0; let retryTimer = null;
+    // The Eufy integration opens the feed go2rtc reads from a few seconds after the doorbell
+    // reports "streaming"; until then go2rtc says "connection refused", so keep trying.
+    // (If nothing reads the stream within ~10 s the doorbell gives up, hence the short gaps.)
     const connect = () => {
+      clearTimeout(retryTimer);
       if (player) player.close();
       player = mse(video, g.ws, {
-        data() {
-          if (!live) { video.play().catch(() => {}); }
+        data() { tries = 0; if (!live) video.play().catch(() => {}); },
+        error(e, notYet) {
+          if (!still()) return;
+          if (notYet && tries++ < 20 && S().state(c.camera) === 'streaming') { retryTimer = setTimeout(() => still() && connect(), 700); return; }
+          status.textContent = `Video error: ${e.message}`;
         },
-        error(e) { if (still()) status.textContent = `Video error: ${e.message}`; },
-        closed() { if (still() && !waking) status.textContent = 'Video connection closed. Close and try again.'; },
+        closed() { if (still() && !waking && !retryTimer) status.textContent = 'Video connection closed. Close and try again.'; },
       });
     };
     video.addEventListener('timeupdate', () => {
@@ -373,9 +381,9 @@ window.HD = window.HD || {};
       const ok = await wake(40000).catch(() => false);
       waking = false;
       if (!still()) return;
-      if (ok) { live = false; connect(); } else status.textContent = "The doorbell didn't wake up again. Close and try again.";
+      if (ok) { live = false; tries = 0; connect(); } else status.textContent = "The doorbell didn't wake up again. Close and try again.";
     });
-    setTimeout(() => { if (!live && still()) { status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 30000);
+    setTimeout(() => { if (!live && still()) { clearTimeout(retryTimer); status.textContent = 'No video yet.'; startSnapshotFallback(dlg, status); } }, 40000);
   }
 
   // Home Assistant's own stream (HLS): the fallback. Slower, and HA's stream worker often
