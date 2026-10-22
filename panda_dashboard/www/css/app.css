@@ -1052,3 +1052,47 @@ body { font-variant-numeric: tabular-nums; }
 .bat-facts dd small { font-size: 12px; font-weight: 500; color: var(--muted); }
 .door-facts .wide { grid-column: 1 / -1; }
 .live-body .sub .btn { margin-left: 8px; padding: 4px 10px; }
+
+/* ── Vacuum: how to clean (22 Oct) ── */
+.vac-settings { display: grid; gap: 8px; margin-bottom: 12px; }
+.vac-set { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 10px; }
+.vac-set > span { font-size: 13px; color: var(--muted); }
+.vac-set > span small { display: block; font-size: 11px; color: var(--faint, var(--muted)); line-height: 1.3; }
+.vac-set .seg button, .plan-panel .vac-set .seg button { flex: 1 1 0; min-width: 0; text-transform: none; font-size: 12px; padding: 6px 4px; white-space: normal; line-height: 1.2; }
+.vac-set select { justify-self: start; min-height: 34px; padding: 4px 8px; background: var(--room); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); font: inherit; font-size: 13px; }
+.vac-note { margin: 0 0 8px; }
+.switch { justify-self: start; width: 46px; height: 26px; border-radius: 999px; border: 1px solid var(--line); background: var(--room); position: relative; cursor: pointer; padding: 0; }
+.switch i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .2s ease, background .2s ease; }
+.switch.on { background: var(--accent); border-color: var(--accent); }
+.switch.on i { transform: translateX(20px); background: var(--bg); }
+.switch:disabled { opacity: .45; cursor: default; }
+.vac-more { margin: 4px 0 12px; }
+.vac-more summary { cursor: pointer; font-size: 13px; color: var(--muted); padding: 6px 0; }
+.vac-more .vac-set { margin: 6px 0; }
+.vac-switches { margin-top: 0; padding-top: 0; }
+@media (max-width: 420px) { .vac-set { grid-template-columns: 1fr; gap: 4px; } }
+@media (prefers-reduced-motion: reduce) { .switch i { transition: none; } }
+
+/* ── Car: charging totals (22 Oct) ── */
+.totals { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; align-items: start; }
+.totals-kv { margin: 0; grid-template-columns: 1fr 1fr; }
+.totals-kv dd { font: 600 20px/1.2 var(--font-num); }
+.years-table td:last-child { text-align: right; }
+.years-table td:first-child, .years-table th:first-child { text-align: left; }
+.years-table small { color: var(--faint, var(--muted)); font-size: 11px; }
+.years-table tr.est td { color: var(--muted); font-style: italic; }
+@media (max-width: 760px) { .totals { grid-template-columns: 1fr; } }
+
+/* ── Devices: solar strings (22 Oct) ── */
+.pv-panel header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pv-range { flex: none; }
+.pv-range button { padding: 6px 14px; text-transform: none; white-space: nowrap; }
+.pv-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.pv-card { background: var(--room); border-radius: var(--r-sm); padding: 12px 14px; border-top: 3px solid var(--tone); }
+.pv-card h3 { margin: 0 0 10px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.pv-card h3 i { width: 10px; height: 10px; border-radius: 3px; background: var(--tone); }
+.pv-card h3 small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.pv-card .kv { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pv-card dd small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.pv-compare { margin-top: 10px; }
+@media (max-width: 520px) { .pv-card .kv { grid-template-columns: 1fr 1fr; } }

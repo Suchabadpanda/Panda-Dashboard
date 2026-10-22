@@ -63,6 +63,8 @@ window.HD = window.HD || {};
     ['sensor.sigen_plant_pv_power', '0.0', 'kW', 'PV Power', 'power'],
     ['sensor.sigen_inverter_pv1_power', '0.0', 'kW', 'PV1 Power', 'power'],
     ['sensor.sigen_inverter_pv2_power', '0.0', 'kW', 'PV2 Power', 'power'],
+    ['sensor.sigen_inverter_pv1_accumulated_energy', '3130.68', 'kWh', 'PV1 Accumulated energy', 'energy'],
+    ['sensor.sigen_inverter_pv2_accumulated_energy', '556.78', 'kWh', 'PV2 Accumulated energy', 'energy'],
     ['sensor.sigen_plant_consumed_power', '0.578', 'kW', 'Consumed Power', 'power'],
     ['sensor.sigen_plant_battery_power', '-4.526', 'kW', 'Battery Power', 'power'],
     ['sensor.sigen_plant_grid_active_power', '-3.693', 'kW', 'Grid Active Power', 'power'],
@@ -195,7 +197,28 @@ window.HD = window.HD || {};
     const VROOMS = { 'Ground floor': [{ id: 6, name: 'Kitchen' }, { id: 1, name: 'Office' }, { id: 2, name: 'Hallway' }, { id: 3, name: 'Bathroom' }, { id: 5, name: 'Garden' }] };
     states['vacuum.dreame_vacuum'] = { entity_id: 'vacuum.dreame_vacuum', state: 'cleaning', last_changed: ts, last_updated: ts,
       attributes: { friendly_name: 'Dreame vacuum', battery: 74, status: 'sweeping', current_segment: 6, active_segments: [6, 2],
-        selected_map: 'Ground floor', rooms: VROOMS } };
+        selected_map: 'Ground floor', rooms: VROOMS,
+        cleaning_mode: 'Mopping after sweeping', suction_level: 'Standard', mop_pad_humidity: 'Moist', cleaning_route: 'Intensive',
+        cleangenius: 'Routine cleaning', cleangenius_mode: 'Mop after vacuum' } };
+    // Its settings, as the Dreame integration names them (live, as if it were paused)
+    const vsel = (k, state, options) => { states[`select.dreame_vacuum_${k}`] = { entity_id: `select.dreame_vacuum_${k}`, state, last_changed: ts, last_updated: ts, attributes: { options } }; };
+    vsel('cleaning_mode', 'mopping_after_sweeping', ['sweeping', 'mopping', 'sweeping_and_mopping', 'mopping_after_sweeping']);
+    vsel('cleangenius', 'routine_cleaning', ['off', 'routine_cleaning', 'deep_cleaning']);
+    vsel('cleangenius_mode', 'mop_after_vacuum', ['vacuum_and_mop', 'mop_after_vacuum']);
+    vsel('suction_level', 'standard', ['quiet', 'standard', 'strong', 'turbo']);
+    vsel('mop_pad_humidity', 'moist', ['slightly_dry', 'moist', 'wet']);
+    vsel('cleaning_route', 'intensive', ['quick', 'standard', 'intensive', 'deep']);
+    vsel('carpet_cleaning', 'adaptation', ['avoidance', 'adaptation', 'remove_mop', 'ignore', 'cross']);
+    vsel('washing_mode', 'standard', ['light', 'standard', 'deep']);
+    vsel('water_temperature', 'hot', ['normal', 'mild', 'warm', 'hot']);
+    vsel('drying_time', '3h', ['2h', '3h', '4h']);
+    vsel('auto_empty_mode', 'high_frequency', ['off', 'standard', 'high_frequency', 'low_frequency']);
+    [['carpet_boost', 'on'], ['large_particles_boost', 'on'], ['mop_extend', 'on'], ['side_reach', 'on'], ['gap_cleaning_extension', 'on'],
+      ['mopping_under_furnitures', 'on'], ['mopping_with_detergent', 'on'], ['smart_mop_washing', 'off'], ['auto_drying', 'on'], ['silent_drying', 'off'],
+      ['self_clean', 'on'], ['stain_avoidance', 'off'], ['dnd', 'off']].forEach(([k, v]) => {
+      states[`switch.dreame_vacuum_${k}`] = { entity_id: `switch.dreame_vacuum_${k}`, state: v, last_changed: ts, last_updated: ts, attributes: {} };
+    });
+    ['start_auto_empty', 'self_clean'].forEach((k) => { states[`button.dreame_vacuum_${k}`] = { entity_id: `button.dreame_vacuum_${k}`, state: 'unknown', last_changed: ts, last_updated: ts, attributes: {} }; });
     states['camera.dreame_vacuum_map'] = { entity_id: 'camera.dreame_vacuum_map', state: 'idle', last_changed: ts, last_updated: ts,
       attributes: { friendly_name: 'Dreame vacuum map', entity_picture: DEMO_MAP, vacuum_position: { x: 1700, y: 900, a: 90 }, charger_position: { x: -295, y: 350, a: 268 },
         rooms: { 1: { room_id: 1, name: 'Office', x0: 1650, y0: 3550, x1: 4100, y1: 6400 }, 2: { room_id: 2, name: 'Hallway', x0: 450, y0: 2750, x1: 2750, y1: 6600 },
@@ -298,12 +321,38 @@ window.HD = window.HD || {};
     return { response: { [HD.config.weather]: { forecast: out } } };
   }
 
+  // Solar per string (made up, shaped like the real ones): roof since March, ground mount
+  // since mid-May; a seasonal curve times a cloudiness that changes day to day
+  function pvDay(n, dayStart) {
+    const d = new Date(dayStart);
+    if (d < new Date(n === 1 ? '2026-03-01' : '2026-05-14')) return 0;
+    const doy = (dayStart - Date.parse('2026-01-01')) / 864e5;
+    const season = 0.5 + 0.5 * Math.sin(((doy - 80) / 365) * 2 * Math.PI);
+    const cloud = 0.35 + 0.65 * Math.abs(Math.sin(doy * 12.9898) * 43758.5453 % 1);
+    return +(((n === 1 ? 22 : 7) * season * cloud) + (n === 1 ? 3 : 0.8)).toFixed(2);
+  }
+  function pvRows(n, start, period) {
+    const out = [];
+    let t = new Date(start); t.setHours(0, 0, 0, 0);
+    for (; t.getTime() <= SNAP; t = new Date(t.getTime() + 864e5 + 3600e3), t.setHours(0, 0, 0, 0)) {
+      const day = t.getTime(); const kwh = pvDay(n, day);
+      if (period === 'day') { if (day + 864e5 <= DAY0 + 1) out.push({ start: day, end: day + 864e5, change: kwh }); continue; }
+      for (let h = 7; h < 18; h++) {
+        const ts = day + h * 3600e3; if (ts < start || ts + 3600e3 > SNAP) continue;
+        out.push({ start: ts, end: ts + 3600e3, change: +(kwh * (Math.PI / 22) * Math.sin(((h - 7 + 0.5) / 11) * Math.PI)).toFixed(3) });
+      }
+    }
+    return out;
+  }
+
   function callWS(msg) {
     if (msg.type !== 'recorder/statistics_during_period') return Promise.resolve(null);
     const res = {};
     const start = Date.parse(msg.start_time);
     msg.statistic_ids.forEach((id) => {
-      if (msg.period === '5minute') res[id] = fiveMinute(id);
+      const pvn = (id.match(/pv([12])_accumulated_energy$/) || [])[1];
+      if (pvn) res[id] = pvRows(Number(pvn), start, msg.period);
+      else if (msg.period === '5minute') res[id] = fiveMinute(id);
       else if (msg.period === 'hour' && TEMPS[id]) res[id] = TEMPS[id].map((v, i) => ({ start: T0 + i * 3600e3, end: T0 + (i + 1) * 3600e3, mean: v }));
       else if (msg.period === 'hour' && id === HD.config.energy.totals.import) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(1) : null;
       else if (msg.period === 'hour' && id === HD.config.energy.totals.export) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(-1) : null;

@@ -84,6 +84,11 @@ HD.config = {
     pvPower: 'sensor.sigen_plant_pv_power',
     pv1Power: 'sensor.sigen_inverter_pv1_power',          // roof strings
     pv2Power: 'sensor.sigen_inverter_pv2_power',          // ground mount (Tigo, MPPT 2)
+    // Panel rating of each string, kWp (optional): the Devices page then compares strings per kWp.
+    // Each string's energy is read from its accumulated-energy counter, found from the power
+    // entity's name (…_pv1_power → …_pv1_accumulated_energy); set pv1Energy / pv2Energy if not.
+    pv1Kwp: 2.82,                                          // 6 × 470 W
+    pv2Kwp: 1.62,                                          // 3 × 540 W
     loadPower: 'sensor.sigen_plant_consumed_power',
     batteryPower: 'sensor.sigen_plant_battery_power',
     gridPower: 'sensor.sigen_plant_grid_active_power',

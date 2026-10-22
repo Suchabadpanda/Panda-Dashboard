@@ -241,13 +241,11 @@ HD.views = HD.views || {};
   }
 
   function historyHtml() {
-    const ev = C().ev;
     if (!history) return '<h3 class="sub-head">Recent charging</h3><p class="sub">Loading…</p>';
     const t = HD.tariff.tariffAt(nowTs());
     const m = history.month;
     const monthName = new Date(nowTs()).toLocaleDateString('en-GB', { month: 'long' });
     const ppm = m.miles ? (m.cost * 100) / m.miles : null;
-    const lifetime = S().num(ev.lifetime);
     const list = history.sessions.length ? `<ul class="sessions">${history.sessions.map((x) => `<li>
         <span>${new Date(x.start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}<small>${clock(x.start)}–${clock(x.end)}</small></span>
         <span class="tag ${x.maxRate > t.offPeak + 0.001 ? 'peak' : 'cheap'}">${x.maxRate > t.offPeak + 0.001 ? 'Some peak' : 'Cheap'}</span>
@@ -257,10 +255,76 @@ HD.views = HD.views || {};
         <div><dt>${monthName} so far</dt><dd>${kwh(m.kwh, 0)}</dd></div>
         <div><dt>Cost</dt><dd>${gbp(m.cost)}</dd></div>
         <div><dt>Per mile</dt><dd>${ppm != null ? `${ppm.toFixed(1)}p` : '–'}<small>${ppm != null ? ` over ${Math.round(m.miles)} mi` : m.odoDays ? ' needs a week of mileage' : ''}</small></dd></div>
-        <div><dt>Lifetime</dt><dd>${lifetime != null ? `${(lifetime / 1000).toFixed(2)} MWh` : '–'}</dd></div>
       </dl>
       ${list}
       <p class="sub">Costs use the tariff rate for each hour, as if it all came from the grid.</p>`;
+  }
+
+  // ── Charging totals: lifetime and each calendar year, with an estimated cost ──
+  // The Wall Connector's lifetime counter (config.ev.lifetime) goes back before Home
+  // Assistant was recording it, so it's split in two: the hours Home Assistant has, priced
+  // at the tariff rate for each hour (as the sessions above are), and the part from before
+  // that, priced at the cheap rate as an estimate. The year runs to the last finished hour;
+  // anything since is added from the live counter at the current rate.
+  let totals = null; let totalsAt = 0;
+  async function loadTotals() {
+    if (totals && Date.now() - totalsAt < 3 * 3600e3) return;
+    const ev = C().ev; const id = ev.lifetime || C().energy.totals.ev;
+    if (!id) return;
+    totalsAt = Date.now();
+    const ts = nowTs();
+    try {
+      const res = await HD.ha.stats([id], Date.UTC(2015, 0, 1), ts, 'hour', ['change', 'state']);
+      const rows = res[id] || [];
+      const years = new Map();
+      const add = (when, kwh, rate) => {
+        const y = new Date(when).getFullYear();
+        const o = years.get(y) || { year: y, kwh: 0, cost: 0, cheapKwh: 0 };
+        o.kwh += kwh; o.cost += kwh * rate; if (HD.tariff.isOffPeak(when)) o.cheapKwh += kwh;
+        years.set(y, o);
+      };
+      rows.forEach((r) => { const v = Math.max(0, r.change || 0); if (v > 0) add(r.start, v, HD.tariff.importRate(r.start)); });
+      const first = rows[0]; const last = rows[rows.length - 1];
+      const live = S().num(id);
+      // Since the last finished hour (the live counter is ahead of the statistics)
+      const lastState = last && last.state != null ? last.state : null;
+      if (live != null && lastState != null && live - lastState > 0.01 && live - lastState < 50) add(ts, live - lastState, HD.tariff.importRate(ts));
+      // Before Home Assistant: the counter's reading when recording began
+      const recorded = [...years.values()].reduce((a, y) => a + y.kwh, 0);
+      const before = first && first.state != null ? Math.max(0, first.state - Math.max(0, first.change || 0))
+        : live != null ? Math.max(0, live - recorded) : 0;
+      const cheap = HD.tariff.tariffAt(first ? first.start : ts).offPeak;
+      totals = {
+        since: first ? first.start : null,
+        years: [...years.values()].sort((a, b) => b.year - a.year),
+        recorded, before, beforeCost: before * cheap,
+        lifetime: live != null ? live : recorded + before,
+      };
+      totals.lifetimeCost = totals.years.reduce((a, y) => a + y.cost, 0) + totals.beforeCost;
+    } catch (e) { console.warn('Charging totals unavailable', e); totalsAt = 0; }
+  }
+
+  function totalsHtml() {
+    if (!totals) return '<p class="sub">Loading…</p>';
+    const t = totals;
+    const thisYear = new Date(nowTs()).getFullYear();
+    const cur = t.years.find((y) => y.year === thisYear) || { kwh: 0, cost: 0, cheapKwh: 0 };
+    const ppk = (o) => (o.kwh > 0 ? `${((o.cost / o.kwh) * 100).toFixed(1)}p` : '–');
+    const since = t.since ? new Date(t.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    const rows = t.years.map((y) => `<tr><td>${y.year}${y.year === thisYear ? ' <small>so far</small>' : ''}</td><td>${kwh(y.kwh, 0)}</td>
+      <td>${gbp(y.cost)}</td><td>${ppk(y)}</td><td>${y.kwh > 0 ? `${Math.round((y.cheapKwh / y.kwh) * 100)}%` : '–'}</td></tr>`).join('');
+    const beforeRow = t.before > 1 ? `<tr class="est"><td>Before ${since || 'records'}</td><td>${kwh(t.before, 0)}</td><td>≈ ${gbp(t.beforeCost)}</td><td>${ppk({ kwh: t.before, cost: t.beforeCost })}</td><td>–</td></tr>` : '';
+    return `<div class="totals">
+      <dl class="kv plan-kv totals-kv">
+        <div><dt>Lifetime</dt><dd>${kwh(t.lifetime, 0)}</dd></div>
+        <div><dt>Lifetime cost</dt><dd>${t.before > 1 ? '≈ ' : ''}${gbp(t.lifetimeCost, 0)}</dd></div>
+        <div><dt>${thisYear} so far</dt><dd>${kwh(cur.kwh, 0)}</dd></div>
+        <div><dt>${thisYear} cost</dt><dd>${gbp(cur.cost, 0)}</dd></div>
+      </dl>
+      <table class="years-table"><thead><tr><th>Year</th><th>Charged</th><th>Cost</th><th>Per kWh</th><th>Cheap rate</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5">No charging recorded yet.</td></tr>'}${beforeRow}</tbody></table>
+    </div>
+    <p class="sub">Each hour is priced at that hour's import rate, as if it all came from the grid.${t.before > 1 ? ` The ${kwh(t.before, 0)} the charger counted before Home Assistant started recording (${since}) is estimated at the cheap rate.` : ''}</p>`;
   }
 
   // ── Car state from two sources ──
@@ -562,6 +626,7 @@ HD.views = HD.views || {};
         <section class="panel charge-panel"><header><h2>Charge now?</h2></header><div id="car-advice"></div>
           <div id="car-plan" class="charge-block"></div><div id="car-solar"></div><div id="car-history" class="charge-block"></div></section>
         <section class="panel wide"><header><h2>Charging, last 30 days</h2><p id="ev-summary"></p></header><div id="chart-ev" class="chart-box"></div></section>
+        <section class="panel wide"><header><h2>Charging totals</h2><p>Lifetime and by year, from the Wall Connector</p></header><div id="car-totals"></div></section>
       </div>`;
       this.update(); this.redraw();
     },
@@ -572,10 +637,11 @@ HD.views = HD.views || {};
       HD.u.setHTML(document.getElementById('car-plan'), planHtml());
       HD.u.setHTML(document.getElementById('car-solar'), solarHintHtml());
       HD.u.setHTML(document.getElementById('car-history'), historyHtml());
+      HD.u.setHTML(document.getElementById('car-totals'), totalsHtml());
     },
     redraw() {
       drawHistory();
-      Promise.all([loadHistory(), loadForecast()]).then(() => this.update());
+      Promise.all([loadHistory(), loadForecast(), loadTotals()]).then(() => this.update());
     },
   };
 })();
