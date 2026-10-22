@@ -1,7 +1,7 @@
 name: Panda Dashboard
 version: "0.3.48"
 slug: panda_dashboard
-description: Wall-tablet dashboard for the house — energy flows, rooms, costs and payback
+description: Wall-tablet dashboard for the house — energy, rooms, car, doorbell and vacuum
 url: https://github.com/Suchabadpanda/Panda-Dashboard
 arch:
   - aarch64
@@ -14,7 +14,7 @@ ingress: true
 ingress_port: 8099
 panel_icon: mdi:home-lightning-bolt
 panel_title: Panda Dashboard
-# Your energy tracker CSV lives here: \\homeassistant.local\addon_configs\<id>_panda_dashboard\
+# Your config.js lives here: \\homeassistant.local\app_configs\<id>_panda_dashboard\
 map:
   - addon_config:ro
 

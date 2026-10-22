@@ -53,6 +53,12 @@
         <label><input type="radio" name="theme" value="dark"> Dark</label>
         <label><input type="radio" name="theme" value="light"> Light</label>
       </fieldset>
+      <fieldset class="palette-set">
+        <legend>Colours</legend>
+        <div id="palettes" class="palettes" role="radiogroup" aria-label="Colour theme"></div>
+        <label class="accent-pick"><input type="checkbox" id="accent-on"> Own accent colour <input type="color" id="accent" value="#8fb8ff" aria-label="Accent colour"></label>
+        <small>Saved on this screen. Changes show straight away; Close without saving puts them back.</small>
+      </fieldset>
       <div class="dialog-actions">
         <button type="button" class="btn ghost" id="set-demo">Show demo</button>
         <button type="button" class="btn ghost" id="set-forget">Forget token</button>

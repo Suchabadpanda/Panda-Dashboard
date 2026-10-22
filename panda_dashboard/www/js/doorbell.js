@@ -504,7 +504,7 @@ window.HD = window.HD || {};
       else if (id === c.motion && S().state(c.motion) === 'on') last.motion = Date.now();
     });
     loadHistory(); loadBatteryTrend();
-    setInterval(() => { loadHistory(); loadBatteryTrend(); }, 15 * 60 * 1000);
+    setInterval(() => { if (!document.hidden) { loadHistory(); loadBatteryTrend(); } }, 15 * 60 * 1000);
   }
 
   HD.doorbell = { init, cardHtml, alerts, enabled, showRing, last };

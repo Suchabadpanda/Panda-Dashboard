@@ -3,7 +3,7 @@
  *
  * This file ships with the repo and matches the demo snapshot. Don't put your own
  * settings here: copy this file to config.js in the add-on's config folder
- * (\\homeassistant.local\addon_configs\<id>_panda_dashboard\) and edit that copy.
+ * (\\homeassistant.local\app_configs\<id>_panda_dashboard\) and edit that copy.
  * It loads after this one and replaces it, and updates never overwrite it.
  */
 window.HD = window.HD || {};
@@ -14,6 +14,10 @@ HD.config = {
   // (/config/www/panda-dashboard → http://homeassistant.local:8123/local/panda-dashboard/).
   // Set it when you host the dashboard elsewhere (NAS / Docker) — see README.
   haUrl: '',
+
+  // Default look for screens where nobody has picked one in Settings (each screen keeps its own choice):
+  // mode auto | dark | light · palette slate | midnight | ocean | forest | plum | ember | graphite · accent any colour
+  // theme: { mode: 'auto', palette: 'slate', accent: '' },
 
   // Target the heating is balanced around. Room tiles are tinted cooler/warmer than this.
   comfortTarget: 22,
@@ -107,7 +111,7 @@ HD.config = {
     chargeToday: 'sensor.sigen_plant_daily_battery_charge_energy',
     dischargeToday: 'sensor.sigen_plant_daily_battery_discharge_energy',
     pvYesterday: 'sensor.sigen_plant_pv_previous_day_generation',
-    // lifetime counters (long-term statistics, used for history + ROI)
+    // lifetime counters (long-term statistics, used for daily history and costs)
     totals: {
       import: 'sensor.sigen_plant_total_imported_energy',
       export: 'sensor.sigen_plant_total_exported_energy',
@@ -256,10 +260,12 @@ HD.config = {
 
   // ── Shortcuts on the Home page ──
   // toggle: an entity to flip · press: a button entity · service + entities ('lights' = every room light)
+  // icon: lightsoff | bulb | snow | flame | power | mute | lock … · tone: any CSS colour to override the tile's colour
   shortcuts: [
     { name: 'All lights off', icon: 'lightsoff', service: 'switch.turn_off', entities: 'lights', confirm: 'Turn off all lights?' },
     { name: 'All AC', icon: 'snow', toggle: 'input_boolean.ac_all_cool' },
     { name: 'Wake PC', icon: 'power', press: 'button.wake_on_lan_pc', confirm: 'Wake up the PC?' },
+    { name: 'Lock PC', icon: 'lock', press: 'button.pc_lock' },
     { name: 'Mute PC', icon: 'mute', press: 'button.pc_mute' },
     { name: 'Shut down PC', icon: 'power', press: 'button.pc_shutdown', confirm: 'Shut down the PC?', danger: true },
   ],

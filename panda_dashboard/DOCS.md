@@ -13,23 +13,19 @@ so earlier months keep the prices you actually paid. Rates are £ per kWh includ
 
 ## Your settings
 
-Copy `config.js` (your rooms, entities, tariffs and system cost) into this add-on's config folder:
+Copy `config.js` (your rooms, entities and tariffs) into this add-on's config folder:
 
-- Samba: `\\homeassistant.local\addon_configs\<id>_panda_dashboard\`
+- Samba: `\\homeassistant.local\app_configs\<id>_panda_dashboard\` (called `addon_configs`
+  before Samba share 12.10; if the name doesn't resolve, use the IP address instead)
 - SSH: `/addon_configs/<id>_panda_dashboard/`
 
 Without it the dashboard uses the example settings, which match the demo snapshot.
 Updates never overwrite files in this folder.
 
-## Energy tracker history
+## Look
 
-Copy `energy_monthly.csv` (columns `label,import_kwh,export_kwh,import_cost,export_credit,standing_charge`)
-into this add-on's config folder:
-
-- Samba: `\\homeassistant.local\addon_configs\<id>_panda_dashboard\`
-- SSH: `/addon_configs/<id>_panda_dashboard/`
-
-Reload the dashboard. The Payback panel then uses real figures for Nov 2025 – Mar 2026.
+Settings (the status pill, top right) → **Theme** and **Colours**: light, dark or match the
+device, a colour palette, and your own accent colour if you like. Each screen keeps its own.
 
 ## Wall tablet
 

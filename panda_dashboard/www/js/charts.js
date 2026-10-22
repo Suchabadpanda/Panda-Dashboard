@@ -8,7 +8,7 @@ window.HD = window.HD || {};
 
 (function () {
   const NS = 'http://www.w3.org/2000/svg';
-  const fmtTime = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const fmtTime = (ts) => HD.u.fmt(ts, { hour: '2-digit', minute: '2-digit' });
 
   function niceTicks(min, max, count = 4) {
     if (min === max) { max = min + 1; }

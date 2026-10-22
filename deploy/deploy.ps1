@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $app = Join-Path $root 'panda_dashboard\www'
 $items = @("$app\index.html", "$app\css", "$app\js")
-if ((Test-Path "$root\data\energy_monthly.csv") -or (Test-Path "$root\data\config.js")) { $items += "$root\data" }
+if (Test-Path "$root\data\config.js") { $items += "$root\data" }
 
 if ($Ssh) {
   ssh $SshHost 'mkdir -p /config/www/panda-dashboard'

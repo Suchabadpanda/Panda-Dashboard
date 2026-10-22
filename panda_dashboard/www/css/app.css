@@ -196,10 +196,6 @@ button { font: inherit; color: inherit; }
   background: var(--line); display: grid; gap: 2px; overflow: hidden;
 }
 .floor { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
-.floor-tag {
-  position: absolute; left: 8px; bottom: 8px; z-index: 1;
-  font: 600 11px/1 var(--font-num); color: var(--faint); letter-spacing: .5px;
-}
 .room {
   --tint: var(--room);
   background: var(--tint); padding: 14px 16px 14px; min-height: 132px;
@@ -325,7 +321,6 @@ thead th { color: var(--muted); font-weight: 500; }
 .ac-rows .name { font-weight: 600; }
 .ac-rows .state { color: var(--muted); font-size: 13px; text-align: right; }
 .ac-rows .seg { grid-column: 1 / -1; }
-.ac-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .ac { background: var(--room); border-radius: var(--r-md); padding: 14px; display: grid; gap: 8px; align-content: start; }
 .ac h3 { font-size: 15px; }
 .ac p { font-size: 13px; color: var(--muted); }
@@ -1096,3 +1091,22 @@ body { font-variant-numeric: tabular-nums; }
 .pv-card dd small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .pv-compare { margin-top: 10px; }
 @media (max-width: 520px) { .pv-card .kv { grid-template-columns: 1fr 1fr; } }
+.kv .disk { grid-column: 1 / -1; }
+.disk small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.disk .bat-meter { margin-top: 6px; }
+.disk .bat-meter b { background: var(--accent); }
+.disk.mid .bat-meter b { background: var(--warning); }
+.disk.low .bat-meter b { background: var(--critical); }
+
+/* ── Settings: colour palettes (22 Oct) ── */
+.settings fieldset.palette-set { display: grid; gap: 10px; }
+.palettes { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+.swatch { display: grid !important; gap: 4px !important; justify-items: center; cursor: pointer; font-size: 12px !important; color: var(--muted); }
+.swatch input { position: absolute; opacity: 0; pointer-events: none; }
+.swatch i { width: 100%; height: 40px; border-radius: var(--r-sm); border: 2px solid var(--line);
+  background: linear-gradient(135deg, var(--sw-bg) 0 45%, var(--sw-panel) 45% 75%, var(--sw-accent) 75%); }
+.swatch.on i { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 35%, transparent); }
+.swatch.on span { color: var(--ink); font-weight: 600; }
+.swatch input:focus-visible + i { outline: 2px solid var(--accent); outline-offset: 2px; }
+.accent-pick { display: flex !important; align-items: center; gap: 8px; }
+.accent-pick input[type="color"] { width: 40px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }

@@ -83,7 +83,7 @@ HD.views = HD.views || {};
 
   // ── Tonight's plan, or live details while charging ──
   const hh = (h) => `${String(((h % 24) + 24) % 24).padStart(2, '0')}:00`;
-  const clock = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const clock = (ts) => HD.u.fmt(ts, { hour: '2-digit', minute: '2-digit' });
   const CHARGE_EFF = 0.9;   // wall-to-battery; ~10% is lost as heat
 
   // Start of the next cheap window (now, if we're in it) and its end
@@ -244,10 +244,10 @@ HD.views = HD.views || {};
     if (!history) return '<h3 class="sub-head">Recent charging</h3><p class="sub">Loading…</p>';
     const t = HD.tariff.tariffAt(nowTs());
     const m = history.month;
-    const monthName = new Date(nowTs()).toLocaleDateString('en-GB', { month: 'long' });
+    const monthName = HD.u.fmt(nowTs(), { month: 'long' });
     const ppm = m.miles ? (m.cost * 100) / m.miles : null;
     const list = history.sessions.length ? `<ul class="sessions">${history.sessions.map((x) => `<li>
-        <span>${new Date(x.start).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}<small>${clock(x.start)}–${clock(x.end)}</small></span>
+        <span>${HD.u.fmt(x.start, { weekday: 'short', day: 'numeric', month: 'short' })}<small>${clock(x.start)}–${clock(x.end)}</small></span>
         <span class="tag ${x.maxRate > t.offPeak + 0.001 ? 'peak' : 'cheap'}">${x.maxRate > t.offPeak + 0.001 ? 'Some peak' : 'Cheap'}</span>
         <b>${kwh(x.kwh, 1)}</b><b>${gbp(x.cost)}</b></li>`).join('')}</ul>` : '<p class="sub">No charging in the last 5 weeks.</p>';
     return `<h3 class="sub-head">Recent charging</h3>
@@ -331,7 +331,7 @@ HD.views = HD.views || {};
     const thisYear = new Date(nowTs()).getFullYear();
     const cur = t.years.find((y) => y.year === thisYear) || { kwh: 0, cost: 0, cheapKwh: 0 };
     const ppk = (o) => (o.kwh > 0 ? `${((o.cost / o.kwh) * 100).toFixed(1)}p` : '–');
-    const since = t.since ? new Date(t.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+    const since = t.since ? HD.u.fmt(t.since, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
     const rows = t.years.map((y) => `<tr><td>${y.year}${y.year === thisYear ? ' <small>so far</small>' : ''}</td><td>${kwh(y.kwh, 0)}</td>
       <td>${gbp(y.cost)}</td><td>${ppk(y)}</td><td>${y.kwh > 0 ? `${Math.round((y.cheapKwh / y.kwh) * 100)}%` : '–'}</td></tr>`).join('');
     const beforeRow = t.before > 1 ? `<tr class="est"><td>Before ${since || 'records'}</td><td>${kwh(t.before, 0)}</td><td>≈ ${gbp(t.beforeCost)}</td><td>${ppk({ kwh: t.before, cost: t.beforeCost })}</td><td>–</td></tr>` : '';
@@ -350,7 +350,7 @@ HD.views = HD.views || {};
       mixed: "Each hour is priced at the rate in force then, from the Energy Tracker's tariff history (VAT included), and the dashboard's own tariff where the tracker has none",
       dashboard: "Each hour is priced at the dashboard's tariff for that hour",
     }[t.source]}, as if it all came from the grid.${t.before > 1 ? ` The ${kwh(t.before, 0)} the charger counted before Home Assistant started recording (${since}) is estimated at ${t.beforeHow === 'spread'
-      ? `the cheap rate of each day since the charger went in (${new Date(t.chargerSince).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}), averaging ${pence(t.beforeRate)}/kWh`
+      ? `the cheap rate of each day since the charger went in (${HD.u.fmt(t.chargerSince, { month: 'short', year: 'numeric' })}), averaging ${pence(t.beforeRate)}/kWh`
       : `the cheap rate just before then, ${pence(t.beforeRate)}/kWh. Set ev.chargerSince to when the charger went in to spread it over the rates of the time`}.` : ''}</p>`;
   }
 
@@ -577,7 +577,7 @@ HD.views = HD.views || {};
       <header class="car-head"><div><p class="eyebrow-label">${esc(ev.name || 'Car')}</p>
         <h2>${icon('pin')}${esc(whereText())}</h2></div>
         <span class="pill ${!stale && isAsleep === false ? 'ok' : ''}">${!any ? 'No data' : stale ? `Last seen ${esc(ago(updated))}` : isAsleep ? 'Asleep' : 'Awake'}</span></header>
-      ${stale || !any ? `<p class="note car-stale">${icon('alert')}<span>No live data from the car${bleDown ? ': the Bluetooth bridge is offline' : ''}${bleDown ? ' and' : ':'} Tesla Fleet has had nothing since ${updated ? HD.u.time(updated) + (Date.now() - Date.parse(updated) > 12 * 3600e3 ? ` on ${new Date(updated).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}` : '') : 'Home Assistant restarted'} (it doesn't wake a sleeping car). ${any ? 'Showing the last known state.' : ''}</span>${wake ? `<button class="car-btn" data-car="wake" data-entity="${wake.id}">${icon('power')}<span>Wake car</span></button>` : ''}</p>` : ''}
+      ${stale || !any ? `<p class="note car-stale">${icon('alert')}<span>No live data from the car${bleDown ? ': the Bluetooth bridge is offline' : ''}${bleDown ? ' and' : ':'} Tesla Fleet has had nothing since ${updated ? HD.u.time(updated) + (Date.now() - Date.parse(updated) > 12 * 3600e3 ? ` on ${HD.u.fmt(updated, { weekday: 'short', day: 'numeric', month: 'short' })}` : '') : 'Home Assistant restarted'} (it doesn't wake a sleeping car). ${any ? 'Showing the last known state.' : ''}</span>${wake ? `<button class="car-btn" data-car="wake" data-entity="${wake.id}">${icon('power')}<span>Wake car</span></button>` : ''}</p>` : ''}
       ${any ? `
         <div class="car-main">
           ${carSvg(tp, target, {
@@ -631,8 +631,8 @@ HD.views = HD.views || {};
     if (!d || !box) return;
     const id = C().energy.totals.ev;
     const vals = d.series[id] || [];
-    const cats = d.days.map((ts) => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
-    const long = d.days.map((ts) => new Date(ts).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }));
+    const cats = d.days.map((ts) => HD.u.fmt(ts, { day: 'numeric', month: 'short' }));
+    const long = d.days.map((ts) => HD.u.fmt(ts, { weekday: 'short', day: 'numeric', month: 'short' }));
     const total = vals.reduce((a, v) => a + (v || 0), 0);
     const t = HD.tariff.tariffAt(nowTs());
     document.getElementById('ev-summary').innerHTML = `${kwh(total, 0)} over 30 days, about ${gbp(total * t.offPeak)} if all on the cheap rate (${gbp(total * t.peak)} at peak).`;

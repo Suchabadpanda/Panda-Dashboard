@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 ssh -p "$PORT" "$HOST" "mkdir -p $DEST/data"
 tar -cf - -C panda_dashboard/www index.html css js \
   | ssh -p "$PORT" "$HOST" "tar -xf - -C $DEST"
-files=$(ls data/energy_monthly.csv data/config.js 2>/dev/null || true)
+files=$(ls data/config.js 2>/dev/null || true)
 [ -n "$files" ] && tar -cf - $files | ssh -p "$PORT" "$HOST" "tar -xf - -C $DEST"
 echo "Deployed to $HOST:$DEST"
 echo "Open http://homeassistant.local:8123/local/panda-dashboard/index.html"

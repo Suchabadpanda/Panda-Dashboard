@@ -11,7 +11,15 @@ window.HD = window.HD || {};
   const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
   const temp = (v) => (v == null ? '–' : `${v.toFixed(1)}°`);
   const pct = (v) => (v == null ? '–' : `${Math.round(v)}%`);
-  const time = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  // Date formatting: an Intl.DateTimeFormat is costly to build and toLocale*String builds a
+  // new one on every call, so formatters are made once per option set and reused.
+  const fmts = new Map();
+  const fmt = (d, opts) => {
+    const k = JSON.stringify(opts);
+    let f = fmts.get(k); if (!f) { f = new Intl.DateTimeFormat('en-GB', opts); fmts.set(k, f); }
+    return f.format(d instanceof Date ? d : new Date(d));
+  };
+  const time = (d) => fmt(d, { hour: '2-digit', minute: '2-digit' });
   const dur = (mins) => {
     if (mins == null || !Number.isFinite(mins)) return '–';
     const h = Math.floor(mins / 60); const m = Math.round(mins % 60);
@@ -85,5 +93,5 @@ window.HD = window.HD || {};
   }
   const invalidate = () => { epoch++; };   // next update redraws everything (e.g. after a failed toggle)
 
-  HD.u = { cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate };
+  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate };
 })();

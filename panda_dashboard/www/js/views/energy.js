@@ -1,6 +1,6 @@
 /*
  * Energy view: today's power, battery charge and the last 30 days.
- * Costs and payback live in the separate energy tracker.
+ * Monthly costs and payback live in the Energy Tracker add-on.
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -45,8 +45,8 @@ HD.views = HD.views || {};
   function drawDaily() {
     const d = HD.data.daily; const t = C().energy.totals;
     if (!d) return;
-    const cats = d.days.map((ts) => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
-    const long = d.days.map((ts) => new Date(ts).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }));
+    const cats = d.days.map((ts) => HD.u.fmt(ts, { day: 'numeric', month: 'short' }));
+    const long = d.days.map((ts) => HD.u.fmt(ts, { weekday: 'short', day: 'numeric', month: 'short' }));
     HD.chart.bars(document.getElementById('chart-daily-grid'), {
       label: 'Daily grid import and export', height: 220, categories: cats, tipLabels: long,
       format: (v, tick) => (tick ? `${v}` : `${v.toFixed(1)} kWh`),

@@ -101,7 +101,7 @@ window.HD = window.HD || {};
 
   function init() {
     load();
-    setInterval(load, 15 * 60 * 1000);   // the tracker works in half hours; no need to ask often
+    setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000);   // the tracker works in half hours; no need to ask often
   }
 
   HD.tracker = { init, load, tariffs, rates, get cop() { return state.cop; } };

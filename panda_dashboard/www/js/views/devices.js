@@ -133,16 +133,16 @@ HD.views = HD.views || {};
 
   function drawStrings() {
     const box = document.getElementById('chart-pv'); if (!box || !pv) return;
+    const key = `${pvRange}|${pv.at}`;
+    if (box._key === key) return;   // already drawn: live updates don't redraw the chart
+    box._key = key;
     const days = pvRange === 'days';
     const ts = days ? pv.days : pv.months;
-    const cats = ts.map((t) => new Date(t).toLocaleDateString('en-GB', days ? { day: 'numeric', month: 'short' } : { month: 'short', year: '2-digit' }));
+    const cats = ts.map((t) => HD.u.fmt(t, days ? { day: 'numeric', month: 'short' } : { month: 'short', year: '2-digit' }));
     const tips = ts.map((t, i) => {
       const last = i === ts.length - 1;
-      return new Date(t).toLocaleDateString('en-GB', days ? { weekday: 'short', day: 'numeric', month: 'short' } : { month: 'long', year: 'numeric' }) + (last ? ' (so far)' : '');
+      return HD.u.fmt(t, days ? { weekday: 'short', day: 'numeric', month: 'short' } : { month: 'long', year: 'numeric' }) + (last ? ' (so far)' : '');
     });
-    const key = `${pvRange}|${pv.at}`;
-    if (box._key === key) return;
-    box._key = key;
     HD.chart.bars(box, {
       label: days ? 'Solar per string, last 30 days' : 'Solar per string by month', height: 210, categories: cats, tipLabels: tips,
       format: (v, tick) => (tick ? `${v}` : `${v.toFixed(days ? 1 : 0)} kWh`),
@@ -165,6 +165,25 @@ HD.views = HD.views || {};
     pvRange = b.dataset.pvRange;
     render();
   });
+
+  // ── Home Assistant's own storage (Supervisor host info, GB) ──
+  // Needs an admin user (the panel is admin-only), refreshed every 30 minutes.
+  let disk = null; let diskAt = 0;
+  async function loadDisk() {
+    if (Date.now() - diskAt < 30 * 60e3) return;
+    diskAt = Date.now();
+    try {
+      const h = await HD.ha.callWS({ type: 'supervisor/api', endpoint: '/host/info', method: 'get' });
+      if (h && h.disk_total) disk = { total: h.disk_total, used: h.disk_used, free: h.disk_free };
+    } catch (e) { disk = null; }   // not under Supervisor, or not an admin
+  }
+  function diskHtml() {
+    if (!disk) return '';
+    const p = Math.round((disk.used / disk.total) * 100);
+    const cls = disk.free < 3 ? 'low' : disk.free < 6 ? 'mid' : '';
+    return `<div class="disk ${cls}"><dt>Storage</dt><dd>${disk.free.toFixed(1)} GB free <small>of ${Math.round(disk.total)} GB</small></dd>
+      <i class="bat-meter" role="img" aria-label="${p}% used"><b style="width:${p}%"></b></i></div>`;
+  }
 
   function html() {
     const d = HD.config.devices;
@@ -202,6 +221,7 @@ HD.views = HD.views || {};
             <div><dt>Last backup</dt><dd>${S().state(d.backupLast) ? ago(S().state(d.backupLast)) : '–'}</dd></div>
             <div><dt>Next backup</dt><dd>${S().state(d.backupNext) ? until(S().state(d.backupNext)) : '–'}</dd></div>
             <div><dt>Connection</dt><dd>${esc(S().message)}</dd></div>
+            ${diskHtml()}
           </dl></section>
         ${bats.length ? `<section class="panel"><header><h2>Sensor batteries</h2><p>Lowest first</p></header><ul class="bat-list">${batRows}</ul></section>` : ''}
         ${stringsHtml()}
@@ -214,6 +234,7 @@ HD.views = HD.views || {};
     update() {
       render();
       if (!pv || Date.now() - pvAt > 10 * 60e3) loadStrings().then(render);
+      if (Date.now() - diskAt > 30 * 60e3) loadDisk().then(render);
     },
   };
 })();

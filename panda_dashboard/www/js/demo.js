@@ -149,6 +149,7 @@ window.HD = window.HD || {};
     ['sensor.washing_machine_completion_time', 'unavailable', '', 'Washing machine Completion time'],
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
     ['input_boolean.ac_all_cool', 'off', '', 'AC Quick Cool'],
+    ['button.pc_lock', 'unknown', '', 'PC Lock'],
     ['button.pc_mute', 'unknown', '', 'PC Mute'],
     ['button.pc_shutdown', 'unknown', '', 'PC Shutdown'],
     ['sensor.backup_last_successful_automatic_backup', '2026-10-18T03:04:08+00:00', '', 'Last successful automatic backup', 'timestamp'],
@@ -346,6 +347,7 @@ window.HD = window.HD || {};
   }
 
   function callWS(msg) {
+    if (msg.type === 'supervisor/api' && msg.endpoint === '/host/info') return Promise.resolve({ disk_total: 28, disk_used: 14.2, disk_free: 12.6 });
     if (msg.type !== 'recorder/statistics_during_period') return Promise.resolve(null);
     const res = {};
     const start = Date.parse(msg.start_time);

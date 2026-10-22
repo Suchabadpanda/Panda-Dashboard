@@ -1,6 +1,8 @@
 # Pinned to the official nginx image on purpose. The Supervisor passes its own
 # BUILD_FROM (the HA base image, which has no web server), so don't use it here.
-FROM nginx:1.27-alpine
+# alpine-slim: nginx and its entrypoint hooks only, without the extra modules (njs, xslt,
+# geoip, image-filter) and curl that the plain alpine tag adds; none are used here.
+FROM nginx:1.27-alpine-slim
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY www/ /usr/share/nginx/html/
