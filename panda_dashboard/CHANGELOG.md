@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.52
+- Home: one-line summary with presence, temperatures, energy, cheap rate and today's forecast
+
 ## 0.3.51
 - AC badge in each room's corner: blue cooling, red heating, spins while running
 
