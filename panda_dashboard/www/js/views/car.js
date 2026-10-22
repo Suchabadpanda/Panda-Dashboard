@@ -261,11 +261,14 @@ HD.views = HD.views || {};
   }
 
   // ── Charging totals: lifetime and each calendar year, with an estimated cost ──
-  // The Wall Connector's lifetime counter (config.ev.lifetime) goes back before Home
-  // Assistant was recording it, so it's split in two: the hours Home Assistant has, priced
-  // at the tariff rate for each hour (as the sessions above are), and the part from before
-  // that, priced at the cheap rate as an estimate. The year runs to the last finished hour;
-  // anything since is added from the live counter at the current rate.
+  // Rates come from the Energy Tracker's tariff history (every period Nan has entered, with
+  // its own band times and VAT), so each hour is priced at what was actually being charged
+  // then; hours the tracker can't price (no tracker, a dynamic tariff) use the dashboard's
+  // own tariffs. The Wall Connector's lifetime counter (config.ev.lifetime) goes back
+  // before Home Assistant recorded it, so it's split in two: the hours Home Assistant has,
+  // priced hour by hour, and the part from before, priced at the cheap rate of the time —
+  // spread day by day from config.ev.chargerSince ('YYYY-MM-DD', when the charger went in)
+  // when that's set, otherwise at the cheap rate just before recording began.
   let totals = null; let totalsAt = 0;
   async function loadTotals() {
     if (totals && Date.now() - totalsAt < 3 * 3600e3) return;
@@ -274,30 +277,48 @@ HD.views = HD.views || {};
     totalsAt = Date.now();
     const ts = nowTs();
     try {
-      const res = await HD.ha.stats([id], Date.UTC(2015, 0, 1), ts, 'hour', ['change', 'state']);
+      const [res, periods] = await Promise.all([
+        HD.ha.stats([id], Date.UTC(2015, 0, 1), ts, 'hour', ['change', 'state']),
+        HD.tracker && HD.tracker.tariffs ? HD.tracker.tariffs().catch(() => null) : null,
+      ]);
+      const tr = periods ? HD.tracker.rates(periods) : null;
+      let fromTracker = 0; let fromDash = 0;
+      const rateAt = (when) => { const r = tr && tr.rate(when); if (r != null) { fromTracker++; return r; } fromDash++; return HD.tariff.importRate(when); };
+      const cheapAt = (when) => { const c = tr && tr.isCheap(when); return c != null ? c : HD.tariff.isOffPeak(when); };
       const rows = res[id] || [];
       const years = new Map();
       const add = (when, kwh, rate) => {
         const y = new Date(when).getFullYear();
         const o = years.get(y) || { year: y, kwh: 0, cost: 0, cheapKwh: 0 };
-        o.kwh += kwh; o.cost += kwh * rate; if (HD.tariff.isOffPeak(when)) o.cheapKwh += kwh;
+        o.kwh += kwh; o.cost += kwh * rate; if (cheapAt(when)) o.cheapKwh += kwh;
         years.set(y, o);
       };
-      rows.forEach((r) => { const v = Math.max(0, r.change || 0); if (v > 0) add(r.start, v, HD.tariff.importRate(r.start)); });
+      rows.forEach((r) => { const v = Math.max(0, r.change || 0); if (v > 0) add(r.start, v, rateAt(r.start)); });
       const first = rows[0]; const last = rows[rows.length - 1];
       const live = S().num(id);
       // Since the last finished hour (the live counter is ahead of the statistics)
       const lastState = last && last.state != null ? last.state : null;
-      if (live != null && lastState != null && live - lastState > 0.01 && live - lastState < 50) add(ts, live - lastState, HD.tariff.importRate(ts));
+      if (live != null && lastState != null && live - lastState > 0.01 && live - lastState < 50) add(ts, live - lastState, rateAt(ts));
       // Before Home Assistant: the counter's reading when recording began
       const recorded = [...years.values()].reduce((a, y) => a + y.kwh, 0);
       const before = first && first.state != null ? Math.max(0, first.state - Math.max(0, first.change || 0))
         : live != null ? Math.max(0, live - recorded) : 0;
-      const cheap = HD.tariff.tariffAt(first ? first.start : ts).offPeak;
+      const recStart = first ? first.start : ts;
+      const cheapRateAt = (when) => (tr && tr.cheapest(when) != null ? tr.cheapest(when) : HD.tariff.tariffAt(when).offPeak);
+      let beforeCost = 0; let beforeHow = 'last';
+      const since = ev.chargerSince ? Date.parse(`${ev.chargerSince}T00:00:00`) : NaN;
+      if (before > 0 && Number.isFinite(since) && since < recStart) {
+        // Spread evenly over the days between installation and the first recorded hour
+        const days = Math.max(1, Math.round((recStart - since) / 864e5));
+        for (let d = 0; d < days; d++) beforeCost += (before / days) * cheapRateAt(since + d * 864e5 + 12 * 3600e3);
+        beforeHow = 'spread';
+      } else beforeCost = before * cheapRateAt(recStart - 864e5);
       totals = {
         since: first ? first.start : null,
         years: [...years.values()].sort((a, b) => b.year - a.year),
-        recorded, before, beforeCost: before * cheap,
+        recorded, before, beforeCost, beforeHow, beforeRate: before > 0 ? beforeCost / before : null,
+        chargerSince: Number.isFinite(since) ? since : null,
+        source: fromTracker && !fromDash ? 'tracker' : fromTracker ? 'mixed' : 'dashboard',
         lifetime: live != null ? live : recorded + before,
       };
       totals.lifetimeCost = totals.years.reduce((a, y) => a + y.cost, 0) + totals.beforeCost;
@@ -324,7 +345,13 @@ HD.views = HD.views || {};
       <table class="years-table"><thead><tr><th>Year</th><th>Charged</th><th>Cost</th><th>Per kWh</th><th>Cheap rate</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="5">No charging recorded yet.</td></tr>'}${beforeRow}</tbody></table>
     </div>
-    <p class="sub">Each hour is priced at that hour's import rate, as if it all came from the grid.${t.before > 1 ? ` The ${kwh(t.before, 0)} the charger counted before Home Assistant started recording (${since}) is estimated at the cheap rate.` : ''}</p>`;
+    <p class="sub">${{
+      tracker: "Each hour is priced at the rate in force then, from the Energy Tracker's tariff history (VAT included)",
+      mixed: "Each hour is priced at the rate in force then, from the Energy Tracker's tariff history (VAT included), and the dashboard's own tariff where the tracker has none",
+      dashboard: "Each hour is priced at the dashboard's tariff for that hour",
+    }[t.source]}, as if it all came from the grid.${t.before > 1 ? ` The ${kwh(t.before, 0)} the charger counted before Home Assistant started recording (${since}) is estimated at ${t.beforeHow === 'spread'
+      ? `the cheap rate of each day since the charger went in (${new Date(t.chargerSince).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}), averaging ${pence(t.beforeRate)}/kWh`
+      : `the cheap rate just before then, ${pence(t.beforeRate)}/kWh. Set ev.chargerSince to when the charger went in to spread it over the rates of the time`}.` : ''}</p>`;
   }
 
   // ── Car state from two sources ──

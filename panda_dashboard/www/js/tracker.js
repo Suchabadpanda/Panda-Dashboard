@@ -63,10 +63,46 @@ window.HD = window.HD || {};
     } catch (e) { console.warn('Energy tracker unavailable', e); }
   }
 
+  // The tracker's tariff history: every period with its import bands and VAT, back to
+  // whenever Nan entered them (the dashboard's own tariffs only start in Oct 2025).
+  // → [{ from (ms, local midnight), vat (multiplier), dynamic, bands: [{ s, e (minutes), p (£/kWh ex VAT) }] }]
+  let tariffCache = null; let tariffAt = 0;
+  async function tariffs() {
+    if (HD.config.tracker === false || S().mode !== 'live') return null;
+    if (tariffCache && Date.now() - tariffAt < 6 * 3600e3) return tariffCache;
+    if (!(await findTracker())) return null;
+    try {
+      const res = await getJson('/api/tariffs');
+      const mins = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+      tariffCache = (res.periods || []).map((p) => ({
+        from: Date.parse(`${p.effective_from}T00:00:00`), name: p.name, dynamic: p.dynamic || '',
+        vat: 1 + (Number(p.vat_percent) || 0) / 100,
+        bands: (p.import_bands || []).map((b) => ({ s: mins(b.start), e: mins(b.end), p: b.p_per_kwh / 100 })),
+      })).filter((p) => Number.isFinite(p.from) && p.bands.length).sort((a, b) => a.from - b.from);
+      tariffAt = Date.now();
+    } catch (e) { console.warn('Energy tracker tariffs unavailable', e); }
+    return tariffCache && tariffCache.length ? tariffCache : null;
+  }
+
+  // Import rate helpers over a tariff history from tariffs(). Rates include VAT, £/kWh.
+  // A dynamic (half-hourly priced) period has no fixed bands to use, so it returns null
+  // and the caller falls back to the dashboard's own tariff for those hours.
+  function rates(periods) {
+    const periodAt = (ts) => { let cur = null; for (const p of periods) { if (p.from <= ts) cur = p; else break; } return cur; };
+    const band = (p, ts) => { const d = new Date(ts); const m = d.getHours() * 60 + d.getMinutes();
+      return p.bands.find((b) => (b.s <= b.e ? m >= b.s && m < b.e : m >= b.s || m < b.e)); };
+    return {
+      periodAt,
+      rate(ts) { const p = periodAt(ts); if (!p || p.dynamic) return null; const b = band(p, ts); return b ? b.p * p.vat : null; },
+      cheapest(ts) { const p = periodAt(ts); return p && !p.dynamic ? Math.min(...p.bands.map((b) => b.p)) * p.vat : null; },
+      isCheap(ts) { const p = periodAt(ts); if (!p || p.dynamic) return null; const b = band(p, ts); return !!b && b.p === Math.min(...p.bands.map((x) => x.p)); },
+    };
+  }
+
   function init() {
     load();
     setInterval(load, 15 * 60 * 1000);   // the tracker works in half hours; no need to ask often
   }
 
-  HD.tracker = { init, load, get cop() { return state.cop; } };
+  HD.tracker = { init, load, tariffs, rates, get cop() { return state.cop; } };
 })();

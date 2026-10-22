@@ -146,6 +146,8 @@ HD.config = {
     handleTemp: 'sensor.tesla_wall_connector_handle_temperature',
     voltage: 'sensor.tesla_wall_connector_grid_voltage',
     batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
+    // chargerSince: '2025-01-07',  // when the Wall Connector went in: charging from before Home Assistant
+                                    // recorded it is then priced at each day's cheap rate (Car → Charging totals)
     tyreTarget: 42,              // recommended tyre pressure, psi (low warning 3 psi under)
     colour: '#5f7fa8',           // paint colour for the car drawing on the Car page (any CSS colour)
     // The car itself: each key uses the first source that has it available, so the
