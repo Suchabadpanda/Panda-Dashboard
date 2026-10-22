@@ -193,6 +193,22 @@ window.HD = window.HD || {};
     ['front_driver', 'front_passenger', 'rear_driver', 'rear_passenger'].forEach((d) => car(`binary_sensor.model_y_${d}_door`, 'off'));
     [['front_left', 2.9], ['front_right', 2.9], ['rear_left', 2.75], ['rear_right', 2.9]].forEach(([w, v]) => car(`sensor.model_y_tyre_pressure_${w}`, String(v), { unit_of_measurement: 'bar' }));
 
+    // AC units: the living room cooling, the others off (made-up settings)
+    const ac = (id, state, extra) => {
+      Object.assign(states[id].attributes, {
+        hvac_modes: ['off', 'cool', 'heat', 'dry', 'fan_only', 'auto'], min_temp: 16, max_temp: 30, target_temp_step: 1,
+        fan_modes: ['auto', 'silent', 'low', 'medium', 'high', 'turbo'], swing_modes: ['off', 'vertical', 'horizontal', 'both'],
+        preset_modes: ['none', 'eco', 'boost', 'sleep'], temperature: 21, fan_mode: 'auto', swing_mode: 'off', preset_mode: 'none',
+        hvac_action: 'off', ...extra });
+      states[id].state = state;
+    };
+    ac('climate.living_room', 'cool', { temperature: 22, fan_mode: 'medium', swing_mode: 'vertical', hvac_action: 'cooling', current_temperature: 23 });
+    ac('climate.office', 'off', { temperature: 20 });
+    ac('climate.bedroom_2_ac', 'off', { temperature: 19, swing_horizontal_modes: ['off', 'left', 'centre', 'right', 'wide'], swing_horizontal_mode: 'off', swing_modes: ['off', 'on'] });
+    car('switch.living_room_display', 'on', { friendly_name: 'Living room Display' });
+    car('switch.living_room_beeper', 'off', { friendly_name: 'Living room Beeper' });
+    car('select.living_room_vane_position', 'auto', { friendly_name: 'Living room Vane position', options: ['auto', 'highest', 'high', 'middle', 'low', 'lowest', 'swing'] });
+
     // Dreame robot vacuum, part-way through cleaning the kitchen (room boxes and positions
     // are in the vacuum's millimetre coordinates, drawn the other way round to the plan)
     const VROOMS = { 'Ground floor': [{ id: 6, name: 'Kitchen' }, { id: 1, name: 'Office' }, { id: 2, name: 'Hallway' }, { id: 3, name: 'Bathroom' }, { id: 5, name: 'Garden' }] };
@@ -371,6 +387,7 @@ window.HD = window.HD || {};
     trackerCop: { today: 4.42, todayKwh: 7.1, todayHeat: 31, heating: 4.47, hotWater: 4.76, yesterday: 2.9, month: 3.63, design: 3.78, eta: 0.495, measured: true },
     start() {
       HD.store.states = buildStates();
+      if (HD.ac) HD.ac.setExtras({ 'climate.living_room': ['select.living_room_vane_position', 'switch.living_room_beeper', 'switch.living_room_display'] });
       HD.store.setStatus('demo', 'Demo · snapshot from 18 Oct 2026, 23:20');
     },
     callWS,
@@ -383,6 +400,11 @@ window.HD = window.HD || {};
         if (service === 'turn_on') s.state = 'on';
         else if (service === 'turn_off') s.state = 'off';
         else if (service === 'select_option') s.state = data.option;
+        else if (domain === 'climate') {
+          const k = { set_temperature: 'temperature', set_fan_mode: 'fan_mode', set_swing_mode: 'swing_mode', set_swing_horizontal_mode: 'swing_horizontal_mode', set_preset_mode: 'preset_mode', set_humidity: 'humidity' }[service];
+          if (k) s.attributes[k] = data[k];
+          if (service === 'set_hvac_mode') { s.state = data.hvac_mode; s.attributes.hvac_action = { cool: 'cooling', heat: 'heating', dry: 'drying', fan_only: 'fan' }[data.hvac_mode] || 'idle'; if (data.hvac_mode === 'off') s.attributes.hvac_action = 'off'; }
+        }
         else if (domain === 'dreame_vacuum' || domain === 'vacuum') {
           const segs = [].concat(data.segments || []);
           if (service === 'vacuum_clean_segment') Object.assign(s.attributes, { active_segments: segs, current_segment: segs[0] });

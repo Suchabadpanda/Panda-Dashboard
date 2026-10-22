@@ -39,23 +39,6 @@ HD.views = HD.views || {};
       </ol>`;
   }
 
-  // One compact row per unit: name, what it's doing, and the mode buttons.
-  // (Turning every unit on at once is the "All AC" shortcut on Home.)
-  function acHtml() {
-    const units = rooms().filter((r) => r.climate).map((r) => ({ id: r.climate, name: r.name }));
-    const ORDER = ['off', 'cool', 'heat', 'dry', 'fan_only'];
-    return `<ul class="ac-rows">
-      ${units.map((u) => {
-        const st = S().state(u.id); const avail = S().available(u.id);
-        const modes = (S().attr(u.id, 'hvac_modes') || ['off', 'cool', 'heat']).filter((m) => ORDER.includes(m)).sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
-        const target = S().attr(u.id, 'temperature');
-        return `<li><span class="name">${esc(u.name)}</span>
-          <span class="state">${avail ? (st === 'off' ? 'Off' : `${esc(HD.u.cap(st.replace('_', ' ')))}${target ? ` to ${target}°` : ''}`) : 'Unavailable'}</span>
-          <div class="seg" role="group" aria-label="${esc(u.name)} mode">${modes.map((m) => `<button data-hvac="${u.id}" data-mode="${m}" class="${st === m ? 'on' : ''}" ${avail ? '' : 'disabled'}>${esc(m.replace('_', ' '))}</button>`).join('')}</div></li>`;
-      }).join('')}
-    </ul>`;
-  }
-
   function tankHtml() {
     const hp = HD.config.heatPump;
     const t = S().num(hp.tankTemp);
@@ -132,7 +115,7 @@ HD.views = HD.views || {};
       HD.u.setHTML(document.getElementById('plan-head'), planHeader());
       // The Dreame map <img> is kept so it only reloads when the map changes
       HD.u.setHTML(document.getElementById('climate-plan'), HD.plan.html(planMode), '.vac-map img');
-      HD.u.setHTML(document.getElementById('ac'), acHtml());
+      HD.u.setHTML(document.getElementById('ac'), HD.ac.html());
       const tk = document.getElementById('tank'); if (tk) HD.u.setHTML(tk, tankHtml());
     },
     redraw: drawCharts,

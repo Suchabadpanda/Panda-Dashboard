@@ -128,6 +128,7 @@ window.HD = window.HD || {};
     };
     walk(HD.config);
     if (HD.vacuum && HD.vacuum.extraIds) HD.vacuum.extraIds().forEach((id) => ids.add(id));
+    if (HD.ac) HD.ac.extraIds().forEach((id) => ids.add(id));
     return [...ids].filter((id) => !/^(js|css|data)\./.test(id));
   }
 
@@ -220,6 +221,7 @@ window.HD = window.HD || {};
               store.states = {};
               states.forEach((s) => { store.states[s.entity_id] = s; });
               await resolveAreaSensors().catch((e) => console.warn('Area sensors', e));
+              if (HD.ac) await HD.ac.resolveExtras(send).catch((e) => console.warn('AC extras', e));
               await subscribeWatched();
               store.setStatus('live', `Live · ${authKind}`);
               resolve(true);
