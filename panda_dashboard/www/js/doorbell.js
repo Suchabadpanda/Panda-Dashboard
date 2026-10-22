@@ -380,9 +380,12 @@ window.HD = window.HD || {};
     // video; when it's gone idle, give the integration a moment to restart it itself, then
     // wake it (a few times, then ask before carrying on).
     if (keepAlive) keepAlive();
+    let prev = S().state(c.camera);
     keepAlive = S().on((id) => {
       if (id !== c.camera || !still()) return;
-      if (S().state(c.camera) === 'streaming') { clearTimeout(idleTimer); if (!waking) { live = false; tries = 0; connect(); } return; }
+      const now = S().state(c.camera); const was = prev; prev = now;
+      if (now === was) return;   // attribute updates only
+      if (now === 'streaming') { clearTimeout(idleTimer); idleTimer = null; if (!waking) { live = false; tries = 0; connect(); } return; }
       if (waking || idleTimer) return;
       status.textContent = 'The doorbell dropped the video. Reconnecting…';
       idleTimer = setTimeout(async () => {
