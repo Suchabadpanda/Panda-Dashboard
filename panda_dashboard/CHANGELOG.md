@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.48
+- Charging totals: price with the Energy Tracker's tariff history
+
 ## 0.3.47
 - Vacuum cleaning settings, car charging totals, solar strings chart
 
