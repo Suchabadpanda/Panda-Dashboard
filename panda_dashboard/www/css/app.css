@@ -210,6 +210,22 @@ button { font: inherit; color: inherit; }
 .room-meta .ic { width: 14px; height: 14px; }
 .room-controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: auto; padding-top: 8px; }
 .motion { color: var(--s-solar); display: inline-flex; }
+.room-icons { display: inline-flex; align-items: center; gap: 6px; }
+/* AC badge: blue cooling, red heating, teal drying, grey fan; spins while it's actually blowing */
+.ac-badge { --acc: var(--muted); display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
+  color: var(--acc); background: color-mix(in oklab, var(--acc) 16%, transparent); border: 1px solid color-mix(in oklab, var(--acc) 45%, transparent); }
+.ac-badge .ic { width: 16px; height: 16px; }
+.ac-badge.cool, .ac-mark.cool { --acc: var(--cool); }
+.ac-badge.heat, .ac-mark.heat { --acc: var(--warm); }
+.ac-badge.dry, .ac-mark.dry { --acc: #2bb3a3; }
+.ac-badge.active { background: var(--acc); color: #fff; box-shadow: 0 0 10px color-mix(in oklab, var(--acc) 60%, transparent); }
+.ac-badge.active .ic { animation: spin 2.4s linear infinite; }
+.ac-mark { --acc: var(--muted); pointer-events: none; }
+.ac-mark circle { fill: color-mix(in oklab, var(--acc) 18%, var(--room)); stroke: var(--acc); }
+.ac-mark .blades { fill: none; stroke: var(--acc); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform-box: fill-box; transform-origin: center; }
+.ac-mark.active circle { fill: var(--acc); }
+.ac-mark.active .blades { stroke: #fff; animation: spin 2.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .ac-badge.active .ic, .ac-mark.active .blades { animation: none; } }
 .motion .ic { width: 18px; height: 18px; }
 
 .chip {

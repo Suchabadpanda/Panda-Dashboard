@@ -172,6 +172,22 @@ HD.views = HD.views || {};
       }
       const here = d && d.here && mode === 'live' ? `<circle class="pulse" cx="${cx}" cy="${cy + (big ? fs * 1.8 : 0)}" r="${fs * 0.55}"/>` : '';
       const devs = d && mode === 'live' && !small ? deviceButtons(r, d, a, fs) : '';
+      // AC badge in the room's top-right corner (nudged left/down until it's inside the walls)
+      let acb = '';
+      const acs = d && d.ac && mode !== 'vac' && HD.ac ? HD.ac.status(d.ac) : null;
+      if (acs) {
+        const r0 = fs * 0.75; const pad = fs * 0.35 + r0;
+        const ok = (x, y) => inside(p, x - r0, y - r0) && inside(p, x + r0, y - r0) && inside(p, x - r0, y + r0) && inside(p, x + r0, y + r0);
+        let at = null;
+        for (let dy = 0; !at && dy < (b.y1 - b.y0) / 2; dy += fs * 0.5) {
+          for (let dx = 0; dx < (b.x1 - b.x0) / 2; dx += fs * 0.5) { if (ok(b.x1 - pad - dx, b.y0 + pad + dy)) { at = [b.x1 - pad - dx, b.y0 + pad + dy]; break; } }
+        }
+        if (at) {
+          const k = (r0 * 1.5) / 24;
+          acb = `<g class="ac-mark ${acs.kind} ${acs.active ? 'active' : ''}" role="img" aria-label="${esc(acs.text)}"><title>${esc(acs.text)}</title>
+            <circle cx="${at[0]}" cy="${at[1]}" r="${r0}" stroke-width="${fs * 0.1}"/><g transform="translate(${at[0] - 12 * k} ${at[1] - 12 * k}) scale(${k})"><g class="blades">${HD.u.icon('fan').replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g></g></g>`;
+        }
+      }
       const showBot = vac && !vac.robotAt && vac.currentPlan === r.id && mode !== 'temp' && (vac.state !== 'docked' || mode === 'vac');
       if (showBot) {
         // Beside the temperature, nudged until it's inside the room's outline
@@ -183,7 +199,7 @@ HD.views = HD.views || {};
       const tap = vacTap ? `data-vac="room" data-seg="${seg}" role="button" tabindex="0" aria-pressed="${HD.vacuum.selected.has(seg)}"`
         : tappable ? `data-plan-room="${esc(r.id)}" role="button" tabindex="0"` : '';
       return `<g class="${cls}" ${tap} aria-label="${esc(title)}">
-        <polygon class="fillp" points="${r.points}" style="fill:${fill}"/><polygon class="hl" points="${r.points}" clip-path="url(#clip${idx}-${esc(r.id)})"/><polygon class="edge" points="${r.points}"/>${label}${big}${here}</g>${devs}`;
+        <polygon class="fillp" points="${r.points}" style="fill:${fill}"/><polygon class="hl" points="${r.points}" clip-path="url(#clip${idx}-${esc(r.id)})"/><polygon class="edge" points="${r.points}"/>${label}${big}${here}</g>${acb}${devs}`;
     }).join('');
 
     let door = '';

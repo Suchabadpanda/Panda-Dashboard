@@ -166,6 +166,27 @@ window.HD = window.HD || {};
     return `<ul class="ac-rows">${list.map(cardHtml).join('')}</ul>`;
   }
 
+  // ── room badge: a small fan in the room's corner, blue when cooling, red when heating ──
+  // null when the unit is off or offline. `active` = actually blowing hot/cold air now
+  // (hvac_action), rather than switched on and resting at its target.
+  const KIND_TEXT = { cool: 'cooling', heat: 'heating', dry: 'drying', fan: 'fan only' };
+  function status(id) {
+    if (!id || !S().available(id)) return null;
+    const st = S().state(id); if (st === 'off') return null;
+    const act = S().attr(id, 'hvac_action');
+    let kind = { cool: 'cool', heat: 'heat', dry: 'dry', fan_only: 'fan' }[st];
+    if (!kind) kind = act === 'heating' ? 'heat' : act === 'cooling' ? 'cool' : act === 'drying' ? 'dry' : 'fan';  // auto / heat_cool
+    const active = act == null ? true : ['cooling', 'heating', 'drying', 'fan'].includes(act);
+    const t = S().attr(id, 'temperature');
+    const text = active ? `AC ${KIND_TEXT[kind]}${t != null && (kind === 'cool' || kind === 'heat') ? ` to ${t}°` : ''}`
+      : `AC on (${MODE_TEXT[st] || label(st)}${t != null ? ` ${t}°` : ''}), resting at target`;
+    return { kind, active, text };
+  }
+  function badge(id) {
+    const s = status(id); if (!s) return '';
+    return `<span class="ac-badge ${s.kind} ${s.active ? 'active' : ''}" role="img" aria-label="${esc(s.text)}" title="${esc(s.text)}">${HD.u.icon('fan')}</span>`;
+  }
+
   // ── actions ──
   const fail = (e) => HD.app.toast(`AC: ${e.message || e}`);
   function send(key, job) {
@@ -234,5 +255,5 @@ window.HD = window.HD || {};
   // (demo mode has no registry, so it hands over its made-up extras here)
   const setExtras = (map) => Object.assign(extrasFound, map);
 
-  HD.ac = { html, units, resolveExtras, extraIds, setExtras };
+  HD.ac = { html, units, resolveExtras, extraIds, setExtras, status, badge };
 })();
