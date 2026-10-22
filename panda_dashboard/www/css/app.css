@@ -463,10 +463,14 @@ thead th { color: var(--muted); font-weight: 500; }
 /* ── Greeting ── */
 .greeting { padding: 0 0 14px; }
 .greeting h1 { font: 600 28px/1.15 var(--font-num); margin-bottom: 6px; text-wrap: balance; }
-.greeting p { color: var(--muted); max-width: 90ch; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 6px; }
-.greeting p strong { color: var(--ink); font-weight: 600; }
-.greeting .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--s-battery); align-self: center; }
-.greeting .dot.busy { background: var(--s-solar); }
+.greeting .summary { color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; font-size: 15px; }
+.greeting .summary strong { color: var(--ink); font-weight: 600; }
+.greeting .sum { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.greeting .sum + .sum::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--line); margin: 0 12px; }
+.greeting .sum:last-child { white-space: normal; }
+@media (max-width: 700px) { .greeting .summary { gap: 6px 16px; font-size: 14px; } .greeting .sum + .sum::before { display: none; } }
+.greeting .sum .ic { width: 16px; height: 16px; color: var(--muted); }
+.greeting .sum.busy .ic { color: var(--s-solar); }
 
 /* ── Sky behind the roof (js/sky.js) ── */
 .house-wrap { position: relative; }
@@ -1072,7 +1076,7 @@ body { font-variant-numeric: tabular-nums; }
 .room-meta > * { flex: none; }
 .node h4, .node p { overflow-wrap: anywhere; }
 .node > p:not(.sub), .node > p.sub, .node.heatpump .hp-note { min-height: 2.9em; min-height: 2lh; }
-.greeting p { min-height: 4.4em; min-height: 3lh; align-content: flex-start; }
+.greeting .summary { min-height: 1.6em; align-content: flex-start; }
 .now-block.battery > p:not(.big) { min-height: 1.5em; min-height: 1lh; }
 /* A light coming on shouldn't jump: no pop when the button is redrawn */
 .chip.on { animation: none; }

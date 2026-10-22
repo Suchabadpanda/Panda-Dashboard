@@ -333,7 +333,9 @@ window.HD = window.HD || {};
     const out = [];
     for (let i = 0; i < 48; i++) {
       const ts = SNAP + i * 3600e3; const h = new Date(ts).getHours();
-      out.push({ datetime: new Date(ts).toISOString(), cloud_coverage: h >= 10 && h < 16 ? 18 : 70, condition: h >= 10 && h < 16 ? 'sunny' : 'cloudy' });
+      const rain = i > 12 && h >= 17 && h < 21;
+      out.push({ datetime: new Date(ts).toISOString(), cloud_coverage: h >= 10 && h < 16 ? 18 : 70, condition: rain ? 'rainy' : h >= 10 && h < 16 ? 'partlycloudy' : 'cloudy',
+        temperature: +(9 + 5 * Math.sin(((h - 8) / 24) * 2 * Math.PI)).toFixed(1), wind_speed: 9, precipitation: rain ? 1.2 : 0 });
     }
     return { response: { [HD.config.weather]: { forecast: out } } };
   }

@@ -179,7 +179,63 @@ HD.views = HD.views || {};
     return `<div class="temp-legend" aria-hidden="true"><span>${c - 3}°</span><i></i><span>${c}°</span><i class="warm"></i><span>${c + 3}°</span></div>`;
   }
 
+  // ── Today's forecast, for the summary line (hourly, refreshed every 30 min) ──
+  let hourly = null; let hourlyAt = 0;
+  async function loadHourly() {
+    if (!HD.config.weather || Date.now() - hourlyAt < 30 * 60e3) return;
+    hourlyAt = Date.now();
+    try {
+      const r = S().mode === 'demo' ? HD.demo.forecast()
+        : await HD.ha.callWS({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { entity_id: HD.config.weather, type: 'hourly' }, return_response: true });
+      const f = r && r.response && r.response[HD.config.weather];
+      hourly = f && f.forecast ? f.forecast : null;
+    } catch (e) { hourly = null; console.warn('Forecast unavailable', e); }
+    HD.app.refresh();
+  }
+  const SKY = { 'clear-night': 'clear', cloudy: 'cloudy', fog: 'foggy', hail: 'hail', lightning: 'thunderstorms', 'lightning-rainy': 'thundery showers',
+    partlycloudy: 'sunny spells', pouring: 'heavy rain', rainy: 'rain', snowy: 'snow', 'snowy-rainy': 'sleet', sunny: 'sunny', windy: 'windy', 'windy-variant': 'windy', exceptional: 'unsettled' };
+  const WET = ['rainy', 'pouring', 'lightning-rainy', 'snowy', 'snowy-rainy', 'hail'];
+  const wetHour = (h) => WET.includes(h.condition) || (h.precipitation_probability != null && h.precipitation_probability >= 60) || (h.precipitation != null && h.precipitation >= 0.5);
+  // "Today: sunny spells, rain from 15:00, 8–13°". After 6 pm it describes tomorrow (7 am–10 pm).
+  function forecastText(nowTs) {
+    if (!hourly || !hourly.length) return '';
+    const now = new Date(nowTs); const late = now.getHours() >= 18;
+    const from = late ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 7).getTime() : nowTs - 3600e3;
+    const to = late ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 22).getTime() : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59).getTime();
+    const hrs = hourly.filter((h) => { const t = Date.parse(h.datetime); return t >= from && t <= to; });
+    if (hrs.length < 2) return '';
+    // Most common sky, ignoring the wet hours (they're described on their own)
+    const count = {};
+    hrs.filter((h) => !wetHour(h)).forEach((h) => { const c = h.condition === 'clear-night' ? 'sunny' : h.condition; count[c] = (count[c] || 0) + 1; });
+    const main = Object.keys(count).sort((a, b) => count[b] - count[a])[0];
+    const hh = (h) => { const d = new Date(Date.parse(h.datetime)); d.setMinutes(0, 0, 0); return HD.u.time(d.getTime()); };
+    const wet = hrs.map(wetHour);
+    const kind = (h) => (['snowy', 'snowy-rainy'].includes(h.condition) ? (h.condition === 'snowy' ? 'snow' : 'sleet') : h.condition === 'pouring' ? 'heavy rain' : 'rain');
+    let rain = 'dry';
+    if (wet.every(Boolean)) rain = `${kind(hrs[0])} all day`;
+    else if (wet[0]) { const stop = wet.indexOf(false); rain = `${kind(hrs[0])} until ${hh(hrs[stop])}`; }
+    else if (wet.some(Boolean)) { const i = wet.indexOf(true); const n = wet.filter(Boolean).length; rain = `${n <= 2 ? 'showers' : kind(hrs[i])} from ${hh(hrs[i])}`; }
+    const temps = hrs.map((h) => h.temperature).filter((v) => v != null);
+    const range = temps.length ? `${Math.round(Math.min(...temps))}–${Math.round(Math.max(...temps))}°` : '';
+    const unit = (S().attr(HD.config.weather, 'wind_speed_unit') || 'km/h').toLowerCase();
+    const gust = Math.max(0, ...hrs.map((h) => Math.max(h.wind_speed || 0, h.wind_gust_speed || 0)));
+    const windy = gust >= (unit.includes('mph') ? 30 : unit.includes('m/s') ? 13 : 48);
+    const sky = main && !wet.every(Boolean) ? SKY[main] || main.replace(/-/g, ' ') : '';
+    const parts = [sky, rain, windy && sky !== 'windy' ? 'windy' : '', range].filter(Boolean);
+    return `${late ? 'Tomorrow' : 'Today'}: ${parts.join(', ')}`;
+  }
+
+  // Cheap-rate window: "Cheap rate until 06:00" or "Cheap rate from 00:00"
+  function rateText(ts) {
+    if (!HD.config.tariffs || !HD.config.tariffs.length) return '';
+    const t = HD.tariff.tariffAt(ts);
+    const at = (h) => `${String(h).padStart(2, '0')}:00`;
+    return HD.tariff.isOffPeak(ts) ? `Cheap rate until ${at(t.offPeakEnd)}` : `Cheap rate from ${at(t.offPeakStart)}`;
+  }
+
+  // Greeting plus one summary line: who's about, temperatures, energy, rate and the forecast
   function greetingHtml() {
+    loadHourly();
     const hour = new Date().getHours();
     const part = hour < 5 ? 'Good night' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
     const name = (HD.config.people[0] || {}).name;
@@ -190,23 +246,33 @@ HD.views = HD.views || {};
     // Who's moving around right now
     const busy = HD.config.floors.flatMap((f) => f.rooms).filter((r) => r.motion && S().state(r.motion) === 'on').map((r) => r.name);
     const place = (n) => (/'s\b/.test(n) ? esc(n) : `the ${esc(n.toLowerCase())}`);
-    const headline = busy.length ? `Someone's in ${busy.map(place).join(' and ')}.` : 'All quiet at home.';
+    const headline = busy.length ? `Someone's in ${busy.map(place).join(' and ')}` : 'All quiet';
 
-    // One sentence on what the energy system is doing
+    // What the energy system is doing, in a few words
     const pv = S().num(e.pvPower) || 0; const bat = S().num(e.batteryPower) || 0; const grid = S().num(e.gridPower) || 0;
     const soc = S().num(e.soc); const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const b = soc != null ? `battery ${pct(soc)}` : 'battery';
     let energy = '';
-    if (grid > 0.1 && bat > 0.1 && HD.tariff.isOffPeak(now)) energy = `Filling the battery on the cheap rate (${pct(soc)}).`;
-    else if (pv > 0.1 && grid < -0.1) energy = `Solar is covering the house and exporting ${kw(-grid)}.`;
-    else if (pv > 0.1) energy = `Solar is making ${kw(pv)}.`;
-    else if (grid < -0.1 && bat < -0.1) energy = `The battery is exporting ${kw(-grid)} before the cheap rate (${pct(soc)} left).`;
-    else if (bat < -0.1) energy = `Running on the battery (${pct(soc)}).`;
-    else if (grid > 0.1) energy = `Buying ${kw(grid)} from the grid.`;
+    if (grid > 0.1 && bat > 0.1 && HD.tariff.isOffPeak(now)) energy = `Filling the ${b} on the cheap rate`;
+    else if (pv > 0.1 && grid < -0.1) energy = `Solar ${kw(pv)}, exporting ${kw(-grid)}`;
+    else if (pv > 0.1) energy = `Solar ${kw(pv)}`;
+    else if (grid < -0.1 && bat < -0.1) energy = `${HD.u.cap(b)}, exporting ${kw(-grid)}`;
+    else if (bat < -0.1) energy = `Running on the ${b}`;
+    else if (grid > 0.1) energy = `Buying ${kw(grid)}${soc != null ? ` · ${b}` : ''}`;
+    else if (soc != null) energy = HD.u.cap(b);
 
     const extTemp = S().attr(HD.config.weather, 'temperature');
+    const fc = forecastText(now); const rate = rateText(now);
+    const items = [
+      ['motion', `<strong>${headline}</strong>`, busy.length ? 'busy' : ''],
+      avg != null ? ['thermo', `${avg.toFixed(1)}° in${extTemp != null ? `, ${Math.round(extTemp)}° out` : ''}`] : null,
+      energy ? ['bolt', esc(energy)] : null,
+      rate ? ['clock', esc(rate)] : null,
+      fc ? ['cloud', esc(fc)] : null,
+    ].filter(Boolean);
     return `<section class="greeting">
-      <div><h1>${part}${name ? `, ${esc(name)}` : ''}</h1>
-      <p><span class="dot ${busy.length ? 'busy' : ''}"></span><strong>${headline}</strong> ${avg != null ? `It's ${avg.toFixed(1)}° inside${extTemp != null ? ` and ${Math.round(extTemp)}° out` : ''}.` : ''} ${energy}</p></div>
+      <h1>${part}${name ? `, ${esc(name)}` : ''}</h1>
+      <p class="summary">${items.map(([ic, txt, cls = '']) => `<span class="sum ${cls}">${icon(ic)}${txt}</span>`).join('')}</p>
     </section>`;
   }
 
