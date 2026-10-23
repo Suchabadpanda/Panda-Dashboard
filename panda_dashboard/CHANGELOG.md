@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.55
+- Charging totals: ev.chargedIn adds monthly totals from before Home Assistant recorded the charger to their own year
+
 ## 0.3.54
 - Car: show pending software updates and add Install now
 

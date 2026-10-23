@@ -269,6 +269,9 @@ HD.views = HD.views || {};
   // priced hour by hour, and the part from before, priced at the cheap rate of the time —
   // spread day by day from config.ev.chargerSince ('YYYY-MM-DD', when the charger went in)
   // when that's set, otherwise at the cheap rate just before recording began.
+  // config.ev.chargedIn ({ 'YYYY-MM': kWh }, e.g. a month's total from the Tesla app) moves
+  // the unrecorded part of that month out of "before records" into its own year: the month's
+  // total minus what Home Assistant recorded in it, priced at the cheap rate of those days.
   let totals = null; let totalsAt = 0;
   async function loadTotals() {
     if (totals && Date.now() - totalsAt < 3 * 3600e3) return;
@@ -286,12 +289,13 @@ HD.views = HD.views || {};
       const rateAt = (when) => { const r = tr && tr.rate(when); if (r != null) { fromTracker++; return r; } fromDash++; return HD.tariff.importRate(when); };
       const cheapAt = (when) => { const c = tr && tr.isCheap(when); return c != null ? c : HD.tariff.isOffPeak(when); };
       const rows = res[id] || [];
-      const years = new Map();
+      const years = new Map(); const months = new Map();
       const add = (when, kwh, rate) => {
-        const y = new Date(when).getFullYear();
-        const o = years.get(y) || { year: y, kwh: 0, cost: 0, cheapKwh: 0 };
+        const d = new Date(when); const y = d.getFullYear();
+        const o = years.get(y) || { year: y, kwh: 0, cost: 0, cheapKwh: 0, added: 0 };
         o.kwh += kwh; o.cost += kwh * rate; if (cheapAt(when)) o.cheapKwh += kwh;
         years.set(y, o);
+        const mk = `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`; months.set(mk, (months.get(mk) || 0) + kwh);
       };
       rows.forEach((r) => { const v = Math.max(0, r.change || 0); if (v > 0) add(r.start, v, rateAt(r.start)); });
       const first = rows[0]; const last = rows[rows.length - 1];
@@ -301,22 +305,41 @@ HD.views = HD.views || {};
       if (live != null && lastState != null && live - lastState > 0.01 && live - lastState < 50) add(ts, live - lastState, rateAt(ts));
       // Before Home Assistant: the counter's reading when recording began
       const recorded = [...years.values()].reduce((a, y) => a + y.kwh, 0);
-      const before = first && first.state != null ? Math.max(0, first.state - Math.max(0, first.change || 0))
+      let before = first && first.state != null ? Math.max(0, first.state - Math.max(0, first.change || 0))
         : live != null ? Math.max(0, live - recorded) : 0;
       const recStart = first ? first.start : ts;
       const cheapRateAt = (when) => (tr && tr.cheapest(when) != null ? tr.cheapest(when) : HD.tariff.tariffAt(when).offPeak);
       let beforeCost = 0; let beforeHow = 'last';
       const since = ev.chargerSince ? Date.parse(`${ev.chargerSince}T00:00:00`) : NaN;
-      if (before > 0 && Number.isFinite(since) && since < recStart) {
+      // Months whose totals are known (ev.chargedIn): their unrecorded part leaves "before"
+      let beforeEnd = recStart; let addedKwh = 0;
+      Object.entries(ev.chargedIn || {}).sort((a, b) => (a[0] < b[0] ? 1 : -1)).forEach(([key, total]) => {
+        const m = /^(\d{4})-(\d{1,2})$/.exec(String(key).trim()); const k = Number(total);
+        if (!m || !(k > 0) || before <= 0) return;
+        const y = +m[1]; const mo = +m[2] - 1;
+        const mStart = new Date(y, mo, 1).getTime(); const mEnd = new Date(y, mo + 1, 1).getTime();
+        if (mStart >= recStart) return;  // fully recorded already
+        const ym = `${y}-${String(mo + 1).padStart(2, '0')}`;
+        const take = Math.min(before, Math.max(0, k - (months.get(ym) || 0)));
+        if (take <= 0) return;
+        const from = Number.isFinite(since) ? Math.max(mStart, since) : mStart; const to = Math.min(mEnd, recStart);
+        const days = Math.max(1, Math.round((to - from) / 864e5));
+        let cost = 0;
+        for (let d = 0; d < days; d++) cost += (take / days) * cheapRateAt(Math.min(to - 1, from + d * 864e5 + 12 * 3600e3));
+        const o = years.get(y) || { year: y, kwh: 0, cost: 0, cheapKwh: 0, added: 0 };
+        o.kwh += take; o.cost += cost; o.cheapKwh += take; o.added += take; years.set(y, o);
+        before -= take; addedKwh += take; beforeEnd = Math.min(beforeEnd, from);
+      });
+      if (before > 0 && Number.isFinite(since) && since < beforeEnd) {
         // Spread evenly over the days between installation and the first recorded hour
-        const days = Math.max(1, Math.round((recStart - since) / 864e5));
+        const days = Math.max(1, Math.round((beforeEnd - since) / 864e5));
         for (let d = 0; d < days; d++) beforeCost += (before / days) * cheapRateAt(since + d * 864e5 + 12 * 3600e3);
         beforeHow = 'spread';
-      } else beforeCost = before * cheapRateAt(recStart - 864e5);
+      } else beforeCost = before * cheapRateAt(beforeEnd - 864e5);
       totals = {
         since: first ? first.start : null,
         years: [...years.values()].sort((a, b) => b.year - a.year),
-        recorded, before, beforeCost, beforeHow, beforeRate: before > 0 ? beforeCost / before : null,
+        recorded, before, beforeCost, addedKwh, beforeHow, beforeRate: before > 0 ? beforeCost / before : null,
         chargerSince: Number.isFinite(since) ? since : null,
         source: fromTracker && !fromDash ? 'tracker' : fromTracker ? 'mixed' : 'dashboard',
         lifetime: live != null ? live : recorded + before,
@@ -332,15 +355,15 @@ HD.views = HD.views || {};
     const cur = t.years.find((y) => y.year === thisYear) || { kwh: 0, cost: 0, cheapKwh: 0 };
     const ppk = (o) => (o.kwh > 0 ? `${((o.cost / o.kwh) * 100).toFixed(1)}p` : '–');
     const since = t.since ? HD.u.fmt(t.since, { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-    const rows = t.years.map((y) => `<tr><td>${y.year}${y.year === thisYear ? ' <small>so far</small>' : ''}</td><td>${kwh(y.kwh, 0)}</td>
-      <td>${gbp(y.cost)}</td><td>${ppk(y)}</td><td>${y.kwh > 0 ? `${Math.round((y.cheapKwh / y.kwh) * 100)}%` : '–'}</td></tr>`).join('');
+    const rows = t.years.map((y) => `<tr${y.added ? ' title="Includes charging from before Home Assistant recorded it (ev.chargedIn)"' : ''}><td>${y.year}${y.year === thisYear ? ' <small>so far</small>' : ''}</td><td>${kwh(y.kwh, 0)}</td>
+      <td>${y.added ? '≈ ' : ''}${gbp(y.cost)}</td><td>${ppk(y)}</td><td>${y.kwh > 0 ? `${Math.round((y.cheapKwh / y.kwh) * 100)}%` : '–'}</td></tr>`).join('');
     const beforeRow = t.before > 1 ? `<tr class="est"><td>Before ${since || 'records'}</td><td>${kwh(t.before, 0)}</td><td>≈ ${gbp(t.beforeCost)}</td><td>${ppk({ kwh: t.before, cost: t.beforeCost })}</td><td>–</td></tr>` : '';
     return `<div class="totals">
       <dl class="kv plan-kv totals-kv">
         <div><dt>Lifetime</dt><dd>${kwh(t.lifetime, 0)}</dd></div>
-        <div><dt>Lifetime cost</dt><dd>${t.before > 1 ? '≈ ' : ''}${gbp(t.lifetimeCost, 0)}</dd></div>
+        <div><dt>Lifetime cost</dt><dd>${t.before > 1 || t.addedKwh > 0.5 ? '≈ ' : ''}${gbp(t.lifetimeCost, 0)}</dd></div>
         <div><dt>${thisYear} so far</dt><dd>${kwh(cur.kwh, 0)}</dd></div>
-        <div><dt>${thisYear} cost</dt><dd>${gbp(cur.cost, 0)}</dd></div>
+        <div><dt>${thisYear} cost</dt><dd>${cur.added ? '≈ ' : ''}${gbp(cur.cost, 0)}</dd></div>
       </dl>
       <table class="years-table"><thead><tr><th>Year</th><th>Charged</th><th>Cost</th><th>Per kWh</th><th>Cheap rate</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="5">No charging recorded yet.</td></tr>'}${beforeRow}</tbody></table>
@@ -351,7 +374,7 @@ HD.views = HD.views || {};
       dashboard: "Each hour is priced at the dashboard's tariff for that hour",
     }[t.source]}, as if it all came from the grid.${t.before > 1 ? ` The ${kwh(t.before, 0)} the charger counted before Home Assistant started recording (${since}) is estimated at ${t.beforeHow === 'spread'
       ? `the cheap rate of each day since the charger went in (${HD.u.fmt(t.chargerSince, { month: 'short', year: 'numeric' })}), averaging ${pence(t.beforeRate)}/kWh`
-      : `the cheap rate just before then, ${pence(t.beforeRate)}/kWh. Set ev.chargerSince to when the charger went in to spread it over the rates of the time`}.` : ''}</p>`;
+      : `the cheap rate just before then, ${pence(t.beforeRate)}/kWh. Set ev.chargerSince to when the charger went in to spread it over the rates of the time`}.` : ''}${t.addedKwh > 0.5 ? ` ${kwh(t.addedKwh, 0)} from before ${since} is counted in its own year from the monthly totals in ev.chargedIn, at the cheap rate of those days.` : ''}</p>`;
   }
 
   // ── Car state from two sources ──

@@ -152,6 +152,9 @@ HD.config = {
     batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
     // chargerSince: '2025-01-07',  // when the Wall Connector went in: charging from before Home Assistant
                                     // recorded it is then priced at each day's cheap rate (Car → Charging totals)
+    // chargedIn: { '2026-01': 240 },  // a month's total charged (kWh, e.g. from the Tesla app) for months
+                                       // Home Assistant only partly recorded: the rest moves out of
+                                       // "before records" into that year (Car → Charging totals)
     tyreTarget: 42,              // recommended tyre pressure, psi (low warning 3 psi under)
     colour: '#5f7fa8',           // paint colour for the car drawing on the Car page (any CSS colour)
     // The car itself: each key uses the first source that has it available, so the
