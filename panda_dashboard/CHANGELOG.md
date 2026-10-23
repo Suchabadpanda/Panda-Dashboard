@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.57
+- Solar strings: lifetime generation per string and in total
+
 ## 0.3.56
 - Home: drop the cheap-rate time from the summary line
 

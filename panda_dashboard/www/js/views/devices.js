@@ -51,9 +51,11 @@ HD.views = HD.views || {};
       const counters = list.filter((x) => x.energy).map((x) => x.energy);
       const powers = list.filter((x) => !x.energy).map((x) => x.power);
       const q = (arr, start, period, types) => (arr.length ? HD.ha.stats(arr, start, ts, period, types) : Promise.resolve({}));
-      const [hc, hp, dc, dp] = await Promise.all([
+      const [hc, hp, dc, dp, lp] = await Promise.all([
         q(counters, days0, 'hour', ['change']), q(powers, days0, 'hour', ['mean']),
         q(counters, months0.getTime(), 'day', ['change']), q(powers, months0.getTime(), 'day', ['mean']),
+        // Lifetime for a string with no counter: all the monthly averages Home Assistant has
+        q(powers, Date.UTC(2015, 0, 1), 'month', ['mean']),
       ]);
       const hourly = { ...hc, ...hp }; const daily = { ...dc, ...dp };
       // Last 31 days (30 whole days + today) from hourly rows, so today is included
@@ -68,7 +70,8 @@ HD.views = HD.views || {};
         (daily[id] || []).forEach((r) => { if (r.start >= today0.getTime()) return; const k = monthKey(r.start); byMonth.set(k, (byMonth.get(k) || 0) + rowKwh(r, counter)); });
         const todayKwh = days[days.length - 1] || 0;
         byMonth.set(monthKey(ts), (byMonth.get(monthKey(ts)) || 0) + todayKwh);
-        return { ...x, days, byMonth, today: todayKwh };
+        const lifetimeRec = counter ? null : (lp[id] || []).reduce((a, r) => a + rowKwh(r, false), 0);
+        return { ...x, days, byMonth, today: todayKwh, lifetimeRec };
       });
       // Month list: from the first month any string has data to this month
       const keys = new Set(); out.forEach((x) => x.byMonth.forEach((v, k) => { if (v > 0.05) keys.add(k); }));
@@ -94,6 +97,11 @@ HD.views = HD.views || {};
       thisMonth: x.months.length ? x.months[x.months.length - 1] : null };
   }
 
+  // Lifetime: the inverter's own counter (live, so it includes anything from before Home
+  // Assistant recorded it); with no counter, what the recorded power averages add up to
+  const lifetime = (x) => (x.energy && S().num(x.energy) != null ? S().num(x.energy) : x.lifetimeRec || null);
+  const big = (v) => (v == null ? '–' : v >= 10000 ? `${(v / 1000).toFixed(1)} MWh` : kwh(v, 0));
+
   function stringsHtml() {
     const list = strings();
     if (!list.length) return '';
@@ -113,7 +121,10 @@ HD.views = HD.views || {};
             <div><dt>Monthly average</dt><dd>${kwh(a.month, 0)}${perK(a.month, x)}</dd></div>
             <div><dt>This month</dt><dd>${kwh(a.thisMonth, 0)}</dd></div>
             <div><dt>Best day</dt><dd>${kwh(a.best, 1)}</dd></div>
+            <div><dt>Lifetime</dt><dd>${big(lifetime(x))}${perK(lifetime(x), x)}</dd></div>
           </dl></div>`).join('');
+      const lifes = pv.list.map(lifetime);
+      const total = lifes.every((v) => v != null) && lifes.length > 1 ? lifes.reduce((a, v) => a + v, 0) : null;
       // How the strings compare: share of the total, and per kWp when sizes are known
       let compare = '';
       if (av.length === 2 && av[0].a.day && av[1].a.day != null) {
@@ -126,6 +137,7 @@ HD.views = HD.views || {};
       body = `<div class="pv-cards">${cards}</div>
         <div id="chart-pv" class="chart-box"></div>
         ${compare}
+        ${total != null ? `<p class="sub pv-total">Lifetime, all strings: <strong>${big(total)}</strong>${pv.list.every((x) => x.energy) ? ", from the inverter's own counters" : ''}.</p>` : ''}
         <p class="sub">Daily average: the last ${n ? n.dayN : 30} whole days. Monthly average: whole calendar months, leaving out each string's first month (part-month) and this one.</p>`;
     }
     return `<section class="panel wide pv-panel"><header><h2>Solar strings</h2>${seg}</header>${body}</section>`;
