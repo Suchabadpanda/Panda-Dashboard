@@ -99,7 +99,7 @@ HD.views = HD.views || {};
 
   // Lifetime: the inverter's own counter (live, so it includes anything from before Home
   // Assistant recorded it); with no counter, what the recorded power averages add up to
-  const lifetime = (x) => (x.energy && S().num(x.energy) != null ? S().num(x.energy) : x.lifetimeRec || null);
+  const lifetime = (x) => (x.energy && HD.u.stateKwh(x.energy) != null ? HD.u.stateKwh(x.energy) : x.lifetimeRec || null);
   const big = (v) => (v == null ? '–' : v >= 10000 ? `${(v / 1000).toFixed(1)} MWh` : kwh(v, 0));
 
   function stringsHtml() {

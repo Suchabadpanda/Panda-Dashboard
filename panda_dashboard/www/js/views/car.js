@@ -299,7 +299,7 @@ HD.views = HD.views || {};
       };
       rows.forEach((r) => { const v = Math.max(0, r.change || 0); if (v > 0) add(r.start, v, rateAt(r.start)); });
       const first = rows[0]; const last = rows[rows.length - 1];
-      const live = S().num(id);
+      const live = HD.u.stateKwh(id);
       // Since the last finished hour (the live counter is ahead of the statistics)
       const lastState = last && last.state != null ? last.state : null;
       if (live != null && lastState != null && live - lastState > 0.01 && live - lastState < 50) add(ts, live - lastState, rateAt(ts));

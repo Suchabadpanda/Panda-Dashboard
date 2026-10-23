@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.58
+- Solar strings: lifetime read in the counter's own unit (the inverter reports MWh)
+
 ## 0.3.57
 - Solar strings: lifetime generation per string and in total
 

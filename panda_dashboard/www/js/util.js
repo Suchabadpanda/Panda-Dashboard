@@ -96,5 +96,13 @@ window.HD = window.HD || {};
   }
   const invalidate = () => { epoch++; };   // next update redraws everything (e.g. after a failed toggle)
 
-  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate };
+  // An energy sensor's live state in kWh, whatever unit it reports in (statistics are
+  // always fetched in kWh, but a state can be Wh or MWh: Sigenergy's PV counters are MWh)
+  const ENERGY = { wh: 1e-3, kwh: 1, mwh: 1e3, gwh: 1e6 };
+  function stateKwh(id) {
+    const v = HD.store.num(id); if (v == null) return null;
+    const u = String(HD.store.attr(id, 'unit_of_measurement') || 'kWh').toLowerCase();
+    return v * (ENERGY[u] ?? 1);
+  }
+  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate, stateKwh };
 })();
