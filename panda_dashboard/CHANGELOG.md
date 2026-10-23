@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.54
+- Car: show pending software updates and add Install now
+
 ## 0.3.53
 - Heat pump: count a sustained draw with the heating off as hot water
 
