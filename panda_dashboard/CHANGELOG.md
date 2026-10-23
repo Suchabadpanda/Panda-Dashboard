@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.3.55
+- Charging totals: ev.chargedIn moves known month totals out of 'before records' into their year
+
+## 0.3.55
 - Charging totals: ev.chargedIn adds monthly totals from before Home Assistant recorded the charger to their own year
 
 ## 0.3.54
