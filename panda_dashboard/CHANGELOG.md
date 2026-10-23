@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.3.58
+- Solar strings: convert live counter to kWh by its unit (Sigen PV counters are MWh)
+
+## 0.3.58
 - Solar strings: lifetime read in the counter's own unit (the inverter reports MWh)
 
 ## 0.3.57
