@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.53
+- Heat pump: count a sustained draw with the heating off as hot water
+
 ## 0.3.52
 - Home: one-line summary with presence, temperatures, energy, cheap rate and today's forecast
 
