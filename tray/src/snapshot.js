@@ -28,8 +28,10 @@ function heatPumpMode(c, r) {
   const wh = read(hp.waterHeater); const cl = read(hp.climate);
   const kw = r.num(hp.power);
   const running = kw != null && kw > (hp.runningAbove ?? 0.1);
-  const hotWater = wh != null && !OFF.has(wh);
   const heatingOn = cl != null && HEATING_ON.has(cl);
+  // SmartThings can go quiet for hours while the tank reheats; with the heating off, a heavy
+  // draw can only be the tank (the dashboard also wants it held for 10 min; the tray can't see history)
+  const hotWater = (wh != null && !OFF.has(wh)) || (!heatingOn && kw != null && kw >= (hp.hotWaterAbove ?? 0.5));
   const flow = hp.climate ? r.attr(hp.climate, 'current_temperature') : null;
   let key = 'rest'; let label = 'Resting';
   if (hotWater && heatingOn) { key = 'both'; label = 'Hot water + heating'; }

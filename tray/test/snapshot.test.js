@@ -21,6 +21,9 @@ test('heat pump: heating, hot water, both, resting', () => {
   assert.equal(view.heatPumpMode(config, view.reader({ ...base, 'water_heater.hp': S('heat_pump'), 'climate.hp': S('off') })).key, 'water');
   assert.equal(view.heatPumpMode(config, view.reader({ ...base, 'sensor.hp': S('0.2') })).key, 'rest');
   assert.equal(view.heatPumpMode(config, view.reader({ ...base, 'water_heater.hp': S('unavailable') })).key, 'heat');
+  // SmartThings frozen mid-reheat: water heater and heating say off, but it's drawing 4.7 kW
+  assert.equal(view.heatPumpMode(config, view.reader({ ...base, 'climate.hp': S('off'), 'sensor.hp': S('4.7') })).key, 'water');
+  assert.equal(view.heatPumpMode(config, view.reader({ ...base, 'climate.hp': S('off'), 'sensor.hp': S('0.4') })).key, 'other');
 });
 
 test('car: a source that has not heard from the car does not count', () => {
