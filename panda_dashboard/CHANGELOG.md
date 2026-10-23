@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.56
+- Home: drop the cheap-rate time from the summary line
+
 ## 0.3.55
 - Charging totals: ev.chargedIn moves known month totals out of 'before records' into their year
 

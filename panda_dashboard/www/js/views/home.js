@@ -225,15 +225,7 @@ HD.views = HD.views || {};
     return `${late ? 'Tomorrow' : 'Today'}: ${parts.join(', ')}`;
   }
 
-  // Cheap-rate window: "Cheap rate until 06:00" or "Cheap rate from 00:00"
-  function rateText(ts) {
-    if (!HD.config.tariffs || !HD.config.tariffs.length) return '';
-    const t = HD.tariff.tariffAt(ts);
-    const at = (h) => `${String(h).padStart(2, '0')}:00`;
-    return HD.tariff.isOffPeak(ts) ? `Cheap rate until ${at(t.offPeakEnd)}` : `Cheap rate from ${at(t.offPeakStart)}`;
-  }
-
-  // Greeting plus one summary line: who's about, temperatures, energy, rate and the forecast
+  // Greeting plus one summary line: who's about, temperatures, energy and the forecast
   function greetingHtml() {
     loadHourly();
     const hour = new Date().getHours();
@@ -262,12 +254,11 @@ HD.views = HD.views || {};
     else if (soc != null) energy = HD.u.cap(b);
 
     const extTemp = S().attr(HD.config.weather, 'temperature');
-    const fc = forecastText(now); const rate = rateText(now);
+    const fc = forecastText(now);
     const items = [
       ['motion', `<strong>${headline}</strong>`, busy.length ? 'busy' : ''],
       avg != null ? ['thermo', `${avg.toFixed(1)}° in${extTemp != null ? `, ${Math.round(extTemp)}° out` : ''}`] : null,
       energy ? ['bolt', esc(energy)] : null,
-      rate ? ['clock', esc(rate)] : null,
       fc ? ['cloud', esc(fc)] : null,
     ].filter(Boolean);
     return `<section class="greeting">
