@@ -435,6 +435,80 @@ HD.views = HD.views || {};
     }
     return null;
   }
+  // ── Software updates ──
+  // Tesla Fleet's update entity is the obvious source, but Home Assistant 2026.10 leaves it "off"
+  // once the car has scheduled an update (seen 23 Oct: 2026.38.3.2 downloaded and scheduled for
+  // 02:29, entity said nothing), and it only offers Install while an update is "available", not
+  // once it's scheduled. The integration's diagnostics carry Tesla's raw software_update fields,
+  // so those are read as well (admin only; at most every 10 min, while the car page is open).
+  const PENDING = ['available', 'scheduled', 'downloading', 'downloading_wifi_wait', 'installing'];
+  const updateCands = () => sources().flatMap((src) => [src.update, src.flash && src.flash.replace(/^button\.(.+)_flash_lights$/, 'update.$1_update')])
+    .filter((c) => c && c.startsWith('update.'));
+  const updateId = () => updateCands().find((c) => S().get(c)) || null;
+  let sw = null; let swAt = 0; let swBusy = false;
+  async function loadSoftware(force) {
+    if (swBusy || S().mode === 'demo' || !HD.ha.isLive() || (!force && Date.now() - swAt < 10 * 60e3)) return;
+    swBusy = true; swAt = Date.now();
+    try {
+      const entries = await HD.ha.callWS({ type: 'config_entries/get', domain: 'tesla_fleet' });
+      for (const e of entries || []) {
+        if (e.state !== 'loaded') continue;
+        const d = await HD.ha.rest(`/api/diagnostics/config_entry/${e.entry_id}`);
+        const v = ((d && d.data && d.data.vehicles) || []).map((x) => (x && x.data) || {}).find((x) => 'vehicle_state_software_update_status' in x);
+        if (!v) continue;
+        const k = (n) => v[`vehicle_state_software_update_${n}`];
+        sw = { status: k('status') || '', version: String(k('version') || '').split(' ')[0], scheduledAt: k('scheduled_time_ms') || null,
+          download: k('download_perc'), install: k('install_perc'), duration: k('expected_duration_sec'), at: v.vehicle_state_timestamp || Date.now() };
+        break;
+      }
+      if (HD.views.car && document.getElementById('car-card')) HD.views.car.update();
+    } catch (e) { console.warn('Car software status unavailable', e); } finally { swBusy = false; }
+  }
+  // What the car is doing about software: the entity first, the raw Tesla fields when they know more
+  function software() {
+    const id = updateId(); const st = id ? S().get(id) : null; const a = (st && st.attributes) || {};
+    const installed = a.installed_version || null;
+    const out = { id, installed, status: '', version: null, at: null, pct: null, duration: null,
+      canInstall: !!(st && st.state === 'on' && (a.supported_features & 1)) };
+    if (st && st.state === 'on') { out.status = a.in_progress ? 'installing' : 'available'; out.version = a.latest_version; out.pct = a.update_percentage ?? null; }
+    if (sw && PENDING.includes(sw.status) && sw.version && sw.version !== installed) {
+      out.status = sw.status; out.version = sw.version; out.duration = sw.duration || null;
+      out.at = sw.status === 'scheduled' ? sw.scheduledAt : null;
+      out.pct = sw.status === 'installing' ? sw.install ?? out.pct : /^downloading/.test(sw.status) ? sw.download ?? null : null;
+    }
+    return out;
+  }
+  const whenText = (ms) => {
+    const d = new Date(ms); const day = (x) => new Date(x).toDateString();
+    const tag = day(d) === day(Date.now()) ? '' : day(d) === day(Date.now() + 864e5) ? ' tomorrow' : ` ${HD.u.fmt(d, { weekday: 'short', day: 'numeric', month: 'short' })}`;
+    return `${HD.u.time(d)}${tag}`;
+  };
+  function softwareChip(u) {
+    if (!u.status) return u.installed ? `<span class="car-chip">${icon('update')}${esc(u.installed)}</span>` : '';
+    // Kept short so the chip stays on one line; the version is in the box under the controls
+    const text = u.status === 'scheduled' ? (u.at ? `Update at ${HD.u.time(new Date(u.at))}` : 'Update scheduled')
+      : u.status === 'installing' ? `Installing${u.pct != null ? ` ${u.pct}%` : ''}`
+      : u.status === 'downloading' ? `Downloading${u.pct != null ? ` ${u.pct}%` : ''}`
+      : u.status === 'downloading_wifi_wait' ? 'Update needs Wi-Fi' : 'Update ready';
+    return chip(false, 'update', text);
+  }
+  function softwareHtml(u) {
+    if (!u.status) return '';
+    const mins = u.duration ? `about ${Math.round(u.duration / 60)} min` : 'a while';
+    const elsewhere = 'use the car’s screen or the Tesla app';
+    const say = {
+      available: u.canInstall ? `Downloaded and ready. Installing takes ${mins}, and the car can’t be driven until it finishes.`
+        : `Downloaded and ready. Home Assistant isn’t allowed to start it (Tesla Fleet needs vehicle command access), so ${elsewhere}.`,
+      scheduled: `The car has scheduled it for ${u.at ? whenText(u.at) : 'later'} and will install it then (${mins}). Home Assistant can’t bring a scheduled update forward; to install it now, ${elsewhere}.`,
+      downloading: `Downloading${u.pct != null ? ` (${u.pct}%)` : ''}. It can be installed once the download finishes.`,
+      downloading_wifi_wait: 'Waiting for Wi-Fi to download it.',
+      installing: `Installing${u.pct != null ? ` (${u.pct}%)` : ''}. The car can’t be driven until it finishes.`,
+    }[u.status] || '';
+    const ask = `Install ${u.version || 'the update'} now? The car can’t be driven for ${mins}.`;
+    return `<div class="car-sw">${icon('update')}<p><b>Software ${esc(u.version || 'update')}</b>${u.installed ? ` <small>(now ${esc(u.installed)})</small>` : ''}<br>${esc(say)}</p>
+      ${u.canInstall && u.status === 'available' ? `<button class="car-btn" data-car="install" data-entity="${u.id}" data-ask="${esc(ask)}">${icon('update')}<span>Install now</span></button>` : ''}</div>`;
+  }
+
   const toMiles = (v, u) => (v == null ? null : /mi/i.test(u || '') ? v : v * 0.621371);
   const toPsi = (v, u) => (v == null ? null : /psi/i.test(u || '') ? v : /kpa/i.test(u || '') ? v * 0.145038 : v * 14.5038);
 
@@ -538,8 +612,7 @@ HD.views = HD.views || {};
     const anyDoor = doorKeys.some((k) => { const v = val(k); return v === 'on' || v === 'open'; });
     const doorsKnown = doorKeys.some((k) => val(k) != null);
     const climate = val('climate'); const inside = num('insideTemp'); const outside = num('outsideTemp');
-    const upd = pick('update'); const updAvail = upd && S().state(upd.id) === 'on';
-    const version = upd ? S().attr(upd.id, 'installed_version') : null;
+    const swu = software(); loadSoftware();
     const odo = toMiles(num('odometer'), unit('odometer'));
     const via = pick('soc');
     const stale = !!(via && via.stale);
@@ -557,7 +630,7 @@ HD.views = HD.views || {};
       windows != null ? chip(windows === 'closed', 'window', windows === 'closed' ? 'Windows up' : 'Windows open') : '',
       climate != null ? `<span class="car-chip ${climate !== 'off' ? 'ok' : ''}">${icon('fan')}Climate ${climate === 'off' ? 'off' : 'on'}</span>` : '',
       lowTyres ? chip(false, 'alert', `${lowTyres} tyre${lowTyres > 1 ? 's' : ''} low`) : '',
-      updAvail ? chip(false, 'update', `Update ${S().attr(upd.id, 'latest_version') || 'available'}`) : version ? `<span class="car-chip">${icon('update')}${esc(version)}</span>` : '',
+      softwareChip(swu),
     ].join('');
 
     const btn = (key, label, ic, action, extra = '') => {
@@ -595,6 +668,7 @@ HD.views = HD.views || {};
           </div>
         </div>
         ${stale ? '' : `<div class="car-controls">${controls}</div>`}
+        ${softwareHtml(swu)}
         <p class="sub car-foot">${[odo != null ? `${Math.round(odo).toLocaleString('en-GB')} mi` : '', inside != null ? `${Math.round(inside)}° inside` : '', outside != null ? `${Math.round(outside)}° outside` : '', via ? `via ${via.src}${stale ? ' (last known)' : ''}` : '', updated ? `updated ${ago(updated)}` : ''].filter(Boolean).join(' · ')}</p>`
       : '<p class="note">No car data yet. Tesla Fleet or the Bluetooth bridge needs to be connected in Home Assistant.</p>'}
       <dl class="kv car-kv">
@@ -609,12 +683,14 @@ HD.views = HD.views || {};
     const b = ev.target.closest('[data-car]'); if (!b) return;
     const a = b.dataset.car; const id = b.dataset.entity; const domain = id.split('.')[0];
     if (ASK[a] && !window.confirm(a === 'open' ? `${b.textContent.trim()}?` : ASK[a])) return;
+    if (a === 'install' && !window.confirm(b.dataset.ask || 'Install the update now?')) return;
     let call;
     if (a === 'lock' || a === 'unlock') call = ['lock', a];
     else if (a === 'climate') call = ['climate', S().state(id) === 'off' ? 'turn_on' : 'turn_off'];
     else if (a === 'open-frunk' || a === 'open') call = [domain, 'open_cover'];
     else if (a === 'close') call = [domain, 'close_cover'];
     else if (a === 'wake') { call = ['button', 'press']; lastKnownAt = 0; setTimeout(() => { lastKnownAt = 0; HD.views.car.update(); }, 60e3); }
+    else if (a === 'install') { call = ['update', 'install']; setTimeout(() => loadSoftware(true), 90e3); }
     else if (a === 'press') { call = ['button', 'press']; flashUntil = Date.now() + 3200; HD.views.car.update(); setTimeout(() => HD.views.car.update(), 3300); }
     if (!call) return;
     b.disabled = true;
@@ -624,7 +700,7 @@ HD.views = HD.views || {};
       .finally(() => { b.disabled = false; });
   });
 
-  HD.car = { pick, val, num, soc: () => num('soc') };
+  HD.car = { pick, val, num, soc: () => num('soc'), software, extraIds: updateCands };
 
   function drawHistory() {
     const d = HD.data.daily; const box = document.getElementById('chart-ev');

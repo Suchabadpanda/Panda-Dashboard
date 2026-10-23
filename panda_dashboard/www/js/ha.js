@@ -129,6 +129,7 @@ window.HD = window.HD || {};
     walk(HD.config);
     if (HD.vacuum && HD.vacuum.extraIds) HD.vacuum.extraIds().forEach((id) => ids.add(id));
     if (HD.ac) HD.ac.extraIds().forEach((id) => ids.add(id));
+    if (HD.car && HD.car.extraIds) HD.car.extraIds().forEach((id) => ids.add(id));
     return [...ids].filter((id) => !/^(js|css|data)\./.test(id));
   }
 
@@ -247,6 +248,15 @@ window.HD = window.HD || {};
     baseUrl,
     isLive: () => store.mode === 'live',
     callWS: (msg) => (store.mode === 'demo' ? HD.demo.callWS(msg) : send(msg)),
+    // Home Assistant's REST API with the same sign-in as the socket (GET, JSON back)
+    async rest(path) {
+      if (store.mode === 'demo') throw new Error('Not available in demo mode');
+      const auth = await getAccessToken();
+      if (!auth) throw new Error('No Home Assistant session');
+      const r = await fetch(`${baseUrl()}${path}`, { headers: { Authorization: `Bearer ${auth.token}` }, cache: 'no-store' });
+      if (!r.ok) throw new Error(`${path} returned ${r.status}`);
+      return r.json();
+    },
     callService(domain, service, data) {
       if (store.mode === 'demo') return HD.demo.callService(domain, service, data);
       return send({ type: 'call_service', domain, service, service_data: data });
