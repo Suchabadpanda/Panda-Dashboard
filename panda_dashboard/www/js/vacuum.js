@@ -168,6 +168,146 @@ window.HD = window.HD || {};
     return shown;
   }
 
+  // ── Map zoom ──
+  // The Dreame picture is mostly empty margin round a small map, so the view starts
+  // fitted to the map itself (found from the pixels), and can be zoomed with the
+  // +/− buttons, the mouse wheel, a pinch or a double tap, and dragged when zoomed in.
+  // The figure's markup is rewritten on live updates but the <img> is kept (setHTML's
+  // keep), so the transform lives on the <img> and all events are delegated.
+  // Zooming changes nothing in Home Assistant, so it isn't a control for view-only screens.
+  const Z = { s: 1, tx: 0, ty: 0, user: false, map: null, box: null, boxFor: null, bg: '' };
+  const MAX_ZOOM = 6;   // × the fitted view
+
+  // Bounding box of the drawn map in picture pixels: anything not transparent and not
+  // the background colour (the corner pixel). Downscaled, so it's cheap on each new picture.
+  function contentBox(img) {
+    const W = img.naturalWidth; const H = img.naturalHeight;
+    if (!W || !H) return null;
+    try {
+      const k = Math.min(1, 320 / Math.max(W, H)); const w = Math.max(1, Math.round(W * k)); const h = Math.max(1, Math.round(H * k));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h).data;
+      // Background = the commonest of four points just inside the corners (screenshots and
+      // some renderers have a 1 px frame of another colour)
+      const m = Math.min(w - 1, h - 1, Math.max(2, Math.round(Math.min(w, h) * 0.02)));
+      const corners = [[m, m], [w - 1 - m, m], [m, h - 1 - m], [w - 1 - m, h - 1 - m]].map(([x, y]) => (y * w + x) * 4);
+      const same = (i, j) => Math.abs(d[i] - d[j]) + Math.abs(d[i + 1] - d[j + 1]) + Math.abs(d[i + 2] - d[j + 2]) + Math.abs(d[i + 3] - d[j + 3]) < 24;
+      const ref = corners.reduce((best, i) => (corners.filter((j) => same(i, j)).length > corners.filter((j) => same(best, j)).length ? i : best), corners[0]);
+      const [br, bg, bb, ba] = d.slice(ref, ref + 4);
+      Z.bg = ba >= 200 ? `rgb(${br} ${bg} ${bb})` : '';   // the frame takes the picture's own background
+      const isBg = (i) => d[i + 3] < 16 || (ba >= 16 && Math.abs(d[i] - br) + Math.abs(d[i + 1] - bg) + Math.abs(d[i + 2] - bb) < 24);
+      let x0 = w; let y0 = h; let x1 = -1; let y1 = -1;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (x < m || y < m || x >= w - m || y >= h - m || isBg((y * w + x) * 4)) continue;
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+      }
+      if (x1 < 0 || (x1 - x0) * (y1 - y0) > w * h * 0.9) return null;   // empty, or already fills it
+      const pad = 0.03 * Math.max(x1 - x0, y1 - y0) + 2;
+      const bx = Math.max(0, x0 - pad); const by = Math.max(0, y0 - pad);
+      return { x: bx / k, y: by / k, w: (Math.min(w, x1 + 1 + pad) - bx) / k, h: (Math.min(h, y1 + 1 + pad) - by) / k };
+    } catch (e) { return null; }   // a picture from another origin can't be read: show it whole
+  }
+
+  const zoomImg = () => document.querySelector('.vac-map img');
+  function view(img) {
+    const fig = img && img.closest('.vac-map'); if (!fig) return null;
+    const W = img.naturalWidth; const H = img.naturalHeight; if (!W || !H || !fig.clientWidth) return null;
+    return { fig, W, H, vw: fig.clientWidth, vh: fig.clientHeight };
+  }
+  function fitted(v) {
+    const b = Z.box || { x: 0, y: 0, w: v.W, h: v.H };
+    const s = Math.min(v.vw / b.w, v.vh / b.h);
+    return { s, tx: (v.vw - b.w * s) / 2 - b.x * s, ty: (v.vh - b.h * s) / 2 - b.y * s };
+  }
+  // Zoom runs from the whole picture to MAX_ZOOM × the fit
+  function limit(v, s) {
+    const f = fitted(v).s;
+    return Math.min(f * MAX_ZOOM, Math.max(Math.min(f, v.vw / v.W, v.vh / v.H), s));
+  }
+  // …and the picture never slides off: centred when smaller than the frame, edge to edge when bigger
+  function keepOnScreen(v) {
+    const w = v.W * Z.s; const h = v.H * Z.s;
+    Z.tx = w <= v.vw ? (v.vw - w) / 2 : Math.min(0, Math.max(v.vw - w, Z.tx));
+    Z.ty = h <= v.vh ? (v.vh - h) / 2 : Math.min(0, Math.max(v.vh - h, Z.ty));
+  }
+  function applyZoom() {
+    const img = zoomImg(); const v = view(img); if (!v) return;
+    if (Z.map !== currentMap()) { Z.map = currentMap(); Z.user = false; }   // another floor: start fitted
+    if (Z.boxFor !== img.currentSrc) { Z.boxFor = img.currentSrc; Z.bg = ''; Z.box = contentBox(img); }
+    v.fig.style.background = Z.bg;
+    if (!Z.user) Object.assign(Z, fitted(v)); else { Z.s = limit(v, Z.s); keepOnScreen(v); }
+    img.style.width = `${v.W}px`; img.style.height = `${v.H}px`;   // an SVG with no size of its own would stretch to the frame
+    img.style.transform = `translate(${Z.tx}px, ${Z.ty}px) scale(${Z.s})`;
+    v.fig.classList.toggle('zoomed', Z.user && Z.s > fitted(v).s * 1.02);
+    v.fig.classList.add('ready');
+  }
+  // Zoom by `k` about a point in the figure (default: its centre)
+  function zoomBy(k, px, py) {
+    const v = view(zoomImg()); if (!v) return;
+    if (px == null) { px = v.vw / 2; py = v.vh / 2; }
+    const s1 = limit(v, Z.s * k); const r = s1 / Z.s;
+    Z.tx = px - (px - Z.tx) * r; Z.ty = py - (py - Z.ty) * r; Z.s = s1; Z.user = true;
+    applyZoom();
+  }
+  function resetZoom() { Z.user = false; applyZoom(); }
+  const local = (fig, x, y) => { const r = fig.getBoundingClientRect(); return [x - r.left, y - r.top]; };
+
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest && ev.target.closest('[data-vzoom]'); if (!b) return;
+    const k = b.dataset.vzoom;
+    if (k === 'in') zoomBy(1.5); else if (k === 'out') zoomBy(1 / 1.5); else resetZoom();
+  });
+  document.addEventListener('wheel', (ev) => {
+    const fig = ev.target.closest && ev.target.closest('.vac-map.ready'); if (!fig) return;
+    ev.preventDefault();
+    const dy = ev.deltaMode === 1 ? ev.deltaY * 16 : ev.deltaY;
+    zoomBy(Math.exp(-Math.max(-100, Math.min(100, dy)) / 300), ...local(fig, ev.clientX, ev.clientY));
+  }, { passive: false });
+  // Drag and pinch. Tracked on window, because the figure itself is replaced on live updates.
+  const ptrs = new Map(); let pinch = null; let lastTap = 0; let moved = false;
+  document.addEventListener('pointerdown', (ev) => {
+    const fig = ev.target.closest && ev.target.closest('.vac-map.ready');
+    if (!fig || ev.target.closest('[data-vzoom]') || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+    ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    moved = false; pinch = null;
+    if (ev.pointerType === 'mouse') ev.preventDefault();   // no image drag-and-drop
+  });
+  window.addEventListener('pointermove', (ev) => {
+    const p = ptrs.get(ev.pointerId); if (!p) return;
+    const fig = document.querySelector('.vac-map.ready'); if (!fig) return;
+    if (ptrs.size === 1) {
+      const dx = ev.clientX - p.x; const dy = ev.clientY - p.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+      if (Z.user) { Z.tx += dx; Z.ty += dy; applyZoom(); }
+    } else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.entries()].map(([id, q]) => (id === ev.pointerId ? { x: ev.clientX, y: ev.clientY } : q));
+      const d = Math.hypot(a.x - b.x, a.y - b.y); const mid = local(fig, (a.x + b.x) / 2, (a.y + b.y) / 2);
+      if (pinch && pinch.d > 0) {
+        Z.tx += mid[0] - pinch.mid[0]; Z.ty += mid[1] - pinch.mid[1];
+        zoomBy(d / pinch.d, mid[0], mid[1]);
+      }
+      pinch = { d, mid }; moved = true;
+    }
+    p.x = ev.clientX; p.y = ev.clientY;
+  });
+  const up = (ev) => {
+    if (!ptrs.delete(ev.pointerId)) return;
+    if (ptrs.size < 2) pinch = null;
+    if (ev.type !== 'pointerup' || moved || ptrs.size) return;
+    // Double tap / double click: zoom in there, or back to the fit when fully zoomed in
+    const now = Date.now();
+    if (now - lastTap > 320) { lastTap = now; return; }
+    lastTap = 0;
+    const v = view(zoomImg()); if (!v) return;
+    if (Z.s >= fitted(v).s * MAX_ZOOM * 0.98) resetZoom(); else zoomBy(2, ...local(v.fig, ev.clientX, ev.clientY));
+  };
+  window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  document.addEventListener('load', (ev) => { if (ev.target.matches && ev.target.matches('.vac-map img')) applyZoom(); }, true);
+  window.addEventListener('resize', () => applyZoom());
+
   // ── How to clean ──
   // The Dreame integration exposes each cleaning setting as a select (or switch) entity
   // named after the vacuum: select.<vacuum>_cleaning_mode, _suction_level, _mop_pad_humidity,
@@ -390,6 +530,7 @@ window.HD = window.HD || {};
     const curName = v.current ? (list.find((r) => r.id === v.current) || {}).name : null;
     const activeNames = list.filter((r) => v.active.includes(r.id)).map((r) => r.name);
     const pic = pictureUrl();
+    if (pic) requestAnimationFrame(applyZoom);   // the figure is rewritten; put the zoom back on it
     const where = v.state === 'cleaning' && activeNames.length ? ` · ${activeNames.join(', ')}` : curName && v.state !== 'docked' ? ` · in ${curName}` : '';
     return `<div class="vac">
       <div class="vac-side">
@@ -408,7 +549,12 @@ window.HD = window.HD || {};
           ${sel.length ? '<button class="btn ghost" data-vac="clear">Clear</button>' : ''}
         </div>
       </div>
-      <figure class="vac-map">${pic ? `<img src="${pic}" alt="Dreame map: rooms and where the robot is">` : '<p class="sub">The Dreame map appears here once the robot has mapped this floor.</p>'}</figure>
+      <figure class="vac-map">${pic ? `<img src="${pic}" alt="Dreame map: rooms and where the robot is" draggable="false">
+        <div class="vac-zoom" role="group" aria-label="Map zoom">
+          <button type="button" data-vzoom="in" aria-label="Zoom in" title="Zoom in">+</button>
+          <button type="button" data-vzoom="out" aria-label="Zoom out" title="Zoom out">−</button>
+          <button type="button" data-vzoom="fit" aria-label="Fit the map" title="Fit the map">${HD.u.icon('fit')}</button>
+        </div>` : '<p class="sub">The Dreame map appears here once the robot has mapped this floor.</p>'}</figure>
     </div>`;
   }
 
