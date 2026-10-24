@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.59
+- People page: phones on a street map with today's trails
+
 ## 0.3.58
 - Solar strings: convert live counter to kWh by its unit (Sigen PV counters are MWh)
 
