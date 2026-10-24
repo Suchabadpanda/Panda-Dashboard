@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.63
+- Map: Refresh asks phones for a fresh location
+
 ## 0.3.62
 - Vacuum map: zoom and pan, fitted to the map
 
