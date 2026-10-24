@@ -108,8 +108,8 @@ HD.config = {
     // entity's name (…_pv1_power → …_pv1_accumulated_energy); set pv1Energy / pv2Energy if not.
     pv1Kwp: 2.82,                                          // 6 × 470 W
     pv2Kwp: 1.62,                                          // 3 × 540 W
-    loadPower: 'sensor.sigen_plant_consumed_power',
-    batteryPower: 'sensor.sigen_plant_battery_power',
+    loadPower: 'sensor.sigen_plant_total_load_power',   // recorded twin of plant_consumed_power
+    batteryPower: 'sensor.sigen_inverter_battery_power',   // recorded twin of plant_battery_power; + charging
     gridPower: 'sensor.sigen_plant_grid_active_power',
     soc: 'sensor.sigen_plant_battery_state_of_charge',
     soh: 'sensor.sigen_plant_battery_state_of_health',
