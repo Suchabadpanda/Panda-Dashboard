@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.61
+- View-only dashboard for other Home Assistant users
+
 ## 0.3.60
 - Map page: rename People to Map, show/hide each person, tracked items
 
