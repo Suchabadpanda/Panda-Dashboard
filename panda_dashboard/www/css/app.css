@@ -1264,3 +1264,13 @@ body.view-only :is(button, select, input):is([data-shortcut], [data-car], [data-
 body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac], [data-dw]) { display: none; }
 .status.view-only-badge { cursor: default; }
 .status.view-only-badge .ic { width: 16px; height: 16px; }
+/* Map: refresh a phone's location */
+.pp-list > li { position: relative; }
+.pp-locate { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; cursor: pointer;
+  border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); }
+.pp-locate .ic { width: 17px; height: 17px; }
+@media (hover: hover) { .pp-locate:hover { color: var(--ink); border-color: var(--who, var(--accent)); } }
+.pp-locate.busy .ic, .pp-tag.busy .ic { animation: pp-spin 1s linear infinite; }
+.pp-tag.busy { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 50%, var(--line)); }
+@keyframes pp-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pp-locate.busy .ic, .pp-tag.busy .ic { animation: none; } }

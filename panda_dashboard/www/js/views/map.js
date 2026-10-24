@@ -63,6 +63,36 @@ HD.views = HD.views || {};
   }
   const shown = () => people().filter((p) => !hidden.has(p.id));
 
+  // The Companion app's notify service is named after the device too: device_tracker.summer →
+  // notify.mobile_app_summer. Sending it the message "request_location_update" makes the
+  // phone send a fresh location (and, with it, its sensors).
+  function guessNotify(p) {
+    const loc = locEntity(p);
+    return loc.startsWith('device_tracker.') ? `mobile_app_${loc.split('.')[1]}` : null;
+  }
+
+  // ── Refresh: ask phones for a fresh location ──
+  const asked = {};               // person id → { at: clock time asked, t: dashboard time asked }
+  const ASK_GAP = 60e3;           // at most once a minute per phone (each is a push to the phone)
+  const LOCATING_FOR = 90e3;      // show "Locating…" until it answers or this passes
+  function locating(x) {
+    const a = asked[x.p.id];
+    return !!a && Date.now() - a.at < LOCATING_FOR && !(x.seen && x.seen > a.t);
+  }
+  async function refresh(list, quiet) {
+    const due = list.filter((p) => p.notify && !(asked[p.id] && Date.now() - asked[p.id].at < ASK_GAP));
+    if (!due.length) { if (!quiet) HD.app.toast(list.some((p) => p.notify) ? 'Already asked — give the phones a minute.' : 'No phone to ask.'); return; }
+    due.forEach((p) => { asked[p.id] = { at: Date.now(), t: now() }; });
+    HD.views.map.update();
+    const res = await Promise.allSettled(due.map((p) => HD.ha.callService('notify', p.notify, { message: 'request_location_update' })));
+    const failed = due.filter((p, i) => res[i].status === 'rejected');
+    failed.forEach((p) => { delete asked[p.id]; });
+    if (failed.length) HD.app.toast(`Couldn't ask ${failed.map((p) => p.name).join(', ')}: ${res.find((r) => r.status === 'rejected').reason.message}`);
+    else HD.app.toast(due.length === 1 ? `Asked ${due[0].name}'s phone for its location` : `Asked ${due.length} phones for their location`);
+    trailsAt = 0;                 // the trail picks up the new point on the next update
+    HD.views.map.update();
+  }
+
   function people() {
     return (HD.config.people || []).filter((p) => p && p.id).map((p, i) => ({
       ...p,
@@ -71,6 +101,7 @@ HD.views = HD.views || {};
       colour: p.colour || COLOURS[i % COLOURS.length],
       loc: locEntity(p),
       battery: p.phoneBattery || guessSensor(p, 'battery_level'),
+      notify: p.notify || (p.item ?? !p.id.startsWith('person.') ? null : guessNotify(p)),
       batteryState: p.batteryState || guessSensor(p, 'battery_state'),
     }));
   }
@@ -207,7 +238,8 @@ HD.views = HD.views || {};
 
   function cardHtml(x, i) {
     const statusCls = x.state === 'home' ? 'home' : x.where === 'Unknown' ? 'unknown' : x.where === 'Away' ? 'away' : 'zone';
-    const line = x.where === 'Away' && x.dist != null ? `${fmtMi(x.dist)} from home` : x.where === 'Unknown' ? 'No location yet' : esc(sinceText(x));
+    const line = x.where === 'Away' && x.dist != null ? `${fmtMi(x.dist)} from home` : x.where === 'Unknown' ? (x.ll ? 'Outside every zone' : 'No location from this phone yet') : esc(sinceText(x));
+    const busy = locating(x);
     const batCls = x.bat == null ? '' : x.bat < 15 ? 'low' : x.bat < 30 ? 'mid' : '';
     return `<li><button class="pp-card ${focus === x.p.id ? 'focus' : ''}" data-person="${i}" style="--who:${x.p.colour}" aria-label="Show ${esc(x.p.name)} on the map">
       ${avatarHtml(x)}
@@ -216,6 +248,7 @@ HD.views = HD.views || {};
         <span class="pp-where"><i class="pp-dot ${statusCls}"></i>${esc(x.where)}${x.where !== 'Away' && x.where !== 'Home' && x.where !== 'Unknown' && x.dist != null ? ` · ${fmtMi(x.dist)}` : ''}</span>
         <small>${line}${x.where === 'Away' && x.since ? ` · ${esc(sinceText(x).replace(/^since/, 'left'))}` : ''}</small>
         <span class="pp-tags">
+          ${busy ? `<em class="pp-tag busy">${icon('update')}Locating…</em>` : ''}
           ${x.heading ? `<em class="pp-tag go">${icon('house')}Heading home</em>` : ''}
           ${x.miles >= 0.1 ? `<em class="pp-tag">${fmtMi(x.miles)} today</em>` : ''}
           ${x.seen ? `<em class="pp-tag ${x.stale ? 'warn' : ''}">${icon('pin')}${x.stale ? 'Last seen ' : ''}${agoText(x.seen)}</em>` : ''}
@@ -223,7 +256,7 @@ HD.views = HD.views || {};
       </span>
       ${x.bat != null ? `<span class="pp-bat ${batCls} ${x.charging ? 'charging' : ''}" title="Phone battery${x.charging ? ', charging' : ''}">
         <i class="bat-meter"><b style="width:${Math.max(0, Math.min(100, x.bat))}%"></b></i><span>${x.charging ? icon('bolt') : ''}${Math.round(x.bat)}%</span></span>` : ''}
-    </button></li>`;
+    </button>${x.p.notify ? `<button type="button" class="pp-locate ${busy ? 'busy' : ''}" data-locate="${i}" title="Ask ${esc(x.p.name)}'s phone for a fresh location and battery" aria-label="Refresh ${esc(x.p.name)}'s location">${icon('update')}</button>` : ''}</li>`;
   }
 
   // ── Map ──
@@ -378,6 +411,7 @@ HD.views = HD.views || {};
         <div class="panel-grid people">
           <section class="panel pp-map-panel">
             <header><h2>Where everyone is</h2><p id="pp-sum"></p>
+              <button type="button" class="btn ghost pp-fit" id="pp-refresh" title="Ask every phone shown for a fresh location and battery">${icon('update')}Refresh</button>
               <button type="button" class="btn ghost pp-fit" id="pp-fit">${icon('pin')}Show everyone</button></header>
             <div id="pp-show" class="pp-show" role="group" aria-label="Show on the map"></div>
             <div id="pp-map" class="pp-map" role="region" aria-label="Map of everyone's location"></div>
@@ -394,7 +428,10 @@ HD.views = HD.views || {};
         if (!hide && !trails[(people().find((p) => p.id === id) || {}).loc]) trailsAt = 0;   // fetch its trail
         this.update();
       });
+      document.getElementById('pp-refresh').addEventListener('click', () => refresh(shown()));
       document.getElementById('pp-list').addEventListener('click', (ev) => {
+        const r = ev.target.closest('[data-locate]');
+        if (r) { const p = people()[+r.dataset.locate]; if (p) refresh([p]); return; }
         const b = ev.target.closest('[data-person]'); if (!b) return;
         const p = people()[+b.dataset.person]; if (p) setFocus(p.id, focus !== p.id);
       });

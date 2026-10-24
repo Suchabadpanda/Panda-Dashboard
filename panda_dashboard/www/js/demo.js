@@ -433,6 +433,13 @@ window.HD = window.HD || {};
     callWS,
     forecast,
     callService(domain, service, data) {
+      // A phone asked for its location answers a couple of seconds later
+      if (domain === 'notify' && data && data.message === 'request_location_update') {
+        const t = HD.store.states[`device_tracker.${service.replace(/^mobile_app_/, '')}`];
+        if (!t) return Promise.reject(new Error(`no service notify.${service}`));
+        setTimeout(() => { t.last_updated = new Date(SNAP + 60e3).toISOString(); HD.store.emit(t.entity_id); }, 2000);
+        return Promise.resolve();
+      }
       // Make toggles feel real in the demo
       const id = data && data.entity_id;
       const s = id && HD.store.states[id];
