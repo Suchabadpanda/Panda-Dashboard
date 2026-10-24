@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.64
+- Power today: use the recorded load and battery sensors
+
 ## 0.3.63
 - Map: Refresh asks phones for a fresh location
 
