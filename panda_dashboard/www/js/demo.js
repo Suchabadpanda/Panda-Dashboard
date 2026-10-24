@@ -195,6 +195,8 @@ window.HD = window.HD || {};
 
     // People: Alex at home, Sam on the way home from work (made-up places, near the car's)
     car('zone.work', '0', { latitude: 51.5235, longitude: -0.0835, radius: 150, friendly_name: 'Work' });
+    car('device_tracker.backpack', 'not_home', { latitude: 51.5131, longitude: -0.1240, gps_accuracy: 40, source_type: 'gps', friendly_name: 'Backpack' });
+    states['device_tracker.backpack'].last_changed = new Date(DAY0 + (18 * 60 + 5) * 60e3).toISOString();
     car('device_tracker.alex_phone', 'home', { latitude: 51.50085, longitude: -0.12455, gps_accuracy: 12, source_type: 'gps' });
     car('device_tracker.sam_phone', 'not_home', { latitude: PEOPLE_TRAIL.sam[PEOPLE_TRAIL.sam.length - 1][1], longitude: PEOPLE_TRAIL.sam[PEOPLE_TRAIL.sam.length - 1][2], gps_accuracy: 18, source_type: 'gps' });
     states['person.alex'].last_changed = new Date(DAY0 + (13 * 60 + 35) * 60e3).toISOString();

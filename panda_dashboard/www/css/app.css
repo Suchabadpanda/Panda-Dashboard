@@ -1162,7 +1162,7 @@ body { font-variant-numeric: tabular-nums; }
 .car-sw small { color: var(--muted); }
 
 /* ── People: street map + phones ── */
-body[data-view="people"] { --view-tint: var(--c1); }
+body[data-view="map"] { --view-tint: var(--c1); }
 .panel-grid.people { grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); align-items: start; }
 .pp-map-panel > header { align-items: center; }
 .pp-map-panel > header p { margin-right: auto; }
@@ -1234,3 +1234,13 @@ body[data-view="people"] { --view-tint: var(--c1); }
   .pp-map { height: min(56vh, 520px); }
 }
 @media (prefers-reduced-motion: reduce) { .pp-marker .pp-avatar.pin.heading { animation: none; } }
+/* Map: show / hide chips and tracked items */
+.pp-show { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 10px; }
+.pp-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 9px; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  background: transparent; color: var(--muted); border: 1px dashed var(--line); }
+.pp-chip i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--who); }
+.pp-chip.on { color: var(--ink); border-style: solid; border-color: color-mix(in oklab, var(--who) 55%, var(--line)); background: color-mix(in oklab, var(--who) 12%, transparent); }
+.pp-chip.on i { background: var(--who); }
+.pp-avatar.item { border-radius: 14px; color: #fff; }
+.pp-avatar.item .ic { width: 24px; height: 24px; }
+.pp-marker .pp-avatar.item.pin { border-radius: 14px; }

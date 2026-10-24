@@ -4,8 +4,8 @@ window.HD = window.HD || {};
 (function () {
   const { esc, icon } = HD.u;
   const S = HD.store;
-  const VIEWS = ['home', 'rooms', 'energy', 'car', 'people', 'devices'];
-  const ALIASES = { plan: 'rooms', climate: 'rooms', map: 'people' }; // old bookmarks
+  const VIEWS = ['home', 'rooms', 'energy', 'car', 'map', 'devices'];
+  const ALIASES = { plan: 'rooms', climate: 'rooms', people: 'map' }; // old bookmarks
   let current = null;
 
   const WEATHER_WORDS = {
@@ -31,7 +31,7 @@ window.HD = window.HD || {};
     HD.u.setHTML(document.getElementById('status-slot'), statusHtml());
   }
 
-  const NAV_ICONS = { home: 'house', rooms: 'rooms', energy: 'bolt', car: 'car', people: 'people', devices: 'plug' };
+  const NAV_ICONS = { home: 'house', rooms: 'rooms', energy: 'bolt', car: 'car', map: 'pin', devices: 'plug' };
   function navHtml() {
     return VIEWS.map((v) => `<a href="#${v}" class="${v === current ? 'active' : ''}" ${v === current ? 'aria-current="page"' : ''}>${HD.u.icon(NAV_ICONS[v])}<span>${HD.views[v].title}</span></a>`).join('');
   }

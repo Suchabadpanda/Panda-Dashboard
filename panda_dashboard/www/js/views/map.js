@@ -1,8 +1,9 @@
 /*
- * People view: where everyone's phone is, on a street map.
+ * Map view: where everyone's phone (and any tracked item) is, on a street map.
  *
  * Each entry in config.people is a person (person.* from Home Assistant, which follows
- * the HA Companion app on their phone) or any device_tracker with GPS. Shown per phone:
+ * the HA Companion app on their phone) or any device_tracker with GPS, such as an AirTag
+ * brought into HA by a Find My integration. Shown per entry:
  * home / away / which zone and since when, distance from home and whether it's heading
  * home, phone battery, and today's trail from the recorder history.
  *
@@ -11,6 +12,10 @@
  * The GPS tracker (the person's `source`) and the phone's battery sensors
  * (sensor.<tracker>_battery_level / _battery_state) are found automatically; set
  * `tracker`, `phoneBattery`, `batteryState` or `colour` to override.
+ * A device_tracker entry is drawn as an item (an icon instead of initials):
+ *   { id: 'device_tracker.keys', name: 'Keys', icon: 'key' }   // icons: tag key bag paw bike car
+ * Each screen can hide anyone from the map with the chips above it (kept in localStorage).
+ *
  *
  * The map is Leaflet (bundled in vendor/, loaded only on this page) with OpenStreetMap
  * tiles, the one thing on the dashboard that loads from outside: the browser fetches the
@@ -48,9 +53,20 @@ HD.views = HD.views || {};
     const id = `sensor.${loc.split('.')[1]}_${suffix}`;
     return S().get(id) ? id : null;
   }
+  // Who's hidden on this screen
+  const LS_HIDDEN = 'hd.mapHidden';
+  let hidden = new Set();
+  try { hidden = new Set(JSON.parse(localStorage.getItem(LS_HIDDEN) || '[]')); } catch (e) { /* storage blocked */ }
+  function setHidden(id, hide) {
+    if (hide) hidden.add(id); else hidden.delete(id);
+    try { localStorage.setItem(LS_HIDDEN, JSON.stringify([...hidden])); } catch (e) { /* ignore */ }
+  }
+  const shown = () => people().filter((p) => !hidden.has(p.id));
+
   function people() {
     return (HD.config.people || []).filter((p) => p && p.id).map((p, i) => ({
       ...p,
+      item: p.item ?? !p.id.startsWith('person.'),
       name: p.name || S().attr(p.id, 'friendly_name') || p.id,
       colour: p.colour || COLOURS[i % COLOURS.length],
       loc: locEntity(p),
@@ -88,7 +104,7 @@ HD.views = HD.views || {};
   }
 
   async function loadTrails() {
-    const ids = [...new Set(people().map((p) => p.loc))];
+    const ids = [...new Set(shown().map((p) => p.loc))];
     if (!ids.length || trailsLoading) return;
     trailsLoading = true;
     try {
@@ -168,6 +184,7 @@ HD.views = HD.views || {};
 
   const initials = (n) => n.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   function avatarHtml(x, cls = '') {
+    if (x.p.item && !x.picture) return `<span class="pp-avatar item ${cls}" style="--who:${x.p.colour}">${icon(x.p.icon || 'tag')}</span>`;
     const pic = x.picture ? `<img src="${esc(HD.ha.baseUrl() + x.picture)}" alt="" onerror="this.remove()">` : '';
     return `<span class="pp-avatar ${cls}" style="--who:${x.p.colour}"><b>${esc(initials(x.p.name))}</b>${pic}</span>`;
   }
@@ -264,7 +281,7 @@ HD.views = HD.views || {};
   function drawMap() {
     if (!map || !L) return;
     zonesOnMap();
-    const list = people().map(info);
+    const list = shown().map(info);
     const seen = new Set();
     list.forEach((x) => {
       const id = x.p.id; seen.add(id);
@@ -293,6 +310,7 @@ HD.views = HD.views || {};
       } else if (accs[id]) { accs[id].remove(); delete accs[id]; }
     });
     Object.keys(markers).forEach((id) => { if (!seen.has(id)) { markers[id].remove(); delete markers[id]; } });
+    Object.keys(accs).forEach((id) => { if (!seen.has(id)) { accs[id].remove(); delete accs[id]; } });
     Object.keys(lines).forEach((id) => { if (!seen.has(id)) { lines[id].remove(); delete lines[id]; } });
     if (!fitted && list.some((x) => x.ll)) { fitAll(false); fitted = true; }
   }
@@ -300,7 +318,7 @@ HD.views = HD.views || {};
   // Everyone (and home) in view; just home, close up, when everyone's in
   function fitAll(animate = true) {
     if (!map) return;
-    const pts = people().map(info).filter((x) => x.ll).map((x) => x.ll);
+    const pts = shown().map(info).filter((x) => x.ll).map((x) => x.ll);
     const home = homeLL(); if (home) pts.push(home);
     if (!pts.length) return;
     const b = L.latLngBounds(pts);
@@ -316,20 +334,31 @@ HD.views = HD.views || {};
       if (pts.length > 1) map.flyToBounds(L.latLngBounds(pts.concat([x.ll])), { padding: [48, 48], maxZoom: 16, duration: 0.8 });
       else map.flyTo(x.ll, 16, { duration: 0.8 });
     }
-    HD.views.people.update();
+    HD.views.map.update();
   }
 
   function render() {
-    const list = people().map(info);
+    const all = people();
     const el = document.getElementById('pp-list');
     if (!el) return;
-    if (!list.length) {
+    if (!all.length) {
       HD.u.setHTML(el, '<p class="note">Add people to <code>people</code> in config.js, e.g. <code>{ id: \'person.rosalyn\', name: \'Rosalyn\' }</code>.</p>');
       return;
     }
-    const home = list.filter((x) => x.state === 'home').length;
-    HD.u.setHTML(document.getElementById('pp-sum'), `${home} of ${list.length} at home`);
-    HD.u.setHTML(el, `<ul class="pp-list">${list.map(cardHtml).join('')}</ul>`);
+    // Show / hide chips
+    HD.u.setHTML(document.getElementById('pp-show'), all.map((p) => {
+      const on = !hidden.has(p.id);
+      return `<button type="button" class="pp-chip ${on ? 'on' : ''}" data-show="${esc(p.id)}" aria-pressed="${on}" style="--who:${p.colour}" title="${on ? 'Hide' : 'Show'} ${esc(p.name)} on the map">
+        <i></i>${esc(p.name)}</button>`;
+    }).join(''));
+    const list = all.map((p, i) => ({ x: info(p), i })).filter(({ x }) => !hidden.has(x.p.id));
+    const ppl = list.filter(({ x }) => !x.p.item);
+    const home = ppl.filter(({ x }) => x.state === 'home').length;
+    HD.u.setHTML(document.getElementById('pp-sum'), ppl.length ? `${home} of ${ppl.length} at home` : '');
+    const off = all.length - list.length;
+    HD.u.setHTML(el, list.length
+      ? `<ul class="pp-list">${list.map(({ x, i }) => cardHtml(x, i)).join('')}</ul>${off ? `<p class="note">${off} hidden — tap a name above the map to show it again.</p>` : ''}`
+      : '<p class="note">Everyone is hidden — tap a name above the map to show them.</p>');
   }
 
   HD.people = {
@@ -342,20 +371,29 @@ HD.views = HD.views || {};
     info: () => people().map(info),
   };
 
-  HD.views.people = {
-    title: 'People',
+  HD.views.map = {
+    title: 'Map',
     mount(root) {
       root.innerHTML = `
         <div class="panel-grid people">
           <section class="panel pp-map-panel">
             <header><h2>Where everyone is</h2><p id="pp-sum"></p>
               <button type="button" class="btn ghost pp-fit" id="pp-fit">${icon('pin')}Show everyone</button></header>
+            <div id="pp-show" class="pp-show" role="group" aria-label="Show on the map"></div>
             <div id="pp-map" class="pp-map" role="region" aria-label="Map of everyone's location"></div>
           </section>
-          <section class="panel pp-people"><header><h2>Phones</h2><p>Tap one to follow today's trail</p></header>
+          <section class="panel pp-people"><header><h2>Tracking</h2><p>Tap one to follow today's trail</p></header>
             <div id="pp-list"></div></section>
         </div>`;
       document.getElementById('pp-fit').addEventListener('click', () => { focus = null; fitAll(true); this.update(); });
+      document.getElementById('pp-show').addEventListener('click', (ev) => {
+        const b = ev.target.closest('[data-show]'); if (!b) return;
+        const id = b.dataset.show; const hide = !hidden.has(id);
+        setHidden(id, hide);
+        if (hide && focus === id) focus = null;
+        if (!hide && !trails[(people().find((p) => p.id === id) || {}).loc]) trailsAt = 0;   // fetch its trail
+        this.update();
+      });
       document.getElementById('pp-list').addEventListener('click', (ev) => {
         const b = ev.target.closest('[data-person]'); if (!b) return;
         const p = people()[+b.dataset.person]; if (p) setFocus(p.id, focus !== p.id);
@@ -366,7 +404,7 @@ HD.views = HD.views || {};
     },
     update() {
       if (!document.getElementById('pp-map')) return;
-      people().forEach(addLive);
+      shown().forEach(addLive);
       render();
       drawMap();
       if (Date.now() - trailsAt > 3 * 60e3) loadTrails().then(() => { render(); drawMap(); });
