@@ -1244,3 +1244,14 @@ body[data-view="map"] { --view-tint: var(--c1); }
 .pp-avatar.item { border-radius: 14px; color: #fff; }
 .pp-avatar.item .ic { width: 24px; height: 24px; }
 .pp-marker .pp-avatar.item.pin { border-radius: 14px; }
+
+/* View-only screens (users other than those in config.controlBy): controls show their state but can't be used */
+body.view-only :is([data-toggle], [data-hvac], [data-press], [data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra],
+  [data-vac], [data-vac-select], [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-plan-room]) {
+  cursor: default; pointer-events: none;
+}
+body.view-only :is(button, select, input):is([data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra], [data-vac], [data-vac-select],
+  [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-hvac], [data-press]) { opacity: .6; }
+body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac], [data-dw]) { display: none; }
+.status.view-only-badge { cursor: default; }
+.status.view-only-badge .ic { width: 16px; height: 16px; }

@@ -22,11 +22,21 @@ window.HD = window.HD || {};
       ${w ? `<div class="weather"><strong>${Math.round(w.attributes.temperature)}°</strong><span>${esc(WEATHER_WORDS[w.state] || w.state)} · wind ${Math.round(w.attributes.wind_speed || 0)} ${esc(w.attributes.wind_speed_unit || '')}</span></div>` : ''}`;
   }
 
+  // View-only screens (see HD.access in ha.js): anything that changes something is disabled
+  const CONTROLS = ['[data-toggle]', '[data-hvac]', '[data-press]', '[data-shortcut]', '[data-car]', '[data-dw]', '[data-dw-prog]', '[data-dw-extra]',
+    '[data-vac]', '[data-vac-select]', '[data-ac-set]', '[data-ac-select]', '[data-ac-temp]', '[data-ac-hum]', '[data-ac-switch]', '[data-ac-option]',
+    '[data-plan-room]'].join(',');
+  const viewOnly = () => !HD.access.canControl();
+
   function statusHtml() {
+    if (viewOnly()) {
+      return `<span class="status ${S.mode} view-only-badge" title="${esc(`${S.message}. This screen can't change anything.`)}">${icon('eye')}<span>View only</span></span>`;
+    }
     return `<button class="status ${S.mode}" id="open-settings" title="${esc(S.message)}">${icon('cog')}<span>${esc(S.mode === 'live' ? 'Live' : S.mode === 'demo' ? 'Demo' : S.mode === 'error' ? 'Offline' : 'Connecting')}</span></button>`;
   }
 
   function renderHeader() {
+    document.body.classList.toggle('view-only', viewOnly());
     HD.u.setHTML(document.getElementById('top'), headerHtml());
     HD.u.setHTML(document.getElementById('status-slot'), statusHtml());
   }
@@ -220,6 +230,14 @@ window.HD = window.HD || {};
   }
 
   function wireEvents() {
+    // View only: stop taps, keys and changes on controls before any handler sees them
+    const block = (ev) => {
+      if (!viewOnly() || !ev.target.closest || !ev.target.closest(CONTROLS)) return;
+      if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      if (ev.type === 'click') toast('This screen is view only.');
+    };
+    ['click', 'keydown', 'change', 'input', 'pointerdown'].forEach((t) => document.addEventListener(t, block, true));
     document.addEventListener('click', (ev) => {
       const t = ev.target.closest('[data-toggle],[data-hvac],[data-press],#open-settings');
       if (!t || t.disabled) return;

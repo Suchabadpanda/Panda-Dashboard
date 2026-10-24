@@ -14,6 +14,9 @@ ingress: true
 ingress_port: 8099
 panel_icon: mdi:home-lightning-bolt
 panel_title: Panda Dashboard
+# Every Home Assistant user gets the sidebar entry; only the people in config.js controlBy
+# (else administrators) can use the controls. Everyone else sees a view-only dashboard.
+panel_admin: false
 # Your config.js lives here: \\homeassistant.local\app_configs\<id>_panda_dashboard\
 map:
   - addon_config:ro

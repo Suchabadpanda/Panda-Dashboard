@@ -22,6 +22,11 @@ HD.config = {
   // Target the heating is balanced around. Room tiles are tinted cooler/warmer than this.
   comfortTarget: 22,
 
+  // Who can use the buttons and Settings: person ids (matched through the person's
+  // Home Assistant user), user names or user ids. Everyone else signed into Home Assistant
+  // sees the dashboard view only. Leave it out to let Home Assistant administrators control it.
+  // controlBy: ['person.alex'],
+
   // Map page: everyone's phone on a map. One line per phone; add more lines to track more.
   // id: a person (person.*, following the HA Companion app) or any GPS device_tracker.
   // Found automatically, but can be set: tracker (the GPS device_tracker), phoneBattery,

@@ -219,6 +219,8 @@ window.HD = window.HD || {};
             ws.onmessage = onMessage;
             try {
               // One full read to start (auto-detection needs it), then only the watched entities
+              // Who's signed in decides whether this screen can control things (see HD.access)
+              store.user = await send({ type: 'auth/current_user' }).catch(() => null);
               const states = await send({ type: 'get_states' });
               store.states = {};
               states.forEach((s) => { store.states[s.entity_id] = s; });
@@ -244,11 +246,42 @@ window.HD = window.HD || {};
     });
   }
 
+  // ── Who may control things ──
+  // config.controlBy lists who can press buttons and open Settings: person ids
+  // ('person.nan_lieu', matched through the person's linked user), user names or user ids.
+  // Without it, Home Assistant administrators can. Everyone else gets a view-only
+  // dashboard: controls are disabled and any service call that would change something is
+  // refused here. (Home Assistant has no read-only users, so this only covers this
+  // dashboard; HA's own pages still work for them.)
+  const VIEW_SERVICES = new Set(['get_forecasts', 'start_p2p_livestream', 'stop_p2p_livestream', 'generate_image']);
+  const access = {
+    canControl() {
+      if (store.mode !== 'live') return true;           // demo, or not connected yet
+      const u = store.user;
+      if (!u) return true;                              // couldn't tell: don't lock anyone out
+      const list = HD.config.controlBy;
+      if (!list || !list.length) return !!u.is_admin;
+      const norm = (v) => String(v || '').trim().toLowerCase();
+      return [].concat(list).some((who) => {
+        if (/^person\./.test(who)) return store.attr(who, 'user_id') === u.id;
+        return norm(who) === norm(u.name) || who === u.id;
+      });
+    },
+    // Calls that only read or watch (forecasts, the doorbell's live view) are fine for viewers
+    allowed(domain, service) { return this.canControl() || VIEW_SERVICES.has(service); },
+  };
+  HD.access = access;
+  const viewOnly = () => Promise.reject(new Error('This screen is view only'));
+
   HD.ha = {
     connect,
     baseUrl,
     isLive: () => store.mode === 'live',
-    callWS: (msg) => (store.mode === 'demo' ? HD.demo.callWS(msg) : send(msg)),
+    callWS(msg) {
+      if (msg.type === 'call_service' && !access.allowed(msg.domain, msg.service)) return viewOnly();
+      if (msg.type === 'supervisor/api' && msg.method && msg.method !== 'get' && !access.canControl()) return viewOnly();
+      return store.mode === 'demo' ? HD.demo.callWS(msg) : send(msg);
+    },
     // Home Assistant's REST API with the same sign-in as the socket (GET, JSON back)
     async rest(path) {
       if (store.mode === 'demo') throw new Error('Not available in demo mode');
@@ -259,10 +292,12 @@ window.HD = window.HD || {};
       return r.json();
     },
     callService(domain, service, data) {
+      if (!access.allowed(domain, service)) return viewOnly();
       if (store.mode === 'demo') return HD.demo.callService(domain, service, data);
       return send({ type: 'call_service', domain, service, service_data: data });
     },
     toggle(entityId) {
+      if (!access.canControl()) return viewOnly();
       const [domain] = entityId.split('.');
       const on = store.state(entityId) === 'on';
       if (domain === 'select') return this.callService('select', 'select_option', { entity_id: entityId, option: on ? 'off' : 'on' });
