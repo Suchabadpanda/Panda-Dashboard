@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.62
+- Vacuum map: zoom and pan, fitted to the map
+
 ## 0.3.61
 - View-only dashboard for other Home Assistant users
 
