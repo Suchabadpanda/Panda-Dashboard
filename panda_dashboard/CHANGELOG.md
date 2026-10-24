@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.60
+- Map page: rename People to Map, show/hide each person, tracked items
+
 ## 0.3.59
 - People page: phones on a street map with today's trails
 
