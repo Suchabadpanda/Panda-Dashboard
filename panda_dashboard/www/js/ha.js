@@ -130,6 +130,7 @@ window.HD = window.HD || {};
     if (HD.vacuum && HD.vacuum.extraIds) HD.vacuum.extraIds().forEach((id) => ids.add(id));
     if (HD.ac) HD.ac.extraIds().forEach((id) => ids.add(id));
     if (HD.car && HD.car.extraIds) HD.car.extraIds().forEach((id) => ids.add(id));
+    if (HD.people && HD.people.extraIds) HD.people.extraIds().forEach((id) => ids.add(id));
     return [...ids].filter((id) => !/^(js|css|data)\./.test(id));
   }
 

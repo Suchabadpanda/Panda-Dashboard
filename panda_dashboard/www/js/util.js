@@ -79,6 +79,7 @@ window.HD = window.HD || {};
     radiator: '<path d="M4 7v11M8 6v13M12 6v13M16 6v13M20 7v11M3 10h18M3 16h18"/>',
     tap: '<path d="M4 9h9a3 3 0 0 1 3 3v1M7 9V6M4 6h6M16 16v.01M16 19.5v.01"/>',
     toilet: '<path d="M6 3h5v8H6zM4 11h14a1 1 0 0 1 1 1 6 6 0 0 1-6 6h-1l1 3H8l1-3.4A6 6 0 0 1 3 12a1 1 0 0 1 1-1z"/>',
+    people: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 4.6a3.2 3.2 0 0 1 0 6.3M18 14.3a6 6 0 0 1 3 5.2V20"/>',
     update: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',
   };
   const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[name] || ''}</svg>`;
