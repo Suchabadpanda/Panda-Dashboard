@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.65
+- Home: COP card leads with heating and hot water COP
+
 ## 0.3.64
 - Power today: use the recorded load and battery sensors
 
