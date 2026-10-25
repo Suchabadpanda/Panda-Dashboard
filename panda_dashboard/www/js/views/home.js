@@ -328,19 +328,21 @@ HD.views = HD.views || {};
   function copBlock() {
     const c = HD.tracker && HD.tracker.cop; if (!c) return '';
     const f = (v) => (v == null ? '–' : v.toFixed(2));
-    const isToday = c.today != null;
-    const main = isToday ? c.today : c.yesterday;
-    const vsDesign = main != null && c.design != null ? (main >= c.design ? 'above' : 'below') : null;
-    const split = [c.heating != null ? `heating ${f(c.heating)}` : '', c.hotWater != null ? `hot water ${f(c.hotWater)}` : ''].filter(Boolean).join(' · ');
+    const heat = c.todayHeat != null && c.todayKwh != null
+      ? `<p class="cop-heat">${esc(String(c.todayHeat))} kWh of heat from ${esc(String(c.todayKwh))} kWh of electricity</p>` : '';
     return `
       <section class="now-block cop" title="Estimated by the Energy Tracker (no heat meter): heat out ÷ electricity in">
-        <h2>Heat pump COP ${isToday ? 'today' : 'yesterday'}</h2>
-        <p class="big">${f(main)}${vsDesign ? `<small> ${vsDesign} its ${f(c.design)} design</small>` : ''}</p>
-        ${isToday && split ? `<p>${esc(split)}${c.todayHeat != null ? ` · ${c.todayHeat} kWh of heat from ${c.todayKwh} kWh` : ''}</p>` : ''}
+        <h2>Heat pump COP</h2>
+        <div class="cop-main">
+          <div><span>Heating</span><b>${f(c.heating)}</b></div>
+          <div><span>Hot water</span><b>${f(c.hotWater)}</b></div>
+        </div>
+        ${heat}
         <dl class="cop-facts">
-          ${isToday ? `<div><dt>Yesterday</dt><dd>${f(c.yesterday)}</dd></div>` : ''}
+          <div><dt>Today</dt><dd>${f(c.today)}</dd></div>
+          <div><dt>Yesterday</dt><dd>${f(c.yesterday)}</dd></div>
           <div><dt>This month</dt><dd>${f(c.month)}</dd></div>
-          <div><dt>Design SCOP</dt><dd>${f(c.design)}</dd></div>
+          <div><dt>Design</dt><dd>${f(c.design)}</dd></div>
         </dl>
       </section>`;
   }

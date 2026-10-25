@@ -248,7 +248,11 @@ button { font: inherit; color: inherit; }
 .now-block .big { font: 600 34px/1.1 var(--font-num); }
 .now-block .big small { font-size: 15px; font-weight: 500; color: var(--muted); }
 .now-block p { color: var(--muted); font-size: 14px; }
-.cop-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; }
+.cop-main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 2px; }
+.cop-main span { display: block; font-size: 13px; color: var(--muted); }
+.cop-main b { display: block; font: 600 34px/1.1 var(--font-num); color: var(--ink); }
+.now-block p.cop-heat { margin-top: 8px; }
+.cop-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
 .cop-facts dt { font-size: 12px; color: var(--muted); }
 .cop-facts dd { margin: 0; font: 600 15px/1.3 var(--font-num); }
 .now-block p.big { color: var(--ink); }
