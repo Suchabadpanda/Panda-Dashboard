@@ -324,7 +324,7 @@ HD.views = HD.views || {};
     p.then(() => HD.app.toast(`${sc.name}: done`)).catch((e) => HD.app.toast(`${sc.name} didn't work: ${e.message}`)).finally(() => { b.disabled = false; });
   });
 
-  // Heat pump efficiency from the Energy Tracker add-on (right column, under the front door)
+  // Heat pump efficiency from the Energy Tracker add-on (right column, above the front door)
   function copBlock() {
     const c = HD.tracker && HD.tracker.cop; if (!c) return '';
     const f = (v) => (v == null ? '–' : v.toFixed(2));
@@ -412,8 +412,8 @@ HD.views = HD.views || {};
         <p class="net">${d ? `Net cost today <strong>${gbp(d.net)}</strong> incl. ${gbp(d.standing)} standing charge` : 'Working out today’s cost…'}</p>
         ${d && d.importKwh ? `<p class="sub">${Math.round((d.offPeakKwh / d.importKwh) * 100)}% of today’s import was at the ${pence(t.offPeak)} rate</p>` : ''}
       </section>
-      ${HD.doorbell ? HD.doorbell.cardHtml() : ''}
       ${copBlock()}
+      ${HD.doorbell ? HD.doorbell.cardHtml() : ''}
       ${alerts.length ? `<section class="now-block alerts">
         <h2>Attention</h2>
         <ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>
