@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.66
+- Home: heat pump COP card above the front door card
+
 ## 0.3.65
 - Home: COP card leads with heating and hot water COP
 
