@@ -328,8 +328,15 @@ HD.views = HD.views || {};
   function copBlock() {
     const c = HD.tracker && HD.tracker.cop; if (!c) return '';
     const f = (v) => (v == null ? '–' : v.toFixed(2));
+    const kwh = (v) => esc(String(Math.round(v * 10) / 10));
     const heat = c.todayHeat != null && c.todayKwh != null
-      ? `<p class="cop-heat">${esc(String(c.todayHeat))} kWh of heat from ${esc(String(c.todayKwh))} kWh of electricity</p>` : '';
+      ? `<p class="cop-heat">${kwh(c.todayHeat)} kWh of heat from ${kwh(c.todayKwh)} kWh of electricity</p>` : '';
+    // Where today's electricity went. "Other" (standby, pumps, defrost) makes no heat,
+    // which is why Today can sit below both the heating and hot water COPs.
+    const parts = [['Heating', c.todayHeatingKwh], ['Hot water', c.todayHotWaterKwh], ['Other', c.todayOtherKwh]];
+    const split = parts.every(([, v]) => v != null)
+      ? `<div class="cop-split">${parts.map(([n, v]) => `<div${n === 'Other' ? ' class="other"' : ''}><span>${n}</span><b>${kwh(v)} kWh</b></div>`).join('')}</div>
+        ${c.todayOtherKwh > 0.05 ? '<p class="cop-note">Other is standby, pumps and defrost: it uses electricity but makes no heat, so Today comes out below both COPs above.</p>' : ''}` : '';
     return `
       <section class="now-block cop" title="Estimated by the Energy Tracker (no heat meter): heat out ÷ electricity in">
         <h2>Heat pump COP</h2>
@@ -338,6 +345,7 @@ HD.views = HD.views || {};
           <div><span>Hot water</span><b>${f(c.hotWater)}</b></div>
         </div>
         ${heat}
+        ${split}
         <dl class="cop-facts">
           <div><dt>Today</dt><dd>${f(c.today)}</dd></div>
           <div><dt>Yesterday</dt><dd>${f(c.yesterday)}</dd></div>

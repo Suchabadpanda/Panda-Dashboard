@@ -424,7 +424,7 @@ window.HD = window.HD || {};
 
   HD.demo = {
     snapshotTime: SNAP,
-    trackerCop: { today: 4.42, todayKwh: 7.1, todayHeat: 31, heating: 4.47, hotWater: 4.76, yesterday: 2.9, month: 3.63, design: 3.78, eta: 0.495, measured: true },
+    trackerCop: { today: 4.08, todayKwh: 7.1, todayHeat: 29, todayHeatingKwh: 5.0, todayHotWaterKwh: 1.4, todayOtherKwh: 0.7, heating: 4.47, hotWater: 4.76, yesterday: 2.9, month: 3.63, design: 3.78, eta: 0.495, measured: true },
     start() {
       HD.store.states = buildStates();
       if (HD.ac) HD.ac.setExtras({ 'climate.living_room': ['select.living_room_vane_position', 'switch.living_room_beeper', 'switch.living_room_display'] });
