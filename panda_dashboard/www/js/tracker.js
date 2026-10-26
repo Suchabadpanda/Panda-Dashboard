@@ -7,7 +7,7 @@
  * dashboard asks the tracker for its figures through Home Assistant's ingress, which
  * the browser is already signed in to when the dashboard runs as an add-on panel.
  *
- * HD.tracker.cop → { today, todayKwh, todayHeat, todayHeatingKwh, todayHotWaterKwh, todayOtherKwh, yesterday, month, design, hotWater, heating, eta } or null
+ * HD.tracker.cop → { today, yesterday, month, design, hotWater, heating, eta } or null
  */
 window.HD = window.HD || {};
 
@@ -50,9 +50,6 @@ window.HD = window.HD || {};
         today: tEff ? tEff.scop : null,
         todayKwh: tEff ? tEff.kwh : null,
         todayHeat: tEff ? tEff.heat_kwh : null,
-        todayHeatingKwh: tEff ? tEff.heating_kwh : null,
-        todayHotWaterKwh: tEff ? tEff.hot_water_kwh : null,
-        todayOtherKwh: tEff ? tEff.other_kwh : null,
         heating: tEff ? tEff.heating_scop : null,
         hotWater: tEff ? tEff.hot_water_cop : null,
         yesterday: eff && eff.yesterday ? eff.yesterday.scop : null,

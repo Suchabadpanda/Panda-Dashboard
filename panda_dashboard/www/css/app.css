@@ -252,11 +252,6 @@ button { font: inherit; color: inherit; }
 .cop-main span { display: block; font-size: 13px; color: var(--muted); }
 .cop-main b { display: block; font: 600 34px/1.1 var(--font-num); color: var(--ink); }
 .now-block p.cop-heat { margin-top: 8px; }
-.cop-split { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
-.cop-split span { display: block; font-size: 12px; color: var(--muted); }
-.cop-split b { display: block; font: 600 15px/1.3 var(--font-num); color: var(--ink); }
-.cop-split .other b { color: var(--muted); }
-.now-block p.cop-note { margin-top: 6px; font-size: 12px; line-height: 1.35; color: var(--muted); }
 .cop-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
 .cop-facts dt { font-size: 12px; color: var(--muted); }
 .cop-facts dd { margin: 0; font: 600 15px/1.3 var(--font-num); }
