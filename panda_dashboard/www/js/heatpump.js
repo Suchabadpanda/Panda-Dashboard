@@ -8,7 +8,8 @@
  *                                current_temperature is the flow temperature.
  *   power        live electrical power (kW); above runningAbove the compressor is running.
  *   tankTemp     tank sensor; a rise of ≥ 1 °C over the last 30 min backs up "hot water"
- *                if the water heater entity is slow or unavailable.
+ *                if the water heater entity is slow or unavailable — unless the water
+ *                heater turned off after the tank's last rise (the reheat has finished).
  *
  * SmartThings sometimes stops sending anything for hours (it did through the whole reheat
  * on the night of 22–23 Oct 2026: water heater "off", heating "off", tank frozen at 16°,
@@ -68,6 +69,11 @@ window.HD = window.HD || {};
     const from = before[before.length - 1][0];
     return power.filter(([t]) => t >= from).every(([, v]) => v >= kw);
   }
+  // When the tank last went up (ms), or null
+  function lastTankRise() {
+    for (let i = tank.length - 1; i > 0; i--) if (tank[i][1] > tank[i - 1][1]) return tank[i][0];
+    return null;
+  }
   function tankRise(now) {
     const recent = tank.filter(([t]) => now - t <= 30 * 60e3);
     if (recent.length < 2) return 0;
@@ -85,7 +91,15 @@ window.HD = window.HD || {};
     const running = kw > (c.runningAbove ?? 0.1);
     const rise = tankRise(now);
     const heatingOn = cl != null && HEATING_ON.has(cl);
-    const reported = (wh != null && !OFF.has(wh)) || (running && rise >= 1);
+    // The tank-rise backup is for a water heater entity that's missing or lagging. If Samsung
+    // switched it to off after the tank's last rise, the reheat has finished: trust the off,
+    // even though the 30-minute rise is still large (27 Oct 2026: reheat ended 12:19, the
+    // heat pump went straight back to the radiators, and the card said "Hot water + heating"
+    // until the rise aged out ~12:45).
+    const whOffAt = wh != null && OFF.has(wh) && S().get(c.waterHeater) ? Date.parse(S().get(c.waterHeater).last_changed) : null;
+    const riseAt = lastTankRise();
+    const offAfterRise = whOffAt != null && riseAt != null && whOffAt >= riseAt;
+    const reported = (wh != null && !OFF.has(wh)) || (running && rise >= 1 && !offAfterRise);
     // Heating off, yet a long heavy run: it's reheating the tank, whatever Samsung says
     const likely = !reported && !heatingOn && sustained(now, c.hotWaterAbove ?? 0.5, 10);
     const hotWater = reported || likely;
