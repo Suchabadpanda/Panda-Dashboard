@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.69
+- Remove the Map page
+
 ## 0.3.68
 - Revert "Home: COP card shows where today's electricity went (heating / hot water / other)"
 
