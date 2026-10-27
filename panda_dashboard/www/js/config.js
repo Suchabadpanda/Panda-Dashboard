@@ -27,20 +27,10 @@ HD.config = {
   // sees the dashboard view only. Leave it out to let Home Assistant administrators control it.
   // controlBy: ['person.alex'],
 
-  // Map page: everyone's phone on a map. One line per phone; add more lines to track more.
-  // id: a person (person.*, following the HA Companion app) or any GPS device_tracker.
-  // Found automatically, but can be set: tracker (the GPS device_tracker), phoneBattery,
-  // batteryState (sensor.<tracker>_battery_level / _battery_state), colour (any CSS colour).
   people: [
     { id: 'person.alex', name: 'Alex', phoneBattery: 'sensor.alex_phone_battery_level' },
     { id: 'person.sam', name: 'Sam', phoneBattery: 'sensor.sam_phone_battery_level' },
-    // Items (AirTags via a Find My integration, pet or bike trackers…): any GPS device_tracker.
-    // icon: tag | key | bag | paw | bike | car. Shown with an icon instead of initials.
-    { id: 'device_tracker.backpack', name: 'Backpack', icon: 'bag' },
   ],
-  // The street map on the Map page. OpenStreetMap tiles by default; any {z}/{x}/{y} tile server works.
-  // maxAccuracy: GPS fixes worse than this many metres are left out of the trails.
-  // map: { tiles: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', maxAccuracy: 150 },
 
   weather: 'weather.forecast_home',
   sun: { state: 'sun.sun', rising: 'sensor.sun_next_rising', setting: 'sensor.sun_next_setting' },

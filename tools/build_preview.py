@@ -23,10 +23,7 @@ html = html.replace('<script src="js/config.js"></script>', '<script>window.HD_F
 html = re.sub(r"<script>document\.write\(.*?data/config\.js.*?</script>\n?", "", html)
 # demo.js is loaded on demand by the app; the preview always needs it
 html = html.replace('<script src="js/app.js"></script>', '<script src="js/demo.js"></script>\n  <script src="js/app.js"></script>')
-# The People page's map library is loaded on demand from vendor/; the preview carries it inline
-lf_css = (root / "vendor/leaflet.css").read_text()
-html = html.replace('<script src="js/views/map.js"></script>', f'<style>\n{lf_css}\n</style>\n  <script src="vendor/leaflet.js"></script>\n  <script src="js/views/map.js"></script>')
-html = re.sub(r'<script src="((?:js|vendor)/[^"]+)"></script>', inline, html)
+html = re.sub(r'<script src="(js/[^"]+)"></script>', inline, html)
 out = repo / "dist/preview.html"
 out.parent.mkdir(exist_ok=True)
 out.write_text(html)

@@ -193,20 +193,6 @@ window.HD = window.HD || {};
     ['front_driver', 'front_passenger', 'rear_driver', 'rear_passenger'].forEach((d) => car(`binary_sensor.model_y_${d}_door`, 'off'));
     [['front_left', 2.9], ['front_right', 2.9], ['rear_left', 2.75], ['rear_right', 2.9]].forEach(([w, v]) => car(`sensor.model_y_tyre_pressure_${w}`, String(v), { unit_of_measurement: 'bar' }));
 
-    // People: Alex at home, Sam on the way home from work (made-up places, near the car's)
-    car('zone.work', '0', { latitude: 51.5235, longitude: -0.0835, radius: 150, friendly_name: 'Work' });
-    car('device_tracker.backpack', 'not_home', { latitude: 51.5131, longitude: -0.1240, gps_accuracy: 40, source_type: 'gps', friendly_name: 'Backpack' });
-    states['device_tracker.backpack'].last_changed = new Date(DAY0 + (18 * 60 + 5) * 60e3).toISOString();
-    car('device_tracker.alex_phone', 'home', { latitude: 51.50085, longitude: -0.12455, gps_accuracy: 12, source_type: 'gps' });
-    car('device_tracker.sam_phone', 'not_home', { latitude: PEOPLE_TRAIL.sam[PEOPLE_TRAIL.sam.length - 1][1], longitude: PEOPLE_TRAIL.sam[PEOPLE_TRAIL.sam.length - 1][2], gps_accuracy: 18, source_type: 'gps' });
-    states['person.alex'].last_changed = new Date(DAY0 + (13 * 60 + 35) * 60e3).toISOString();
-    Object.assign(states['person.alex'].attributes, { source: 'device_tracker.alex_phone', latitude: 51.50085, longitude: -0.12455, gps_accuracy: 12 });
-    Object.assign(states['person.sam'], { state: 'not_home', last_changed: new Date(DAY0 + (22 * 60 + 41) * 60e3).toISOString() });
-    Object.assign(states['person.sam'].attributes, { source: 'device_tracker.sam_phone', latitude: states['device_tracker.sam_phone'].attributes.latitude, longitude: states['device_tracker.sam_phone'].attributes.longitude });
-    states['sensor.sam_phone_battery_level'].state = '34';
-    car('sensor.sam_phone_battery_state', 'Not Charging'); car('sensor.alex_phone_battery_state', 'Charging');
-    states['sensor.alex_phone_battery_level'].state = '82';
-
     // AC units: the living room cooling, the others off (made-up settings)
     const ac = (id, state, extra) => {
       Object.assign(states[id].attributes, {
@@ -379,31 +365,8 @@ window.HD = window.HD || {};
   }
 
 
-  // Today's phone trails: [minutes after midnight, lat, lon]
-  const PEOPLE_TRAIL = {
-    alex: [[0, 51.50085, -0.12455], [12 * 60 + 5, 51.50085, -0.12455], [12 * 60 + 14, 51.4985, -0.1290], [12 * 60 + 22, 51.4962, -0.1335],
-      [12 * 60 + 30, 51.4949, -0.1365], [13 * 60 + 10, 51.4949, -0.1365], [13 * 60 + 18, 51.4972, -0.1318], [13 * 60 + 27, 51.4991, -0.1272], [13 * 60 + 35, 51.50085, -0.12455]],
-    sam: [[0, 51.50085, -0.12455], [7 * 60 + 52, 51.50085, -0.12455], [7 * 60 + 58, 51.5040, -0.1188], [8 * 60 + 5, 51.5082, -0.1130], [8 * 60 + 12, 51.5118, -0.1052],
-      [8 * 60 + 19, 51.5139, -0.0968], [8 * 60 + 26, 51.5171, -0.0905], [8 * 60 + 33, 51.5210, -0.0861], [8 * 60 + 38, 51.5235, -0.0838],
-      [22 * 60 + 41, 51.5236, -0.0836], [22 * 60 + 47, 51.5203, -0.0866], [22 * 60 + 54, 51.5168, -0.0912], [23 * 60 + 1, 51.5140, -0.0975],
-      [23 * 60 + 8, 51.5117, -0.1046], [23 * 60 + 14, 51.5090, -0.1104], [23 * 60 + 19, 51.5066, -0.1146]],
-  };
-  function peopleHistory(msg) {
-    const out = {};
-    const who = { 'device_tracker.alex_phone': 'alex', 'device_tracker.sam_phone': 'sam' };
-    msg.entity_ids.forEach((id) => {
-      const k = who[id]; if (!k) return;
-      out[id] = PEOPLE_TRAIL[k].map(([m, lat, lon], i) => ({
-        s: k === 'sam' && m > 8 * 60 + 30 && m < 22 * 60 + 45 ? 'work' : (k === 'sam' && m >= 22 * 60 + 45) || (k === 'alex' && m > 12 * 60 + 10 && m < 13 * 60 + 33) ? 'not_home' : 'home',
-        a: { latitude: lat, longitude: lon, gps_accuracy: 10 + (i % 4) * 5, source_type: 'gps' }, lu: (DAY0 + m * 60e3) / 1000,
-      }));
-    });
-    return out;
-  }
-
   function callWS(msg) {
     if (msg.type === 'supervisor/api' && msg.endpoint === '/host/info') return Promise.resolve({ disk_total: 28, disk_used: 14.2, disk_free: 12.6 });
-    if (msg.type === 'history/history_during_period') return Promise.resolve(peopleHistory(msg));
     if (msg.type !== 'recorder/statistics_during_period') return Promise.resolve(null);
     const res = {};
     const start = Date.parse(msg.start_time);
@@ -433,13 +396,6 @@ window.HD = window.HD || {};
     callWS,
     forecast,
     callService(domain, service, data) {
-      // A phone asked for its location answers a couple of seconds later
-      if (domain === 'notify' && data && data.message === 'request_location_update') {
-        const t = HD.store.states[`device_tracker.${service.replace(/^mobile_app_/, '')}`];
-        if (!t) return Promise.reject(new Error(`no service notify.${service}`));
-        setTimeout(() => { t.last_updated = new Date(SNAP + 60e3).toISOString(); HD.store.emit(t.entity_id); }, 2000);
-        return Promise.resolve();
-      }
       // Make toggles feel real in the demo
       const id = data && data.entity_id;
       const s = id && HD.store.states[id];

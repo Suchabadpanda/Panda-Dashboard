@@ -130,7 +130,6 @@ window.HD = window.HD || {};
     if (HD.vacuum && HD.vacuum.extraIds) HD.vacuum.extraIds().forEach((id) => ids.add(id));
     if (HD.ac) HD.ac.extraIds().forEach((id) => ids.add(id));
     if (HD.car && HD.car.extraIds) HD.car.extraIds().forEach((id) => ids.add(id));
-    if (HD.people && HD.people.extraIds) HD.people.extraIds().forEach((id) => ids.add(id));
     return [...ids].filter((id) => !/^(js|css|data)\./.test(id));
   }
 
@@ -267,12 +266,8 @@ window.HD = window.HD || {};
         return norm(who) === norm(u.name) || who === u.id;
       });
     },
-    // Calls that only read or watch are fine for viewers: forecasts, the doorbell's live view,
-    // and asking a phone for a fresh location (the Map page's Refresh)
-    allowed(domain, service, data) {
-      if (this.canControl() || VIEW_SERVICES.has(service)) return true;
-      return domain === 'notify' && /^mobile_app_/.test(service) && data && data.message === 'request_location_update';
-    },
+    // Calls that only read or watch (forecasts, the doorbell's live view) are fine for viewers
+    allowed(domain, service) { return this.canControl() || VIEW_SERVICES.has(service); },
   };
   HD.access = access;
   const viewOnly = () => Promise.reject(new Error('This screen is view only'));
@@ -282,7 +277,7 @@ window.HD = window.HD || {};
     baseUrl,
     isLive: () => store.mode === 'live',
     callWS(msg) {
-      if (msg.type === 'call_service' && !access.allowed(msg.domain, msg.service, msg.service_data)) return viewOnly();
+      if (msg.type === 'call_service' && !access.allowed(msg.domain, msg.service)) return viewOnly();
       if (msg.type === 'supervisor/api' && msg.method && msg.method !== 'get' && !access.canControl()) return viewOnly();
       return store.mode === 'demo' ? HD.demo.callWS(msg) : send(msg);
     },
@@ -296,7 +291,7 @@ window.HD = window.HD || {};
       return r.json();
     },
     callService(domain, service, data) {
-      if (!access.allowed(domain, service, data)) return viewOnly();
+      if (!access.allowed(domain, service)) return viewOnly();
       if (store.mode === 'demo') return HD.demo.callService(domain, service, data);
       return send({ type: 'call_service', domain, service, service_data: data });
     },
