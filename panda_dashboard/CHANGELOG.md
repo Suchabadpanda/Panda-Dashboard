@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.72
+- Rooms: Last 24 hours chart fills its panel
+
 ## 0.3.71
 - Move the hot water tank panel from Rooms to Energy
 
