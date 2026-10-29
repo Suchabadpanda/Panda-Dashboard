@@ -807,7 +807,7 @@ thead th { color: var(--muted); font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .pr .pulse, .doorcam.ringing circle, .robot .halo, .pr.vac-active .hl { animation: none; } }
 
 /* Energy: hot water tank (figures left, 24 h chart right; stacked on phones) */
-.tank-body { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr); gap: var(--gap); align-items: start; }
+.tank-body { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 16px 40px; align-items: center; }
 @media (max-width: 760px) { .tank-body { grid-template-columns: 1fr; } }
 .tank-panel .big { margin: 0; }
 .tank-note { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }

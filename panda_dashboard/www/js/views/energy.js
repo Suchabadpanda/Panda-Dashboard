@@ -85,7 +85,7 @@ HD.views = HD.views || {};
     const d = HD.data.temps; const box = document.getElementById('chart-tank');
     if (!d || !box || !hasTank()) return;
     HD.chart.line(box, {
-      label: 'Hot water tank, last 24 hours', height: 150, endLabels: false, ticks: 3, xTicks: 4,
+      label: 'Hot water tank, last 24 hours', height: window.innerWidth <= 820 ? 170 : 210, endLabels: false, ticks: 4, xTicks: window.innerWidth <= 820 ? 4 : 8,
       format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`),
       series: [{ name: 'Tank', points: d[C().heatPump.tankTemp], color: 'var(--c2)', area: true }],
     });
