@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.71
+- Move the hot water tank panel from Rooms to Energy
+
 ## 0.3.70
 - Heat pump: a water heater 'off' after the tank's last rise ends hot water
 
