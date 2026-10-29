@@ -23,7 +23,7 @@
 window.HD = window.HD || {};
 
 (function () {
-  const { esc, icon, gbp, pence } = HD.u;
+  const { esc, icon, pence } = HD.u;
   const S = () => HD.store;
   const cfg = () => HD.config.dishwasher;
   const enabled = () => !!(cfg() && cfg().state);
@@ -165,7 +165,7 @@ window.HD = window.HD || {};
             : `<button class="btn ghost" data-dw="now" ${canStart ? '' : 'disabled'}>Start ${esc(startProg)} now</button>
                <button class="btn primary" data-dw="cheap" ${canStart ? '' : 'disabled'}>${cheapAt ? `Start at ${String(t.offPeakStart).padStart(2, '0')}:00 (${pence(t.offPeak)})` : `Start now on the cheap rate (${pence(t.offPeak)})`}</button>`}
         </div>
-        ${why ? `<p class="sub">${esc(why)}</p>` : running() ? '' : `<p class="sub">A typical eco wash uses about 1 kWh: roughly ${gbp(t.offPeak)} on the cheap rate against ${gbp(t.peak)} at peak.</p>`}
+        ${why ? `<p class="sub dw-why">${esc(why)}</p>` : ''}
       </section>`;
   }
 

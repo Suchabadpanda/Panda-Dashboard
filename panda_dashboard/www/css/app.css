@@ -1001,9 +1001,10 @@ a.chip { text-decoration: none; }
 .dw-state { font: 600 20px/1.2 var(--font-num); }
 .dw-bar { margin: 8px 0 4px; }
 .dw-kv { margin: 6px 0 10px; }
-.dw-warn { display: flex; align-items: center; gap: 6px; color: var(--warning); font-size: 14px; margin-bottom: 10px; }
-.dw-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
-.dw-actions .btn { flex: 1 1 180px; margin-top: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.dw-warn { display: flex; align-items: center; gap: 6px; color: var(--warning); font-size: 14px; margin: 12px 0 0; }
+.dw-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.dw-actions .btn { flex: 1 1 180px; margin-top: 0; min-height: 40px; padding: 8px 14px; line-height: 1.2; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.dw-why { margin-top: 10px; }
 
 /* Sensor batteries */
 .bat-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
