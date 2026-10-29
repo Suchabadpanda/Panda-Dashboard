@@ -30,12 +30,18 @@ window.HD = window.HD || {};
     return n;
   }
 
-  function mount(container, render) {
+  // fill: the chart takes the box's height too (the box is sized by CSS, e.g. .chart-box.fill),
+  // so it is redrawn when either dimension changes
+  function mount(container, render, fill) {
     if (container._ro) container._ro.disconnect();
     const draw = () => { container.innerHTML = ''; if (container.clientWidth > 0) render(container.clientWidth); };
     draw();
-    container._ro = new ResizeObserver(() => { if (Math.abs((container._w || 0) - container.clientWidth) > 4) { container._w = container.clientWidth; draw(); } });
-    container._w = container.clientWidth;
+    container._ro = new ResizeObserver(() => {
+      const dw = Math.abs((container._w || 0) - container.clientWidth);
+      const dh = fill ? Math.abs((container._h || 0) - container.clientHeight) : 0;
+      if (dw > 4 || dh > 4) { container._w = container.clientWidth; container._h = container.clientHeight; draw(); }
+    });
+    container._w = container.clientWidth; container._h = container.clientHeight;
     container._ro.observe(container);
   }
 
@@ -69,13 +75,19 @@ window.HD = window.HD || {};
 
   // ── Line chart ──
   function line(container, o) {
-    const H = o.height || 200;
+    let H = o.height || 200;
     const fmtV = o.format || ((v) => v.toFixed(1));
     const fmtX = o.xFormat || fmtTime;
     mount(container, (W) => {
       const series = o.series.filter((s) => s.points && s.points.length);
       if (!series.length) { container.innerHTML = `<p class="empty">${o.empty || 'No data yet.'}</p>`; return; }
       legend(container, series);
+      // fill: as tall as the box allows (never below o.height)
+      if (o.fill) {
+        const lg = container.querySelector('.chart-legend');
+        const used = lg ? lg.offsetHeight + (parseFloat(getComputedStyle(lg).marginBottom) || 0) : 0;
+        H = Math.max(o.height || 200, Math.floor(container.clientHeight - used - 4));
+      }
       // Names at the line ends only when asked for (endLabels: true): the legend says which is which
       const labelRoom = o.endLabels === true ? 74 : (o.padRight ?? 8);
       const m = { t: 10, r: labelRoom, b: 22, l: 40 };
@@ -85,7 +97,7 @@ window.HD = window.HD || {};
       let yMin = Math.min(...ys, o.yMin ?? Infinity, o.band ? o.band[0] : Infinity);
       let yMax = Math.max(...ys, o.yMax ?? -Infinity, o.band ? o.band[1] : -Infinity);
       if (o.zero) { yMin = Math.min(0, yMin); yMax = Math.max(0, yMax); }
-      const ticks = niceTicks(yMin, yMax, o.ticks || 4);
+      const ticks = niceTicks(yMin, yMax, o.ticks || (o.fill ? Math.max(4, Math.round(H / 90)) : 4));
       yMin = ticks[0]; yMax = ticks[ticks.length - 1];
       const sx = (v) => m.l + ((v - x0) / (x1 - x0 || 1)) * (W - m.l - m.r);
       const sy = (v) => m.t + (1 - (v - yMin) / (yMax - yMin || 1)) * (H - m.t - m.b);
@@ -158,7 +170,7 @@ window.HD = window.HD || {};
       const leave = () => { tip.hide(); cross.setAttribute('visibility', 'hidden'); dots.forEach((d) => d.setAttribute('visibility', 'hidden')); };
       hit.addEventListener('mousemove', move); hit.addEventListener('touchmove', move, { passive: true });
       hit.addEventListener('mouseleave', leave); hit.addEventListener('touchend', leave);
-    });
+    }, o.fill);
   }
 
   // ── Bar chart (optionally diverging: series with down:true draw below zero) ──

@@ -43,7 +43,7 @@ HD.views = HD.views || {};
     const d = HD.data.temps; if (!d) return;
     const list = rooms().filter((r) => r.temp && d[r.temp]);
     HD.chart.line(document.getElementById('chart-temps'), {
-      label: 'Room temperatures, last 24 hours', height: 260, band: [HD.config.comfortTarget - 0.75, HD.config.comfortTarget + 0.75],
+      label: 'Room temperatures, last 24 hours', height: 260, fill: true, band: [HD.config.comfortTarget - 0.75, HD.config.comfortTarget + 0.75],
       format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`), xTicks: 6,
       series: list.map((r, i) => ({ name: r.name, short: r.name.replace("'s room", ''), points: d[r.temp], color: ROOM_COLORS[i] })),
     });
@@ -86,7 +86,7 @@ HD.views = HD.views || {};
       <div class="panel-grid climate">
         ${HD.config.floorplan ? `<section class="panel wide plan-panel"><header id="plan-head">${planHeader()}</header><div id="climate-plan"></div></section>` : ''}
         <section class="panel"><header><h2>Balance</h2></header><div id="balance"></div></section>
-        <section class="panel wide-2"><header><h2>Last 24 hours</h2><p>Band shows ${HD.config.comfortTarget}° ±0.75°.</p></header><div id="chart-temps" class="chart-box"></div></section>
+        <section class="panel wide-2 temps-panel"><header><h2>Last 24 hours</h2><p>Band shows ${HD.config.comfortTarget}° ±0.75°.</p></header><div id="chart-temps" class="chart-box fill"></div></section>
         <section class="panel wide ac-panel"><header><h2>Air conditioning</h2></header><div id="ac"></div></section>
       </div>`;
       this.update(); this.redraw();
