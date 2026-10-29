@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.73
+- Energy: hot water tank chart uses the panel's width and is taller
+
 ## 0.3.72
 - Rooms: Last 24 hours chart fills its panel
 
