@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.74
+- Dishwasher card: even spacing above the Start buttons, drop the eco-wash cost line
+
 ## 0.3.73
 - Energy: hot water tank chart uses the panel's width and is taller
 
