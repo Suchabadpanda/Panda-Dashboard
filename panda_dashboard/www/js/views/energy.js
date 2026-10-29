@@ -1,5 +1,5 @@
 /*
- * Energy view: today's power, battery charge and the last 30 days.
+ * Energy view: today's power, battery charge, the last 30 days and the hot water tank.
  * Monthly costs and payback live in the Energy Tracker add-on.
  */
 window.HD = window.HD || {};
@@ -8,6 +8,8 @@ HD.views = HD.views || {};
 (function () {
   const { esc, kwh, gbp, pence } = HD.u;
   const C = () => HD.config;
+  const S = () => HD.store;
+  const hasTank = () => !!(C().heatPump && C().heatPump.tankTemp);
 
   const pts = (rows) => (rows || []).map((r) => [r.start, r.mean]);
   // Battery and house are drawn the other way up so supply sits above zero and demand below:
@@ -69,6 +71,26 @@ HD.views = HD.views || {};
     });
   }
 
+  // Hot water tank: temperature now, heat pump power and mode lamps, and 24 hours of tank temperature
+  function tankHtml() {
+    const hp = C().heatPump;
+    const t = S().num(hp.tankTemp);
+    const legion = hp.legionella && S().state(hp.legionella) === 'on';
+    return `<p class="big">${HD.u.temp(t)}<small> now</small></p>
+      <p class="tank-note">${legion ? 'Legionella cycle running. ' : ''}Heat pump ${HD.u.kw(S().num(hp.power))} now · ${S().num(hp.energyToday)?.toFixed(1) ?? '–'} kWh today</p>
+      ${HD.heatpump ? HD.heatpump.lampsHtml(HD.heatpump.mode()) : ''}`;
+  }
+
+  function drawTank() {
+    const d = HD.data.temps; const box = document.getElementById('chart-tank');
+    if (!d || !box || !hasTank()) return;
+    HD.chart.line(box, {
+      label: 'Hot water tank, last 24 hours', height: 150, endLabels: false, ticks: 3, xTicks: 4,
+      format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`),
+      series: [{ name: 'Tank', points: d[C().heatPump.tankTemp], color: 'var(--c2)', area: true }],
+    });
+  }
+
   HD.views.energy = {
     title: 'Energy',
     mount(root) {
@@ -88,10 +110,15 @@ HD.views = HD.views || {};
           <header><h2>Solar and use, last 30 days</h2><p>Spikes are usually the ${esc(C().ev.name || 'car')} charging overnight.</p></header>
           <div id="chart-daily-use" class="chart-box"></div>
         </section>
+        ${hasTank() ? `<section class="panel wide tank-panel">
+          <header><h2>Hot water tank</h2><p>Last 24 hours</p></header>
+          <div class="tank-body"><div id="tank"></div><div id="chart-tank" class="chart-box"></div></div>
+        </section>` : ''}
       </div>`;
-      this.redraw();
+      this.update(); this.redraw();
     },
-    redraw() { drawToday(); drawDaily(); },
-    update() { /* charts redraw on data refresh, not on every state change */ },
+    redraw() { drawToday(); drawDaily(); drawTank(); },
+    // Only the tank figures follow live states; the charts redraw on data refresh
+    update() { const tk = document.getElementById('tank'); if (tk && hasTank()) HD.u.setHTML(tk, tankHtml()); },
   };
 })();
