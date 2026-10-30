@@ -34,6 +34,9 @@ HD.config = {
   ],
 
   weather: 'weather.forecast_home',
+  // Grid carbon intensity on the Energy page (GB only): the first half of your postcode.
+  // Fetched from api.carbonintensity.org.uk; only the postcode district is sent.
+  carbon: { postcode: 'RG1' },
   sun: { state: 'sun.sun', rising: 'sensor.sun_next_rising', setting: 'sensor.sun_next_setting' },
 
   // ── The house, top floor first. Drawn as a cross-section on the Home view. ──
@@ -104,7 +107,8 @@ HD.config = {
     gridPower: 'sensor.sigen_plant_grid_active_power',
     soc: 'sensor.sigen_plant_battery_state_of_charge',
     soh: 'sensor.sigen_plant_battery_state_of_health',
-    capacity: 'sensor.sigen_plant_rated_energy_capacity',
+    capacity: 'sensor.sigen_plant_rated_energy_capacity',  // kWh; or batteryKwh: 27.1
+    // batteryReserve: 5,                                    // % the battery plan keeps back (discharge cut-off)
     cellTemp: 'sensor.sigen_plant_ess_average_cell_temperature',
     inverterTemp: 'sensor.sigen_inverter_pcs_internal_temperature',
     emsMode: 'sensor.sigen_plant_ems_work_mode',
@@ -255,6 +259,10 @@ HD.config = {
     guardMode: 'select.home_doorbell_guard_mode',
     baseConnected: 'binary_sensor.home_doorbell_connected',
     lowBattery: 20,                               // % — show a warning below this
+    // Recent rings: a media folder a Home Assistant automation saves a picture into on each ring
+    // (image.snapshot → /media/doorbell/ring_YYYYMMDD_HHMMSS.jpg; see DOCS). Shows the newest ringCount.
+    snapshots: 'doorbell',
+    ringCount: 6,
   },
 
   vpp: {

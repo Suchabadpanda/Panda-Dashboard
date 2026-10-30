@@ -22,8 +22,13 @@
  * A monobloc like the Samsung Mono has one compressor and a diverter valve, so it heats
  * the radiators OR the tank at any instant. "Both" therefore means both are calling: the
  * tank is being reheated and the heating is waiting (or sharing by switching back and forth).
- * Based on the Energy Tracker's heatpump.mode(). The tracker (0.42.1+) also counts a flow climb
- * past 48 °C with a flow target under 48 °C as hot water; this card doesn't yet.
+ * Flow climb (same rule as the Energy Tracker's flow_reheats, 0.42.1+): space heating keeps
+ * the flow below 48 °C, so while the flow is climbing past 48 °C it's reheating the tank,
+ * whatever the mode entities say — unless the heating itself asked for 48 °C or more when the
+ * flow got there (27 Oct 2026: a plumber's radiator test at 50–64 °C). SmartThings sometimes
+ * stops sending the water heater's changes while the flow keeps coming (28 Oct 2026: flow
+ * 42 → 54.5 °C 05:59–06:20 with the water heater stuck "off"). Only the climb counts: the
+ * flow stays hot for half an hour afterwards while it cools.
  */
 window.HD = window.HD || {};
 
@@ -54,6 +59,13 @@ window.HD = window.HD || {};
       if (id) tank.unshift(...rows(id).filter(([t]) => !tank.length || t < tank[0][0]));
       if (pid) power.unshift(...rows(pid).filter(([t]) => !power.length || t < power[0][0]));
     } catch (e) { console.warn('Heat pump history unavailable', e); }
+    const cl = HD.config.heatPump.climate; if (!cl) return;
+    try {
+      const r = await HD.ha.callWS({ type: 'history/history_during_period', start_time: new Date(Date.now() - 3600e3).toISOString(), entity_ids: [cl], minimal_response: false, no_attributes: false, significant_changes_only: false });
+      const old = (r[cl] || []).map((x) => [((x.lu || x.lc) * 1000), x.a && x.a.current_temperature, x.a && x.a.temperature])
+        .filter(([t, v]) => t && Number.isFinite(v) && (!flowPts.length || t < flowPts[0][0]));
+      flowPts.unshift(...old);
+    } catch (e) { console.warn('Heat pump flow history unavailable', e); }
   }
   // Recent power readings, to tell a sustained heavy run from a short burst
   const power = [];
@@ -70,6 +82,35 @@ window.HD = window.HD || {};
     const from = before[before.length - 1][0];
     return power.filter(([t]) => t >= from).every(([, v]) => v >= kw);
   }
+  // Recent flow readings [ms, °C, target °C], oldest first, for the flow-climb rule
+  const REHEAT_FLOW = 48;             // °C: heating stays below, a tank reheat climbs past
+  const STEP = 10 * 60e3;             // readings further apart than this say nothing
+  const WINDOW = 5 * 60e3;            // the climb is over once it hasn't risen for this long
+  const flowPts = [];
+  function noteFlow(now, v, target) {
+    if (v == null || !Number.isFinite(v)) return;
+    const last = flowPts[flowPts.length - 1];
+    if (!last || last[1] !== v || last[2] !== target) flowPts.push([now, v, target]);
+    while (flowPts.length && now - flowPts[0][0] > 2 * 3600e3) flowPts.shift();
+  }
+  // The climb under way now: { since, crossed, target } or null
+  function flowClimb(now) {
+    const p = flowPts; const n = p.length;
+    if (n < 2 || p[n - 1][1] < REHEAT_FLOW) return null;
+    // Last rise, with no fall since
+    let j = n - 1;
+    while (j > 0 && p[j][1] === p[j - 1][1]) j--;
+    if (j === 0 || p[j][1] < p[j - 1][1] || p[j][0] - p[j - 1][0] > STEP || now - p[j][0] > WINDOW) return null;
+    // Back to where this run of rising readings began
+    let k = j;
+    while (k > 0 && p[k - 1][1] <= p[k][1] && p[k][0] - p[k - 1][0] <= STEP) k--;
+    const cross = p.slice(k, j + 1).find(([, v]) => v >= REHEAT_FLOW);
+    if (!cross || cross === p[k]) return null;   // already that hot when the run began: not a climb past 48
+    // What the heating asked for when the flow reached 48 °C
+    if (cross[2] != null && cross[2] >= REHEAT_FLOW) return null;
+    return { since: p[k][0], crossed: cross[0], target: cross[2] };
+  }
+
   // When the tank last went up (ms), or null
   function lastTankRise() {
     for (let i = tank.length - 1; i > 0; i--) if (tank[i][1] > tank[i - 1][1]) return tank[i][0];
@@ -100,14 +141,18 @@ window.HD = window.HD || {};
     const whOffAt = wh != null && OFF.has(wh) && S().get(c.waterHeater) ? Date.parse(S().get(c.waterHeater).last_changed) : null;
     const riseAt = lastTankRise();
     const offAfterRise = whOffAt != null && riseAt != null && whOffAt >= riseAt;
-    const reported = (wh != null && !OFF.has(wh)) || (running && rise >= 1 && !offAfterRise);
+    const flow = c.climate ? S().attr(c.climate, 'current_temperature') : null;
+    const flowTarget = c.climate ? S().attr(c.climate, 'temperature') : null;
+    noteFlow(now, flow, flowTarget);
+    const climbing = flowClimb(now);
+    // A water heater switched off after the flow passed 48 °C has ended the reheat
+    const climb = climbing && !(whOffAt != null && whOffAt >= climbing.crossed) ? climbing : null;
+    const reported = (wh != null && !OFF.has(wh)) || (running && rise >= 1 && !offAfterRise) || !!climb;
     // Heating off, yet a long heavy run: it's reheating the tank, whatever Samsung says
     const likely = !reported && !heatingOn && sustained(now, c.hotWaterAbove ?? 0.5, 10);
     const hotWater = reported || likely;
     const tankAt = c.tankTemp && S().get(c.tankTemp) ? Date.parse(S().get(c.tankTemp).last_updated) : null;
     const delayed = likely && tankAt != null && S().mode !== 'demo' && now - tankAt > 20 * 60e3;
-    const flow = c.climate ? S().attr(c.climate, 'current_temperature') : null;
-    const flowTarget = c.climate ? S().attr(c.climate, 'temperature') : null;
     const legionella = c.legionella && S().state(c.legionella) === 'on';
 
     // What it's doing now
@@ -117,10 +162,11 @@ window.HD = window.HD || {};
       note = heatingOn ? 'Heating on, not needed right now' : 'Heating off';
     } else if (hotWater && heatingOn) {
       key = 'both'; label = 'Hot water + heating';
-      note = 'Tank first, then the heating';
+      note = climb && (wh == null || OFF.has(wh)) ? `Flow climbing past ${REHEAT_FLOW}°: tank first, then the heating` : 'Tank first, then the heating';
     } else if (hotWater) {
       key = 'water'; label = legionella ? 'Hot water · legionella' : 'Hot water';
-      note = likely ? `Heating's off and it's drawing ${kw.toFixed(1)} kW, so it's reheating the tank${delayed ? ' · Samsung data delayed' : ''}`
+      note = climb && (wh == null || OFF.has(wh)) ? `Flow ${Math.round(flow)}° and climbing past ${REHEAT_FLOW}°, so it's reheating the tank`
+        : likely ? `Heating's off and it's drawing ${kw.toFixed(1)} kW, so it's reheating the tank${delayed ? ' · Samsung data delayed' : ''}`
         : rise >= 0.5 ? `Tank up ${rise.toFixed(1)}° in 30 min` : 'Reheating the tank';
     } else if (heatingOn) {
       key = 'heat'; label = 'Heating';
@@ -128,7 +174,7 @@ window.HD = window.HD || {};
     } else {
       key = 'other'; label = 'Running'; note = 'Defrost or pump run';
     }
-    return { key, label, note, running, power: kw, hotWater, likely, delayed, heatingOn, waterKnown: wh != null, heatingKnown: cl != null, flow, flowTarget, rise };
+    return { key, label, note, running, power: kw, hotWater, likely, delayed, heatingOn, waterKnown: wh != null, heatingKnown: cl != null, flow, flowTarget, rise, climb };
   }
 
   // Two small lamps: radiator and tap. Lit = that job is active now; dim outline = switched on but idle.
@@ -142,5 +188,5 @@ window.HD = window.HD || {};
     </span>`;
   }
 
-  HD.heatpump = { mode, lampsHtml };
+  HD.heatpump = { mode, lampsHtml, _flow: { noteFlow, flowClimb, reset: () => flowPts.splice(0) } };
 })();

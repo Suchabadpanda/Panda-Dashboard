@@ -22,6 +22,46 @@ Copy `config.js` (your rooms, entities and tariffs) into this add-on's config fo
 Without it the dashboard uses the example settings, which match the demo snapshot.
 Updates never overwrite files in this folder.
 
+## Doorbell: recent rings
+
+The front door card shows the last few rings when Home Assistant saves a picture on each one.
+Add this automation (Settings → Automations → ⋮ → Edit in YAML) and set
+`doorbell.snapshots: 'doorbell'` in config.js:
+
+```yaml
+alias: Doorbell ring pictures (Panda Dashboard)
+mode: queued
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.doorbell_ringing
+    to: "on"
+actions:
+  # Eufy sends the ring's thumbnail a few seconds after the ring
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: image.doorbell_event_image
+    timeout: "00:01:00"
+  - delay: "00:00:02"
+  - action: image.snapshot
+    target:
+      entity_id: image.doorbell_event_image
+    data:
+      filename: "/media/doorbell/ring_{{ now().strftime('%Y%m%d_%H%M%S') }}.jpg"
+```
+
+Pictures stay in `/media/doorbell` (Media → My media) until you delete them; each is small.
+
+## Battery plan and grid carbon
+
+On Energy, **Battery plan** works out how far the battery needs charging in the next cheap window
+to carry the house through the peak hours after it, from the last 7 days' use (car charging left
+out) and the weather entity's hourly cloud forecast. It's advice only; it doesn't change the
+battery's settings. `energy.batteryReserve` (%) is what it keeps back (default 5).
+
+**Grid carbon** needs `carbon: { postcode: 'PO15' }` (the first half of your postcode). It
+fetches the regional forecast from the GB Carbon Intensity API (api.carbonintensity.org.uk);
+only the postcode district is sent.
+
 ## Look
 
 Settings (the status pill, top right) → **Theme** and **Colours**: light, dark or match the

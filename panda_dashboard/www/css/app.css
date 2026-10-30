@@ -1193,3 +1193,28 @@ body.view-only :is(button, select, input):is([data-shortcut], [data-car], [data-
 body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac], [data-dw]) { display: none; }
 .status.view-only-badge { cursor: default; }
 .status.view-only-badge .ic { width: 16px; height: 16px; }
+
+/* Energy: battery plan and grid carbon */
+.plan-panel .big, .carbon-panel .big { margin: 0; }
+.plan-text { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+.plan-facts { margin-bottom: 10px; }
+.carbon-now { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.carbon-level { font-size: 12px; font-weight: 600; text-transform: capitalize; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.carbon-level.good { color: var(--s-battery); border-color: color-mix(in oklab, var(--s-battery) 55%, var(--line)); }
+.carbon-level.mid { color: var(--s-solar); border-color: color-mix(in oklab, var(--s-solar) 55%, var(--line)); }
+.carbon-level.bad { color: var(--s-import); border-color: color-mix(in oklab, var(--s-import) 55%, var(--line)); }
+.carbon-panel .sub { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+.carbon-best { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0; font-size: 14px; }
+.carbon-best .ic { color: var(--s-battery); flex: none; margin-top: 2px; }
+@media (max-width: 700px) { .plan-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Doorbell: recent rings */
+.ring-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.ring-shot { display: grid; gap: 3px; padding: 0; border: 0; background: none; color: var(--muted); font: 500 11px/1.2 var(--font); cursor: pointer; text-align: center; }
+.ring-shot img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--room); }
+.ring-shot:hover img, .ring-shot:focus-visible img { border-color: var(--accent); }
+.ring-view { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); padding: 14px; max-width: min(92vw, 900px); }
+.ring-view::backdrop { background: rgb(0 0 0 / .6); }
+.ring-view figure { margin: 0 0 10px; }
+.ring-view img { display: block; width: 100%; max-height: 72vh; object-fit: contain; border-radius: 8px; background: #000; }
+.ring-view figcaption { display: flex; gap: 6px; align-items: center; margin-top: 8px; color: var(--muted); font-size: 14px; }

@@ -14,9 +14,9 @@ Home Assistant over its WebSocket API.
 
 | View | What's on it |
 |---|---|
-| **Home** | House cross-section with room temperature, humidity, presence, lights, AC and TV; weather drawn over the roof; live solar, battery, grid, heat pump and EV flows; battery card; today's kWh and £; front door camera; heat pump COP; alerts; shortcuts (lights off, AC, wake/lock/mute/shut down PC) |
+| **Home** | House cross-section with room temperature, humidity, presence, lights, AC and TV; weather drawn over the roof; live solar, battery, grid, heat pump and EV flows; battery card; today's kWh and £; front door camera with recent rings; heat pump COP; alerts; shortcuts (lights off, AC, wake/lock/mute/shut down PC) |
 | **Rooms** | Floor plan switching between lights/presence (tap a room to switch its lights), temperatures, and the robot vacuum (where it is, rooms being cleaned, live Dreame map, pick rooms; how to clean: vacuum/mop/both, deep clean, CleanGenius, suction, mop wetness, route, passes, more settings); heating balance; 24 h room temperatures; AC: mode, target temperature, room temperature, and on tap fan speed, swing (up/down and left/right), preset, humidity in dry mode and the unit's own switches and selects (display, beeper, vane…) |
-| **Energy** | Power through the day with the cheap window shaded; battery charge; 30 days of grid import/export and solar vs use; hot water tank (temperature, heat pump mode and power, 24 h chart) |
+| **Energy** | Power through the day with the cheap window shaded; battery charge; 30 days of grid import/export and solar vs use; hot water tank (temperature, heat pump mode and power, 24 h chart); battery plan for the peak hours after the next cheap window; regional grid carbon intensity with the greenest 3 hours |
 | **Car** | Car drawing with doors, tyres, charge and climate; charge-now gauge and tonight's plan; spare-solar hint; recent charging sessions with cost and p/mile; 30 days of charging; lifetime and yearly charging totals with cost from the Energy Tracker's tariff history |
 | **Devices** | Smart plugs; dishwasher with programme picker; SigenStor hardware; Home Assistant backups and storage; sensor batteries; solar strings (roof vs ground mount, daily and monthly bars, averages, per kWp) |
 

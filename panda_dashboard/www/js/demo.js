@@ -65,8 +65,8 @@ window.HD = window.HD || {};
     ['sensor.sigen_inverter_pv2_power', '0.0', 'kW', 'PV2 Power', 'power'],
     ['sensor.sigen_inverter_pv1_accumulated_energy', '3.13068', 'MWh', 'PV1 Accumulated energy', 'energy'],
     ['sensor.sigen_inverter_pv2_accumulated_energy', '0.55678', 'MWh', 'PV2 Accumulated energy', 'energy'],
-    ['sensor.sigen_plant_consumed_power', '0.578', 'kW', 'Consumed Power', 'power'],
-    ['sensor.sigen_plant_battery_power', '-4.526', 'kW', 'Battery Power', 'power'],
+    ['sensor.sigen_plant_total_load_power', '0.578', 'kW', 'Consumed Power', 'power'],
+    ['sensor.sigen_inverter_battery_power', '-4.526', 'kW', 'Battery Power', 'power'],
     ['sensor.sigen_plant_grid_active_power', '-3.693', 'kW', 'Grid Active Power', 'power'],
     ['sensor.sigen_plant_battery_state_of_charge', '8.4', '%', 'Battery State of Charge', 'battery'],
     ['sensor.sigen_plant_battery_state_of_health', '100.0', '%', 'Battery State of Health', 'battery'],
@@ -247,8 +247,8 @@ window.HD = window.HD || {};
   // [hh:mm, value] keyframes, linearly interpolated.
   const K = {
     'sensor.sigen_plant_pv_power': [['0:00', 0], ['7:35', 0], ['7:50', .5], ['8:30', 1.06], ['9:00', 1.36], ['9:30', 1.77], ['10:00', 2.0], ['10:30', 2.15], ['11:00', 2.23], ['11:30', 2.2], ['11:45', 1.6], ['12:00', 2.32], ['12:30', 2.12], ['13:00', 1.95], ['13:30', 1.68], ['14:00', 1.6], ['14:30', 1.25], ['15:00', .75], ['15:30', .45], ['16:00', .75], ['16:30', .68], ['17:00', .25], ['17:15', .05], ['18:00', .05], ['18:45', 0], ['23:20', 0]],
-    'sensor.sigen_plant_consumed_power': [['0:00', .7], ['0:15', 2.0], ['0:30', 1.2], ['1:00', .77], ['1:15', 2.7], ['1:40', 5.3], ['1:50', 6.3], ['2:10', 5.5], ['2:25', 3.4], ['3:00', 3.2], ['3:25', .5], ['3:40', 1.0], ['4:00', .3], ['4:45', .25], ['5:00', 1.1], ['5:45', 1.85], ['6:00', 1.3], ['6:10', .3], ['6:30', 1.7], ['6:55', .3], ['7:15', 1.4], ['7:30', .35], ['7:45', 1.6], ['8:15', 1.8], ['8:30', .35], ['8:45', .55], ['9:00', 1.6], ['9:15', 3.8], ['9:25', 5.3], ['9:35', 3.1], ['9:45', 1.0], ['10:00', .7], ['11:00', .6], ['11:30', .5], ['12:00', .3], ['12:30', .35], ['13:00', .6], ['13:30', .95], ['14:30', .85], ['15:00', .5], ['15:30', .3], ['16:00', .7], ['16:30', .5], ['16:50', 1.4], ['17:00', .6], ['17:30', 2.1], ['17:45', .5], ['18:15', 1.7], ['18:30', .5], ['19:00', .75], ['19:45', .7], ['20:00', 1.6], ['20:15', .6], ['20:40', 1.7], ['20:50', .65], ['21:15', 1.8], ['21:30', .55], ['22:00', .55], ['22:45', 1.6], ['23:00', .58], ['23:20', .58]],
-    'sensor.sigen_plant_battery_power': [['0:00', 6.15], ['0:05', 6.33], ['4:20', 6.33], ['4:25', 1.23], ['4:30', 0], ['5:55', 0], ['6:00', -1.7], ['6:05', -.4], ['6:30', -1.6], ['6:45', -.4], ['7:00', -1.8], ['7:30', -1.3], ['7:45', -.4], ['8:30', -2.7], ['8:45', -3.9], ['9:00', -2.4], ['9:15', -.5], ['9:25', .6], ['10:00', 1.5], ['11:00', 1.4], ['11:30', 1.7], ['12:00', 2.0], ['12:30', 1.8], ['12:45', .8], ['13:00', 0], ['16:00', -.6], ['16:30', -.8], ['16:45', -1.4], ['17:00', -.6], ['17:30', -2.1], ['17:45', -.5], ['18:15', -1.7], ['18:30', -1.0], ['19:30', -.85], ['20:00', -2.2], ['20:15', -4.5], ['20:40', -5.7], ['20:50', -4.6], ['21:10', -5.8], ['21:25', -4.5], ['22:00', -4.5], ['22:15', -5.6], ['22:25', -4.5], ['23:20', -4.5]],
+    'sensor.sigen_plant_total_load_power': [['0:00', .7], ['0:15', 2.0], ['0:30', 1.2], ['1:00', .77], ['1:15', 2.7], ['1:40', 5.3], ['1:50', 6.3], ['2:10', 5.5], ['2:25', 3.4], ['3:00', 3.2], ['3:25', .5], ['3:40', 1.0], ['4:00', .3], ['4:45', .25], ['5:00', 1.1], ['5:45', 1.85], ['6:00', 1.3], ['6:10', .3], ['6:30', 1.7], ['6:55', .3], ['7:15', 1.4], ['7:30', .35], ['7:45', 1.6], ['8:15', 1.8], ['8:30', .35], ['8:45', .55], ['9:00', 1.6], ['9:15', 3.8], ['9:25', 5.3], ['9:35', 3.1], ['9:45', 1.0], ['10:00', .7], ['11:00', .6], ['11:30', .5], ['12:00', .3], ['12:30', .35], ['13:00', .6], ['13:30', .95], ['14:30', .85], ['15:00', .5], ['15:30', .3], ['16:00', .7], ['16:30', .5], ['16:50', 1.4], ['17:00', .6], ['17:30', 2.1], ['17:45', .5], ['18:15', 1.7], ['18:30', .5], ['19:00', .75], ['19:45', .7], ['20:00', 1.6], ['20:15', .6], ['20:40', 1.7], ['20:50', .65], ['21:15', 1.8], ['21:30', .55], ['22:00', .55], ['22:45', 1.6], ['23:00', .58], ['23:20', .58]],
+    'sensor.sigen_inverter_battery_power': [['0:00', 6.15], ['0:05', 6.33], ['4:20', 6.33], ['4:25', 1.23], ['4:30', 0], ['5:55', 0], ['6:00', -1.7], ['6:05', -.4], ['6:30', -1.6], ['6:45', -.4], ['7:00', -1.8], ['7:30', -1.3], ['7:45', -.4], ['8:30', -2.7], ['8:45', -3.9], ['9:00', -2.4], ['9:15', -.5], ['9:25', .6], ['10:00', 1.5], ['11:00', 1.4], ['11:30', 1.7], ['12:00', 2.0], ['12:30', 1.8], ['12:45', .8], ['13:00', 0], ['16:00', -.6], ['16:30', -.8], ['16:45', -1.4], ['17:00', -.6], ['17:30', -2.1], ['17:45', -.5], ['18:15', -1.7], ['18:30', -1.0], ['19:30', -.85], ['20:00', -2.2], ['20:15', -4.5], ['20:40', -5.7], ['20:50', -4.6], ['21:10', -5.8], ['21:25', -4.5], ['22:00', -4.5], ['22:15', -5.6], ['22:25', -4.5], ['23:20', -4.5]],
     'sensor.sigen_plant_grid_active_power': [['0:00', 7.2], ['1:15', 9.3], ['1:40', 12.9], ['2:00', 11.5], ['2:20', 9.9], ['3:00', 9.7], ['3:25', 7.0], ['4:00', 6.9], ['4:20', 6.9], ['4:25', 1.5], ['4:30', .3], ['4:45', 1.5], ['5:45', 1.9], ['6:00', 0], ['13:15', 0], ['13:20', -1.86], ['13:45', -1.5], ['14:00', -1.2], ['14:15', -.6], ['14:45', -.7], ['15:00', -.3], ['16:00', -.2], ['16:10', 0], ['20:00', 0], ['20:05', -1.41], ['20:15', -3.68], ['23:20', -3.68]],
     'sensor.sigen_plant_battery_state_of_charge': [['0:00', 1.0], ['0:30', 13.1], ['1:00', 25.0], ['2:00', 48.5], ['3:00', 71.7], ['4:00', 94.8], ['4:25', 100], ['6:00', 100], ['6:30', 97.6], ['7:00', 94.4], ['7:30', 92.8], ['8:00', 90.8], ['8:30', 89.0], ['9:00', 86.2], ['9:30', 88.4], ['10:00', 90.9], ['10:30', 94.0], ['11:00', 96.6], ['11:30', 99.8], ['12:00', 100], ['15:30', 100], ['16:00', 98.3], ['16:30', 97.1], ['17:00', 95.5], ['17:30', 93.7], ['18:00', 91.1], ['18:30', 89.5], ['19:00', 87.4], ['19:30', 80.6], ['20:00', 71.0], ['20:30', 60.5], ['21:00', 51.7], ['21:30', 42.3], ['22:00', 33.4], ['22:30', 24.8], ['23:00', 16.0], ['23:20', 10.1]],
     'sensor.heat_pump_power_kw': [['0:00', .01], ['1:40', .01], ['1:45', .6], ['1:50', 1.55], ['2:00', 4.73], ['3:05', 5.45], ['3:10', 4.4], ['3:15', .01], ['3:25', .9], ['3:40', .01], ['4:45', .2], ['4:50', 1.18], ['5:30', 1.38], ['5:40', .01], ['5:55', 1.44], ['6:10', .01], ['6:40', 1.29], ['6:50', .01], ['7:00', 1.3], ['7:20', 1.4], ['7:30', .01], ['7:50', 1.31], ['8:15', 1.4], ['8:25', .01], ['15:50', .01], ['16:00', .92], ['16:10', .01], ['16:20', 1.53], ['16:30', .01], ['16:40', .82], ['16:55', 1.19], ['17:05', .01], ['20:00', .02], ['20:10', 1.3], ['20:20', .01], ['23:20', .01]],
@@ -365,6 +365,47 @@ window.HD = window.HD || {};
   }
 
 
+  // Hourly house use (car left out) and solar for the battery plan, spread from the daily totals
+  const USE_SHAPE = [.6, .5, .5, .5, .5, .6, 1, 1.4, 1.3, 1.1, 1, 1, 1.1, 1, .9, .9, 1.1, 1.5, 1.8, 1.7, 1.5, 1.3, 1, .8];
+  function hourlyTotals(id, start) {
+    const t = HD.config.energy.totals; const out = [];
+    const shapeSum = USE_SHAPE.reduce((a, v) => a + v, 0);
+    DAILY[id].forEach((v, i) => {
+      const day = D0 + i * 864e5; if (day + 864e5 <= start) return;
+      for (let h = 0; h < 24; h++) {
+        const ts = day + h * 3600e3; if (ts < start || ts >= DAY0) continue;
+        const kwh = id === t.pv ? (h >= 7 && h < 18 ? v * (Math.PI / 22) * Math.sin(((h - 7 + 0.5) / 11) * Math.PI) : 0)
+          : (v - DAILY[t.ev][i]) * USE_SHAPE[h] / shapeSum;
+        out.push({ start: ts, end: ts + 3600e3, change: +kwh.toFixed(3) });
+      }
+    });
+    return out;
+  }
+  // Regional carbon intensity: windy small hours, gas-heavy evening peak
+  function carbon() {
+    const rows = [];
+    for (let i = 0; i < 96; i++) {
+      const from = DAY0 + i * 1800e3; const h = (i / 2) % 24;
+      const g = Math.max(45, Math.round(150 + 95 * Math.sin(((h - 11) / 24) * 2 * Math.PI) + 25 * Math.sin(i * 1.7) + (i > 48 ? -40 : 0)));
+      const index = g < 80 ? 'very low' : g < 140 ? 'low' : g < 200 ? 'moderate' : g < 260 ? 'high' : 'very high';
+      const gas = Math.max(5, Math.min(70, (g - 40) / 3.2));
+      rows.push({ from, to: from + 1800e3, g, index, mix: [{ fuel: 'gas', perc: gas }, { fuel: 'wind', perc: 78 - gas }, { fuel: 'nuclear', perc: 12 }, { fuel: 'biomass', perc: 6 }, { fuel: 'imports', perc: 4 }] });
+    }
+    return { region: 'South England', rows };
+  }
+
+  // Doorbell ring pictures: simple drawn porches, made up
+  function rings() {
+    const at = [SNAP - 2.6 * 3600e3, SNAP - 7.9 * 3600e3, SNAP - 26 * 3600e3, SNAP - 49 * 3600e3];
+    const tones = ['#5a6f86', '#7a6a58', '#4f6f63', '#6b5b7a'];
+    return at.map((ts, i) => {
+      const night = new Date(ts).getHours() >= 18 || new Date(ts).getHours() < 7;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120"><rect width="160" height="120" fill="${night ? '#1d2430' : '#c9d3dc'}"/><rect x="0" y="86" width="160" height="34" fill="${night ? '#2b3340' : '#9aa4ad'}"/><rect x="58" y="22" width="44" height="66" rx="3" fill="${tones[i]}"/><circle cx="80" cy="44" r="9" fill="${night ? '#55606e' : '#e7c9a8'}"/><rect x="68" y="54" width="24" height="30" rx="6" fill="${night ? '#3a4452' : '#2f4f74'}"/>${i === 1 ? '<rect x="96" y="66" width="22" height="18" fill="#b8915a"/>' : ''}</svg>`;
+      const d = new Date(ts); const p2 = (n) => String(n).padStart(2, '0');
+      return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, at: ts, name: `ring_${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}00.jpg` };
+    });
+  }
+
   function callWS(msg) {
     if (msg.type === 'supervisor/api' && msg.endpoint === '/host/info') return Promise.resolve({ disk_total: 28, disk_used: 14.2, disk_free: 12.6 });
     if (msg.type !== 'recorder/statistics_during_period') return Promise.resolve(null);
@@ -378,6 +419,7 @@ window.HD = window.HD || {};
       else if (msg.period === 'hour' && id === HD.config.energy.totals.import) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(1) : null;
       else if (msg.period === 'hour' && id === HD.config.energy.totals.export) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(-1) : null;
       else if (msg.period === 'hour' && id === HD.config.energy.totals.ev && DAILY[id]) res[id] = evHourly(start);
+      else if (msg.period === 'hour' && (id === HD.config.energy.totals.load || id === HD.config.energy.totals.pv) && DAILY[id]) res[id] = hourlyTotals(id, start);
       else if (msg.period === 'day' && /odometer/.test(id)) res[id] = odometerDaily(start, id);
       else if (msg.period === 'day' && DAILY[id]) res[id] = DAILY[id].map((v, i) => ({ start: D0 + i * 864e5, end: D0 + (i + 1) * 864e5, change: v }));
       if (res[id] === null || res[id] === undefined) delete res[id];
@@ -395,6 +437,8 @@ window.HD = window.HD || {};
     },
     callWS,
     forecast,
+    carbon,
+    rings,
     callService(domain, service, data) {
       // Make toggles feel real in the demo
       const id = data && data.entity_id;

@@ -6,6 +6,8 @@
  *    second behind), falling back to Home Assistant's own HLS stream if go2rtc isn't there
  *    or the browser can't play MSE
  *  - a "refresh" that wakes the doorbell just long enough to take a new picture
+ *  - recent rings: pictures a Home Assistant automation saves on each ring into a media
+ *    folder (config.doorbell.snapshots, e.g. 'doorbell' = /media/doorbell), newest first
  * The S220 is battery powered, so live video only starts when asked for (or on a
  * ring, so the live view is ready sooner).
  */
@@ -168,6 +170,65 @@ window.HD = window.HD || {};
 
   function since(ts, none) { return ts ? ago(new Date(ts).toISOString()) : none; }
 
+  // ── Recent rings: files in the snapshots media folder, newest first ──
+  // Named ring_YYYYMMDD_HHMMSS.jpg (local time) by the automation; anything else is ordered by name.
+  let rings = []; let ringsBusy = false;
+  const ringTime = (name) => {
+    const m = /(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/.exec(name || '');
+    return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : null;
+  };
+  async function loadRings() {
+    const c = cfg(); if (!c || !c.snapshots || ringsBusy) return;
+    if (S().mode === 'demo') { rings = HD.demo.rings ? HD.demo.rings() : []; HD.app.refresh(); return; }
+    if (S().mode !== 'live') return;
+    ringsBusy = true;
+    try {
+      const folder = String(c.snapshots).replace(/^\/?(media\/)?/, '').replace(/\/$/, '');
+      const dir = await HD.ha.callWS({ type: 'media_source/browse_media', media_content_id: `media-source://media_source/local/${folder}` });
+      const files = ((dir && dir.children) || []).filter((f) => !f.can_expand && /\.(jpe?g|png|webp)$/i.test(f.title))
+        .sort((a, b) => (b.title > a.title ? 1 : -1)).slice(0, c.ringCount || 6);
+      const out = [];
+      for (const f of files) {
+        const r = await HD.ha.callWS({ type: 'media_source/resolve_media', media_content_id: f.media_content_id, expires: 24 * 3600 });
+        if (r && r.url) out.push({ url: r.url.startsWith('http') ? r.url : `${HD.ha.baseUrl()}${r.url}`, at: ringTime(f.title), name: f.title });
+      }
+      rings = out; HD.app.refresh();
+    } catch (e) {
+      // No folder yet (no ring since the automation was added) is normal
+      if (!/not.?found|unknown|does not exist/i.test(String(e && (e.message || e.code)))) console.warn('Doorbell ring pictures unavailable', e);
+      rings = [];
+    } finally { ringsBusy = false; }
+  }
+  // Today: the time; this week: the day and time; older: the date
+  function shotLabel(ts) {
+    const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const d = new Date(ts); const n = new Date(now);
+    if (d.toDateString() === n.toDateString()) return time(ts);
+    if (now - ts < 6 * 864e5) return `${HD.u.fmt(ts, { weekday: 'short' })} ${time(ts)}`;
+    return HD.u.fmt(ts, { day: 'numeric', month: 'short' });
+  }
+  function ringsHtml() {
+    if (!rings.length) return '';
+    return `<div class="ring-strip" aria-label="Recent rings">${rings.map((r, i) => `
+      <button class="ring-shot" data-ring-view="${i}" title="${r.at ? esc(HD.u.fmt(r.at, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : esc(r.name)}">
+        <img src="${esc(r.url)}" alt="" loading="lazy" decoding="async">
+        <span>${r.at ? esc(shotLabel(r.at)) : ''}</span>
+      </button>`).join('')}</div>`;
+  }
+  function viewRing(i) {
+    const r = rings[i]; if (!r) return;
+    let dlg = document.getElementById('ring-view');
+    if (!dlg) {
+      dlg = Object.assign(document.createElement('dialog'), { id: 'ring-view', className: 'ring-view' });
+      dlg.addEventListener('click', (ev) => { if (ev.target === dlg || ev.target.closest('[data-ring-close]')) dlg.close(); });
+      document.body.appendChild(dlg);
+    }
+    const when = r.at ? HD.u.fmt(r.at, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : r.name;
+    dlg.innerHTML = `<figure><img src="${esc(r.url)}" alt="Doorbell ring, ${esc(when)}"><figcaption>${icon('bell')}Rang ${esc(when)}</figcaption></figure>
+      <button class="btn ghost" data-ring-close>Close</button>`;
+    dlg.showModal();
+  }
+
   function cardHtml() {
     if (!enabled()) return '';
     const c = cfg();
@@ -191,6 +252,7 @@ window.HD = window.HD || {};
           <div><dt>Mode</dt><dd>${esc(S().state(c.guardMode) || '–')}</dd></div>
           <div class="wide"><dt>Battery</dt><dd class="${low ? 'warn' : ''}">${bat == null ? '–' : `${Math.round(bat)}%`}${S().state(c.charging) === 'Charging' ? ' · charging' : estimateText() ? `<small>${estimateText()}</small>` : ''}</dd></div>
         </dl>
+        ${ringsHtml()}
       </section>`;
   }
 
@@ -493,18 +555,19 @@ window.HD = window.HD || {};
       else if (ev.target.closest('[data-doorbell-dismiss]')) hideRing();
       else if (ev.target.closest('[data-doorbell-close]')) closeLive();
       else if (ev.target.closest('[data-doorbell-refresh]')) refreshPicture();
+      else if (ev.target.closest('[data-ring-view]')) viewRing(Number(ev.target.closest('[data-ring-view]').dataset.ringView));
     });
     document.getElementById('doorbell-live').addEventListener('close', () => { teardown(); endLive(); clearInterval(snapTimer); });
     // Don't leave the doorbell streaming if the page is closed mid-view
     window.addEventListener('pagehide', stopP2P);
     S().on((id) => {
       const c = cfg();
-      if (id === c.ringing && S().state(c.ringing) === 'on') { last.ring = Date.now(); showRing(); prewarm(); }
+      if (id === c.ringing && S().state(c.ringing) === 'on') { last.ring = Date.now(); showRing(); prewarm(); setTimeout(loadRings, 30e3); setTimeout(loadRings, 90e3); }
       else if (id === c.person && S().state(c.person) === 'on') { last.person = Date.now(); if (document.getElementById('doorbell-alert').hidden) HD.app.toast(`Person at the ${(c.name || 'front door').toLowerCase()}`); }
       else if (id === c.motion && S().state(c.motion) === 'on') last.motion = Date.now();
     });
-    loadHistory(); loadBatteryTrend();
-    setInterval(() => { if (!document.hidden) { loadHistory(); loadBatteryTrend(); } }, 15 * 60 * 1000);
+    loadHistory(); loadBatteryTrend(); loadRings();
+    setInterval(() => { if (!document.hidden) { loadHistory(); loadBatteryTrend(); loadRings(); } }, 15 * 60 * 1000);
   }
 
   HD.doorbell = { init, cardHtml, alerts, enabled, showRing, last };
