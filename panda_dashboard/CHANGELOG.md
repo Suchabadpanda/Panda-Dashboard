@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.77
+- Doorbell ring pictures: the doorbell media folder by default, no config change needed
+
 ## 0.3.76
 - Battery plan, grid carbon, doorbell ring pictures, flow-climb hot water
 
