@@ -308,6 +308,16 @@ window.HD = window.HD || {};
     return out;
   }
 
+  // Yesterday by the hour from its daily totals: import mostly in the cheap window, export over the solar hours
+  function yesterdayGrid(id) {
+    const v = DAILY[id][DAILY[id].length - 2]; const imp = id === HD.config.energy.totals.import; const out = [];
+    for (let h = 0; h < 24; h++) {
+      const w = imp ? (h < 6 ? 0.8 / 6 : 0.2 / 18) : (h >= 9 && h < 16 ? 1 / 7 : 0);
+      out.push({ start: DAY0 - 864e5 + h * 3600e3, end: DAY0 - 864e5 + (h + 1) * 3600e3, change: +(v * w).toFixed(3) });
+    }
+    return out;
+  }
+
   // Car charging by the hour: each day's kWh charged from 00:00 at 7.2 kW
   function evHourly(start) {
     const out = [];
@@ -416,8 +426,8 @@ window.HD = window.HD || {};
       if (pvn) res[id] = pvRows(Number(pvn), start, msg.period);
       else if (msg.period === '5minute') res[id] = fiveMinute(id);
       else if (msg.period === 'hour' && TEMPS[id]) res[id] = TEMPS[id].map((v, i) => ({ start: T0 + i * 3600e3, end: T0 + (i + 1) * 3600e3, mean: v }));
-      else if (msg.period === 'hour' && id === HD.config.energy.totals.import) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(1) : null;
-      else if (msg.period === 'hour' && id === HD.config.energy.totals.export) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(-1) : null;
+      else if (msg.period === 'hour' && id === HD.config.energy.totals.import) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(1) : start === DAY0 - 864e5 ? yesterdayGrid(id) : null;
+      else if (msg.period === 'hour' && id === HD.config.energy.totals.export) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(-1) : start === DAY0 - 864e5 ? yesterdayGrid(id) : null;
       else if (msg.period === 'hour' && id === HD.config.energy.totals.ev && DAILY[id]) res[id] = evHourly(start);
       else if (msg.period === 'hour' && (id === HD.config.energy.totals.load || id === HD.config.energy.totals.pv) && DAILY[id]) res[id] = hourlyTotals(id, start);
       else if (msg.period === 'day' && /odometer/.test(id)) res[id] = odometerDaily(start, id);

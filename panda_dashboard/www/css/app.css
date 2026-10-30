@@ -1218,3 +1218,7 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .ring-view figure { margin: 0 0 10px; }
 .ring-view img { display: block; width: 100%; max-height: 72vh; object-fit: contain; border-radius: 8px; background: #000; }
 .ring-view figcaption { display: flex; gap: 6px; align-items: center; margin-top: 8px; color: var(--muted); font-size: 14px; }
+
+/* Home: yesterday's net cost under today's */
+.now-block p.net.yesterday { margin-top: 4px; color: var(--muted); font-size: 13px; }
+.now-block p.net.yesterday strong { color: var(--ink); font-size: 15px; }

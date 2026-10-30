@@ -357,6 +357,18 @@ HD.views = HD.views || {};
     </div></section>`;
   }
 
+  // Yesterday's net cost beside today's: in all, and by this time of day
+  function yesterdayHtml(d) {
+    const y = HD.data.yesterday; if (!y) return '';
+    let cmp = '';
+    if (d && y.frac < 0.98) {
+      const diff = d.net - y.netByNow;
+      cmp = Math.abs(diff) < 0.05 ? ' · about the same as yesterday at this time'
+        : ` · ${gbp(Math.abs(diff))} ${diff < 0 ? 'less' : 'more'} than yesterday at this time (${gbp(y.netByNow)})`;
+    }
+    return `<p class="net yesterday">Yesterday <strong>${gbp(y.net)}</strong>${cmp}</p>`;
+  }
+
   function nowHtml() {
     const e = HD.config.energy;
     const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
@@ -410,6 +422,7 @@ HD.views = HD.views || {};
           <div><dt>Sold</dt><dd>${kwh(exp)}${d ? `<small>${gbp(d.exportCredit)}</small>` : ''}</dd></div>
         </dl>
         <p class="net">${d ? `Net cost today <strong>${gbp(d.net)}</strong> incl. ${gbp(d.standing)} standing charge` : 'Working out today’s cost…'}</p>
+        ${yesterdayHtml(d)}
         ${d && d.importKwh ? `<p class="sub">${Math.round((d.offPeakKwh / d.importKwh) * 100)}% of today’s import was at the ${pence(t.offPeak)} rate</p>` : ''}
       </section>
       ${copBlock()}
