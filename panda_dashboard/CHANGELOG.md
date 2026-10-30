@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.76
+- Battery plan, grid carbon, doorbell ring pictures, flow-climb hot water
+
 ## 0.3.75
 - Tidy-up after a health check
 
