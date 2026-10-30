@@ -25,8 +25,8 @@ Updates never overwrite files in this folder.
 ## Doorbell: recent rings
 
 The front door card shows the last few rings when Home Assistant saves a picture on each one.
-Add this automation (Settings → Automations → ⋮ → Edit in YAML) and set
-`doorbell.snapshots: 'doorbell'` in config.js:
+Add this automation (Settings → Automations → ⋮ → Edit in YAML). The card reads the
+`doorbell` media folder unless `doorbell.snapshots` in config.js names another (false turns it off):
 
 ```yaml
 alias: Doorbell ring pictures (Panda Dashboard)

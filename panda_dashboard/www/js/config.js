@@ -261,6 +261,7 @@ HD.config = {
     lowBattery: 20,                               // % — show a warning below this
     // Recent rings: a media folder a Home Assistant automation saves a picture into on each ring
     // (image.snapshot → /media/doorbell/ring_YYYYMMDD_HHMMSS.jpg; see DOCS). Shows the newest ringCount.
+    // 'doorbell' if left out; false turns it off.
     snapshots: 'doorbell',
     ringCount: 6,
   },

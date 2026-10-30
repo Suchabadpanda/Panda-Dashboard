@@ -178,12 +178,13 @@ window.HD = window.HD || {};
     return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : null;
   };
   async function loadRings() {
-    const c = cfg(); if (!c || !c.snapshots || ringsBusy) return;
+    const c = cfg(); const snaps = c && (c.snapshots ?? 'doorbell');   // false turns it off
+    if (!c || !snaps || ringsBusy) return;
     if (S().mode === 'demo') { rings = HD.demo.rings ? HD.demo.rings() : []; HD.app.refresh(); return; }
     if (S().mode !== 'live') return;
     ringsBusy = true;
     try {
-      const folder = String(c.snapshots).replace(/^\/?(media\/)?/, '').replace(/\/$/, '');
+      const folder = String(snaps).replace(/^\/?(media\/)?/, '').replace(/\/$/, '');
       const dir = await HD.ha.callWS({ type: 'media_source/browse_media', media_content_id: `media-source://media_source/local/${folder}` });
       const files = ((dir && dir.children) || []).filter((f) => !f.can_expand && /\.(jpe?g|png|webp)$/i.test(f.title))
         .sort((a, b) => (b.title > a.title ? 1 : -1)).slice(0, c.ringCount || 6);
