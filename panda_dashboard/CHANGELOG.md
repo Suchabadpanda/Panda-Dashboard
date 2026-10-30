@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.75
+- Tidy-up after a health check
+
 ## 0.3.74
 - Dishwasher card: even spacing above the Start buttons, drop the eco-wash cost line
 
