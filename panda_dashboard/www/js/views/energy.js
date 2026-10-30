@@ -6,7 +6,7 @@ window.HD = window.HD || {};
 HD.views = HD.views || {};
 
 (function () {
-  const { esc, kwh, gbp, pence } = HD.u;
+  const { esc, pence } = HD.u;
   const C = () => HD.config;
   const S = () => HD.store;
   const hasTank = () => !!(C().heatPump && C().heatPump.tankTemp);

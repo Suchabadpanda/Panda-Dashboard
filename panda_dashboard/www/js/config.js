@@ -27,9 +27,10 @@ HD.config = {
   // sees the dashboard view only. Leave it out to let Home Assistant administrators control it.
   // controlBy: ['person.alex'],
 
+  // The first person's name is used in the Home greeting
   people: [
-    { id: 'person.alex', name: 'Alex', phoneBattery: 'sensor.alex_phone_battery_level' },
-    { id: 'person.sam', name: 'Sam', phoneBattery: 'sensor.sam_phone_battery_level' },
+    { id: 'person.alex', name: 'Alex' },
+    { id: 'person.sam', name: 'Sam' },
   ],
 
   weather: 'weather.forecast_home',

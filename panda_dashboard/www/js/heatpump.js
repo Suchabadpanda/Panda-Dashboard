@@ -22,7 +22,8 @@
  * A monobloc like the Samsung Mono has one compressor and a diverter valve, so it heats
  * the radiators OR the tank at any instant. "Both" therefore means both are calling: the
  * tank is being reheated and the heating is waiting (or sharing by switching back and forth).
- * Same rules as the Energy Tracker's heatpump.mode(), so the two agree.
+ * Based on the Energy Tracker's heatpump.mode(). The tracker (0.42.1+) also counts a flow climb
+ * past 48 °C with a flow target under 48 °C as hot water; this card doesn't yet.
  */
 window.HD = window.HD || {};
 

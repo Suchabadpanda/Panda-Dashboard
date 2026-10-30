@@ -10,8 +10,7 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.js",
-    "dist": "electron-builder --win nsis --publish never",
-    "release": "electron-builder --win nsis --publish always"
+    "dist": "electron-builder --win nsis --publish never"
   },
   "dependencies": {
     "electron-updater": "6.8.9"

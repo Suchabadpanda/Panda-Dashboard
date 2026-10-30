@@ -139,5 +139,5 @@ window.HD = window.HD || {};
   }
   function reset() { if (ro) ro.disconnect(); ro = null; el = null; lastKey = ''; }
 
-  HD.sky = { place, reset, conditions: Object.keys(LOOKS) };
+  HD.sky = { place, reset };
 })();

@@ -7,7 +7,7 @@ window.HD = window.HD || {};
 HD.views = HD.views || {};
 
 (function () {
-  const { esc, kw, kwh, gbp, pence, temp, pct, dur, until, ago, icon } = HD.u;
+  const { esc, kw, kwh, gbp, pence, temp, pct, dur, ago, icon } = HD.u;
   const S = () => HD.store;
 
   // Tint a room by how far it sits from the comfort target (±3 °C saturates)
