@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.78
+- Home: yesterday's net cost under today's
+
 ## 0.3.77
 - Doorbell ring pictures: the doorbell media folder by default, no config change needed
 
