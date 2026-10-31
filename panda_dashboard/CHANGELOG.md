@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.85
+- Car: Refresh button; label readings taken before the car fell asleep
+
 ## 0.3.84
 - AC cards: room target when the AC follows the room sensor
 
