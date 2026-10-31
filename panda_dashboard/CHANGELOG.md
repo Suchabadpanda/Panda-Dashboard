@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.88
+- Home: drop the breakeven text under the COP gas bar
+
 ## 0.3.87
 - Home: gas breakeven from today's average import price
 
