@@ -41,6 +41,11 @@
         <h3>Electricity tariff</h3>
         <label class="tariff-name">Tariff name <input id="tariff-name" type="text" placeholder="e.g. E.ON Next Drive" autocomplete="off"></label>
         <div id="set-tariff" class="table-scroll"></div>
+        <div class="tariff-gas">
+          <label>Gas p/kWh <input id="gas-rate" type="number" step="0.01" min="0" placeholder="e.g. 6.53"></label>
+          <label>Boiler efficiency % <input id="gas-eff" type="number" step="1" min="30" max="120" placeholder="90"></label>
+          <small>For the heat pump’s gas breakeven on Home. Leave gas empty to show the design COP instead.</small>
+        </div>
         <div class="tariff-actions">
           <button type="button" class="btn ghost" id="tariff-add">Add rate change</button>
           <button type="button" class="btn" id="tariff-save">Save tariff</button>

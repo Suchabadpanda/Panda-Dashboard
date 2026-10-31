@@ -8,6 +8,7 @@
  * the browser is already signed in to when the dashboard runs as an add-on panel.
  *
  * HD.tracker.cop → { today, yesterday, month, design, hotWater, heating, eta } or null
+ * HD.tracker.income → today's extra income (Axle events etc.) { gbp, entries, pending, estimated, netAfter } or null
  */
 window.HD = window.HD || {};
 
@@ -15,7 +16,7 @@ window.HD = window.HD || {};
   const S = () => HD.store;
   let base = null;          // the tracker's ingress path, once found
   let tried = false;
-  const state = { cop: null, loadedAt: 0 };
+  const state = { cop: null, income: null, loadedAt: 0 };
 
   async function findTracker() {
     if (base || tried) return base;
@@ -39,7 +40,7 @@ window.HD = window.HD || {};
 
   async function load() {
     if (HD.config.tracker === false) return;
-    if (S().mode === 'demo') { state.cop = HD.demo.trackerCop || null; HD.store.emit(null); return; }
+    if (S().mode === 'demo') { state.cop = HD.demo.trackerCop || null; state.income = HD.demo.trackerIncome || null; HD.store.emit(null); return; }
     if (S().mode !== 'live' || !(await findTracker())) return;
     try {
       const [today, heating] = await Promise.all([getJson('/api/today'), getJson('/api/heating')]);
@@ -58,6 +59,15 @@ window.HD = window.HD || {};
         eta: eff ? eff.eta : null,
         measured: eff ? eff.eta_source === 'measured' : false,
       };
+      const inc = today && today.income;
+      state.income = inc ? {
+        gbp: +inc.extra_income_gbp || 0,
+        entries: inc.entries || 0,
+        pending: inc.pending || 0,
+        estimated: !!inc.estimated,
+        netAfter: inc.net_after_income_gbp,
+        day: new Date().toDateString(),
+      } : null;
       state.loadedAt = Date.now();
       HD.store.emit(null);
     } catch (e) { console.warn('Energy tracker unavailable', e); }
@@ -104,5 +114,7 @@ window.HD = window.HD || {};
     setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000);   // the tracker works in half hours; no need to ask often
   }
 
-  HD.tracker = { init, load, tariffs, rates, get cop() { return state.cop; } };
+  HD.tracker = { init, load, tariffs, rates, get cop() { return state.cop; },
+    // Only today's: after midnight the last figures belong to yesterday until the next load
+    get income() { const i = state.income; return i && (S().mode === 'demo' || i.day === new Date().toDateString()) ? i : null; } };
 })();

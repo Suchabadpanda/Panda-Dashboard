@@ -468,6 +468,19 @@ HD.views = HD.views || {};
       </div>`;
   }
 
+  // Today's net cost, less any extra income the Energy Tracker has recorded for today (Axle
+  // events and the like). The dashboard's own live net is used so it matches Bought / Sold.
+  function netHtml(d) {
+    const inc = HD.tracker && HD.tracker.income;
+    const standing = `incl. ${gbp(d.standing)} standing charge`;
+    if (!inc || (!(inc.gbp > 0) && !inc.pending)) return `Net cost today <strong>${gbp(d.net)}</strong> ${standing}`;
+    const approx = inc.estimated ? '≈' : '';
+    const pending = inc.pending ? ` · ${inc.pending === 1 ? 'an event' : `${inc.pending} events`} still to be measured` : '';
+    if (!(inc.gbp > 0)) return `Net cost today <strong>${gbp(d.net)}</strong> ${standing}${pending}`;
+    const tip = `Before extra income: ${gbp(d.net)}. Extra income today: ${approx}${gbp(inc.gbp)} (${inc.entries} ${inc.entries === 1 ? 'entry' : 'entries'}${inc.estimated ? ', partly the Energy Tracker’s estimate' : ''}).`;
+    return `<span title="${esc(tip)}">Net after income today <strong>${gbp(d.net - inc.gbp)}</strong> incl. ${approx}${gbp(inc.gbp)} extra income and ${gbp(d.standing)} standing charge${pending}</span>`;
+  }
+
   function nowHtml() {
     const e = HD.config.energy;
     const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
@@ -524,7 +537,7 @@ HD.views = HD.views || {};
           <div><dt>Bought</dt><dd>${kwh(imp)}${d ? `<small>${gbp(d.importCost)}</small>` : ''}</dd></div>
           <div><dt>Sold</dt><dd>${kwh(exp)}${d ? `<small>${gbp(d.exportCredit)}</small>` : ''}</dd></div>
         </dl>
-        <p class="net">${d ? `Net cost today <strong>${gbp(d.net)}</strong> incl. ${gbp(d.standing)} standing charge` : 'Working out today’s cost…'}</p>
+        <p class="net">${d ? netHtml(d) : 'Working out today’s cost…'}</p>
         ${yesterdayHtml()}
         ${importBar(d, t)}
       </section>

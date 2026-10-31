@@ -92,6 +92,9 @@ window.HD = window.HD || {};
     dlg.querySelector('#accent').value = l.accent || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#8fb8ff';
     renderTariffEditor(HD.config.tariffs);
     dlg.querySelector('#tariff-name').value = HD.config.tariffName || '';
+    const gas = (HD.config.heatPump && HD.config.heatPump.gas) || {};
+    dlg.querySelector('#gas-rate').value = gas.rate > 0 ? pen(gas.rate) : '';
+    dlg.querySelector('#gas-eff').value = gas.rate > 0 ? Math.round((gas.efficiency > 0 ? gas.efficiency : 0.9) * 100) : '';
     dlg.showModal();
   }
 
@@ -131,6 +134,22 @@ window.HD = window.HD || {};
     return rows.sort((x, y) => x.from.localeCompare(y.from));
   }
 
+  // Gas rate and boiler efficiency from Settings → { rate (£/kWh), efficiency } or null (cleared)
+  function readGasEditor() {
+    const r = document.getElementById('gas-rate').value.trim();
+    const e = document.getElementById('gas-eff').value.trim();
+    if (r === '') return null;
+    const rate = +r / 100; const efficiency = e === '' ? 0.9 : +e / 100;
+    if (!Number.isFinite(rate) || rate <= 0 || rate > 2) throw new Error('Gas rate should be in pence per kWh, e.g. 6.53.');
+    if (!Number.isFinite(efficiency) || efficiency < 0.3 || efficiency > 1.2) throw new Error('Boiler efficiency should be a percentage, e.g. 90.');
+    return { rate, efficiency };
+  }
+  function setGas(gas) {
+    HD.config.heatPump = HD.config.heatPump || {};
+    if (gas) HD.config.heatPump.gas = { rate: gas.rate, efficiency: gas.efficiency };
+    else delete HD.config.heatPump.gas;
+  }
+
   async function addonSlug() {
     const res = await HD.ha.callWS({ type: 'supervisor/api', endpoint: '/addons', method: 'get' });
     const a = (res.addons || []).find((x) => /(^|_)panda_dashboard$/.test(x.slug));
@@ -140,9 +159,11 @@ window.HD = window.HD || {};
   async function saveTariff() {
     const where = document.getElementById('set-tariff-where');
     let rows;
-    try { rows = readTariffEditor(); } catch (e) { where.textContent = e.message; return; }
+    let gas;
+    try { rows = readTariffEditor(); gas = readGasEditor(); } catch (e) { where.textContent = e.message; return; }
     const name = document.getElementById('tariff-name').value.trim();
     HD.config.tariffs = rows; HD.config.tariffName = name;
+    setGas(gas);
     renderTariffEditor(rows);
     let saved = 'in this browser';
     if (S.mode === 'live') {
@@ -151,7 +172,7 @@ window.HD = window.HD || {};
         if (slug) {
           await HD.ha.callWS({
             type: 'supervisor/api', endpoint: `/addons/${slug}/options`, method: 'post',
-            data: { options: { tariff_name: name, tariffs: rows.map((t) => ({ from: t.from, off_peak: +t.offPeak.toFixed(5), peak: +t.peak.toFixed(5), export: +t.export.toFixed(5), standing: +t.standing.toFixed(5), off_peak_start: t.offPeakStart, off_peak_end: t.offPeakEnd })) } },
+            data: { options: { tariff_name: name, tariffs: rows.map((t) => ({ from: t.from, off_peak: +t.offPeak.toFixed(5), peak: +t.peak.toFixed(5), export: +t.export.toFixed(5), standing: +t.standing.toFixed(5), off_peak_start: t.offPeakStart, off_peak_end: t.offPeakEnd })), ...(gas ? { gas_rate: +gas.rate.toFixed(5), boiler_efficiency: +gas.efficiency.toFixed(3) } : {}) } },
           });
           saved = 'in Home Assistant';
           HD.config.tariffSource = 'add-on Configuration tab';
@@ -159,7 +180,7 @@ window.HD = window.HD || {};
       } catch (e) { console.warn('Could not save to the add-on', e); }
     }
     // Keep a copy in this browser too, as a fallback if Home Assistant can't be asked
-    try { localStorage.setItem('hd.tariffs', JSON.stringify({ name, rows })); } catch (e) { /* ignore */ }
+    try { localStorage.setItem('hd.tariffs', JSON.stringify({ name, rows, gas })); } catch (e) { /* ignore */ }
     where.textContent = `Saved ${saved}${saved === 'in this browser' ? ' only — other devices keep their own rates' : ', for every device'}.`;
     toast(`Tariff saved ${saved}`);
     HD.data.refresh();
@@ -316,6 +337,7 @@ window.HD = window.HD || {};
   // default count as "never saved", so config.js's own rows are kept.
   const SHIPPED = JSON.stringify([{ from: '2025-10-29', off_peak: 0.076, peak: 0.2666, export: 0.165, standing: 0.6, off_peak_start: 0, off_peak_end: 6 }]);
   function applyOptions(o, source) {
+    if (o && +o.gas_rate > 0) setGas({ rate: +o.gas_rate, efficiency: +o.boiler_efficiency > 0 ? +o.boiler_efficiency : 0.9 });
     if (!o || !Array.isArray(o.tariffs) || !o.tariffs.length) return false;
     const norm = JSON.stringify(o.tariffs.map((t) => ({ from: t.from, off_peak: +t.off_peak, peak: +t.peak, export: +t.export, standing: +t.standing, off_peak_start: +t.off_peak_start, off_peak_end: +t.off_peak_end })));
     if (norm === SHIPPED && !o.tariff_name) return false;
@@ -332,6 +354,7 @@ window.HD = window.HD || {};
       const saved = JSON.parse(localStorage.getItem('hd.tariffs') || 'null');
       if (saved && Array.isArray(saved.rows) && saved.rows.length) {
         HD.config.tariffs = saved.rows; if (saved.name) HD.config.tariffName = saved.name;
+        if (saved.gas && saved.gas.rate > 0) setGas(saved.gas);
         HD.config.tariffSource = 'this browser';
         return true;
       }

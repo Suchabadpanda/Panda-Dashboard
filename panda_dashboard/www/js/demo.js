@@ -450,6 +450,7 @@ window.HD = window.HD || {};
 
   HD.demo = {
     snapshotTime: SNAP,
+    trackerIncome: { gbp: 1.85, entries: 1, pending: 0, estimated: true, netAfter: null },
     trackerCop: { today: 4.42, todayKwh: 7.1, todayHeat: 31, heating: 4.47, hotWater: 4.76, yesterday: 2.9, month: 3.63, design: 3.78, eta: 0.495, measured: true },
     start() {
       HD.store.states = buildStates();

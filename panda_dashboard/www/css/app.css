@@ -728,6 +728,10 @@ thead th { color: var(--muted); font-weight: 500; }
 .tariff-edit input[type="number"] { width: 76px; }
 .tariff-edit input[type="date"] { width: 132px; }
 .row-del { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; }
+.tariff-gas { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 14px; margin-top: 10px; font-size: 13px; }
+.tariff-gas label { display: grid; gap: 4px; }
+.tariff-gas input { width: 9em; background: var(--room); border: 1px solid var(--line); color: var(--ink); border-radius: 6px; padding: 6px; font: inherit; font-size: 13px; }
+.tariff-gas small { flex-basis: 100%; color: var(--muted); }
 .tariff-actions { display: flex; gap: 8px; margin: 8px 0 4px; }
 .tariff-actions .btn { margin-top: 0; }
 .settings { width: min(760px, calc(100vw - 32px)); }

@@ -11,6 +11,14 @@ so earlier months keep the prices you actually paid. Rates are £ per kWh includ
 (7.6p is `0.076`), the standing charge is £ per day, and the cheap window is in whole hours
 (`off_peak_start: 0`, `off_peak_end: 6` means midnight to 06:00). Save, then reload the dashboard.
 
+Optional `gas_rate` (£ per kWh including VAT) and `boiler_efficiency` (0.9 = 90%) turn on the
+gas breakeven bar on Home's heat pump COP card. Both can also be set from the dashboard's
+Settings, under the electricity tariff.
+
+If the Energy Tracker add-on has recorded extra income for today (Axle events and the like), Home's
+"Today so far" shows the net cost after that income (admins only — the tracker is found through
+the Supervisor).
+
 ## Your settings
 
 Copy `config.js` (your rooms, entities and tariffs) into this add-on's config folder:
