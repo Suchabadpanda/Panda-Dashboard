@@ -458,6 +458,63 @@ HD.views = HD.views || {};
     }
     return null;
   }
+  // ── Readings from before the car fell asleep ──
+  // Tesla Fleet polls every 10 min while the car is awake and not at all once it sleeps, so
+  // whatever its last poll saw (31 Oct: unlocked with the boot open at 14:49, asleep at 14:59)
+  // stays on its entities. A worrying reading (unlocked, something open) taken before the
+  // source's own awake/asleep entity says the car went to sleep is labelled with that time.
+  const sleptAt = (src) => {
+    const a = src.awake && S().get(src.awake); if (a && a.state === 'off') return Date.parse(a.last_changed);
+    const s = src.asleep && S().get(src.asleep); if (s && s.state === 'on') return Date.parse(s.last_changed);
+    return null;
+  };
+  function beforeSleep(key) {
+    const p = pick(key); if (!p || p.stale) return null;
+    const src = sources().find((x) => x.name === p.src); const t = src && sleptAt(src);
+    const e = S().get(p.id); if (!t || !e) return null;
+    return Date.parse(e.last_updated) <= t + 1000 ? t : null;
+  }
+
+  // ── Refresh ──
+  // Per source: its force-update button (`refresh`, else the Bluetooth bridge's usual
+  // button.<prefix>_force_data_update next to its flash button), else
+  // homeassistant.update_entity on its battery entity (makes Tesla Fleet poll now).
+  // Fleet won't ask a sleeping car, so when nothing local is answering and the car is
+  // asleep, Refresh offers to wake it first.
+  let refreshUntil = 0;
+  function refreshPlan() {
+    const out = [];
+    for (const src of sources()) {
+      const btn = [src.refresh, src.flash && src.flash.replace(/flash_lights$/, 'force_data_update')].filter(Boolean).find((c) => c.startsWith('button.') && usable(c));
+      if (btn) out.push({ press: btn, src });
+      else if (src.soc && usable(src.soc)) out.push({ poll: src.soc, src });
+    }
+    return out;
+  }
+  async function refresh() {
+    const plan = refreshPlan(); if (!plan.length) return;
+    const local = plan.some((x) => x.press);
+    const sleeping = plan.map((x) => sleptAt(x.src)).filter(Boolean);
+    const wake = wakeId();
+    let woke = false;
+    if (!local && sleeping.length && wake) {
+      if (!window.confirm(`The car has been asleep since ${clock(Math.max(...sleeping))}, so Tesla's cloud only has older readings. Wake it to refresh? (Uses a little battery.)`)) return;
+      woke = true;
+    }
+    refreshUntil = Date.now() + (woke ? 75e3 : 20e3); lastKnownAt = 0; HD.views.car.update();
+    const poll = () => Promise.all(plan.filter((x) => x.poll).map((x) => HD.ha.callService('homeassistant', 'update_entity', { entity_id: x.poll })));
+    try {
+      if (woke) await HD.ha.callService('button', 'press', { entity_id: wake.id });
+      await Promise.all([...plan.filter((x) => x.press).map((x) => HD.ha.callService('button', 'press', { entity_id: x.press })), woke ? null : poll()]);
+      // A woken car takes a while to come online; ask Fleet again as it does
+      if (woke) [20e3, 45e3, 70e3].forEach((ms) => setTimeout(() => poll().catch(() => {}), ms));
+      HD.app.toast(woke ? 'Waking the car. Fresh readings in about a minute.' : 'Asked the car for fresh readings.');
+    } catch (e) {
+      refreshUntil = 0; HD.app.toast(`Couldn't refresh: ${e.message}`);
+    }
+    setTimeout(() => HD.views.car && HD.views.car.update(), refreshUntil - Date.now() + 100);
+  }
+
   // ── Software updates ──
   // Tesla Fleet's update entity is the obvious source, but Home Assistant 2026.10 leaves it "off"
   // once the car has scheduled an update (seen 23 Oct: 2026.38.3.2 downloaded and scheduled for
@@ -634,6 +691,10 @@ HD.views = HD.views || {};
     const doorKeys = ['doorFl', 'doorFr', 'doorRl', 'doorRr', 'frunk', 'trunk'];
     const anyDoor = doorKeys.some((k) => { const v = val(k); return v === 'on' || v === 'open'; });
     const doorsKnown = doorKeys.some((k) => val(k) != null);
+    // Open readings all from before the car slept → "was open", labelled with when it slept
+    const openKeys = doorKeys.filter((k) => { const v = val(k); return v === 'on' || v === 'open'; });
+    const doorsBefore = openKeys.length && openKeys.every((k) => beforeSleep(k)) ? Math.max(...openKeys.map(beforeSleep)) : null;
+    const doubt = (ic, text, t) => `<span class="car-chip doubt" title="Last reading before the car went to sleep at ${clock(t)}. Tap Refresh to check.">${icon(ic)}${esc(text)}<small>before ${clock(t)}</small></span>`;
     const climate = val('climate'); const inside = num('insideTemp'); const outside = num('outsideTemp');
     const swu = software(); loadSoftware();
     const odo = toMiles(num('odometer'), unit('odometer'));
@@ -647,10 +708,10 @@ HD.views = HD.views || {};
     const wake = wakeId();
 
     const chips = [
-      locked != null ? chip(locked === 'locked', locked === 'locked' ? 'lock' : 'unlock', locked === 'locked' ? 'Locked' : 'Unlocked') : '',
+      locked != null ? (locked !== 'locked' && beforeSleep('locked') ? doubt('unlock', 'Unlocked', beforeSleep('locked')) : chip(locked === 'locked', locked === 'locked' ? 'lock' : 'unlock', locked === 'locked' ? 'Locked' : 'Unlocked')) : '',
       sentry != null ? `<span class="car-chip ${sentry === 'on' ? 'ok' : ''}">${icon('eye')}Sentry ${sentry === 'on' ? 'on' : 'off'}</span>` : '',
-      doorsKnown ? chip(!anyDoor, 'door', anyDoor ? 'A door is open' : 'Doors shut') : '',
-      windows != null ? chip(windows === 'closed', 'window', windows === 'closed' ? 'Windows up' : 'Windows open') : '',
+      doorsKnown ? (anyDoor && doorsBefore ? doubt('door', 'A door was open', doorsBefore) : chip(!anyDoor, 'door', anyDoor ? 'A door is open' : 'Doors shut')) : '',
+      windows != null ? (windows !== 'closed' && beforeSleep('windows') ? doubt('window', 'Windows open', beforeSleep('windows')) : chip(windows === 'closed', 'window', windows === 'closed' ? 'Windows up' : 'Windows open')) : '',
       climate != null ? `<span class="car-chip ${climate !== 'off' ? 'ok' : ''}">${icon('fan')}Climate ${climate === 'off' ? 'off' : 'on'}</span>` : '',
       lowTyres ? chip(false, 'alert', `${lowTyres} tyre${lowTyres > 1 ? 's' : ''} low`) : '',
       softwareChip(swu),
@@ -672,7 +733,8 @@ HD.views = HD.views || {};
     return `
       <header class="car-head"><div><p class="eyebrow-label">${esc(ev.name || 'Car')}</p>
         <h2>${icon('pin')}${esc(whereText())}</h2></div>
-        <span class="pill ${!stale && isAsleep === false ? 'ok' : ''}">${!any ? 'No data' : stale ? `Last seen ${esc(ago(updated))}` : isAsleep ? 'Asleep' : 'Awake'}</span></header>
+        <div class="car-head-end">${refreshPlan().length ? `<button class="car-refresh${Date.now() < refreshUntil ? ' busy' : ''}" data-car="refresh" data-entity="" ${Date.now() < refreshUntil ? 'disabled' : ''} title="Ask the car for fresh readings">${icon('refresh')}<span>${Date.now() < refreshUntil ? 'Refreshing…' : 'Refresh'}</span></button>` : ''}
+        <span class="pill ${!stale && isAsleep === false ? 'ok' : ''}">${!any ? 'No data' : stale ? `Last seen ${esc(ago(updated))}` : isAsleep ? 'Asleep' : 'Awake'}</span></div></header>
       ${stale || !any ? `<p class="note car-stale">${icon('alert')}<span>No live data from the car${bleDown ? ': the Bluetooth bridge is offline' : ''}${bleDown ? ' and' : ':'} Tesla Fleet has had nothing since ${updated ? HD.u.time(updated) + (Date.now() - Date.parse(updated) > 12 * 3600e3 ? ` on ${HD.u.fmt(updated, { weekday: 'short', day: 'numeric', month: 'short' })}` : '') : 'Home Assistant restarted'} (it doesn't wake a sleeping car). ${any ? 'Showing the last known state.' : ''}</span>${wake ? `<button class="car-btn" data-car="wake" data-entity="${wake.id}">${icon('power')}<span>Wake car</span></button>` : ''}</p>` : ''}
       ${any ? `
         <div class="car-main">
@@ -704,7 +766,9 @@ HD.views = HD.views || {};
   const ASK = { unlock: 'Unlock the car?', 'open-frunk': 'Open the frunk?', open: 'Open it?' };
   document.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-car]'); if (!b) return;
-    const a = b.dataset.car; const id = b.dataset.entity; const domain = id.split('.')[0];
+    const a = b.dataset.car;
+    if (a === 'refresh') { refresh(); return; }
+    const id = b.dataset.entity; const domain = id.split('.')[0];
     if (ASK[a] && !window.confirm(a === 'open' ? `${b.textContent.trim()}?` : ASK[a])) return;
     if (a === 'install' && !window.confirm(b.dataset.ask || 'Install the update now?')) return;
     let call;
