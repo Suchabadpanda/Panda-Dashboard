@@ -1225,3 +1225,12 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 /* Home: yesterday's net cost under today's */
 .now-block p.net.yesterday { margin-top: 4px; color: var(--muted); font-size: 13px; }
 .now-block p.net.yesterday strong { color: var(--ink); font-size: 15px; }
+/* Today's import by rate: cheap share, then peak */
+.import-split { margin-top: 10px; }
+.import-bar { display: flex; height: 8px; background: var(--room); border-radius: 4px; overflow: hidden; }
+.import-bar i { display: block; height: 100%; }
+.import-split .cheap { background: var(--s-grid); }
+.import-split .peak { background: var(--warning); }
+.import-key { display: flex; justify-content: space-between; margin: 5px 0 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.import-key span { display: inline-flex; align-items: center; gap: 5px; }
+.import-key i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }

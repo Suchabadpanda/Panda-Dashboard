@@ -404,16 +404,21 @@ HD.views = HD.views || {};
     </div></section>`;
   }
 
-  // Yesterday's net cost beside today's: in all, and by this time of day
-  function yesterdayHtml(d) {
+  // Yesterday's net cost under today's
+  function yesterdayHtml() {
     const y = HD.data.yesterday; if (!y) return '';
-    let cmp = '';
-    if (d && y.frac < 0.98) {
-      const diff = d.net - y.netByNow;
-      cmp = Math.abs(diff) < 0.05 ? ' · about the same as yesterday at this time'
-        : ` · ${gbp(Math.abs(diff))} ${diff < 0 ? 'less' : 'more'} than yesterday at this time (${gbp(y.netByNow)})`;
-    }
-    return `<p class="net yesterday">Yesterday <strong>${gbp(y.net)}</strong>${cmp}</p>`;
+    return `<p class="net yesterday">Yesterday <strong>${gbp(y.net)}</strong></p>`;
+  }
+
+  // Today's import split by rate, as a bar: cheap-rate share, then the rest
+  function importBar(d, t) {
+    if (!d || !d.importKwh) return '';
+    const cheap = Math.round((d.offPeakKwh / d.importKwh) * 100);
+    const label = `${cheap}% of today’s import at the ${pence(t.offPeak)} rate, ${100 - cheap}% at ${pence(t.peak)}`;
+    return `<div class="import-split">
+        <div class="import-bar" role="meter" aria-label="${esc(label)}" title="${esc(label)}" aria-valuenow="${cheap}" aria-valuemin="0" aria-valuemax="100"><i class="cheap" style="width:${cheap}%"></i><i class="peak" style="width:${100 - cheap}%"></i></div>
+        <p class="import-key"><span><i class="cheap"></i>Cheap ${pence(t.offPeak)} · ${cheap}%</span><span><i class="peak"></i>Peak ${pence(t.peak)} · ${100 - cheap}%</span></p>
+      </div>`;
   }
 
   function nowHtml() {
@@ -469,8 +474,8 @@ HD.views = HD.views || {};
           <div><dt>Sold</dt><dd>${kwh(exp)}${d ? `<small>${gbp(d.exportCredit)}</small>` : ''}</dd></div>
         </dl>
         <p class="net">${d ? `Net cost today <strong>${gbp(d.net)}</strong> incl. ${gbp(d.standing)} standing charge` : 'Working out today’s cost…'}</p>
-        ${yesterdayHtml(d)}
-        ${d && d.importKwh ? `<p class="sub">${Math.round((d.offPeakKwh / d.importKwh) * 100)}% of today’s import was at the ${pence(t.offPeak)} rate</p>` : ''}
+        ${yesterdayHtml()}
+        ${importBar(d, t)}
       </section>
       ${copBlock()}
       ${HD.doorbell ? HD.doorbell.cardHtml() : ''}
