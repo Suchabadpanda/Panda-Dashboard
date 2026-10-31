@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.84
+- AC cards: room target when the AC follows the room sensor
+
 ## 0.3.83
 - Home: radiator valve (TRV) chip and dialog on room tiles
 
