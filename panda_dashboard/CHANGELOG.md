@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.83
+- Home: radiator valve (TRV) chip and dialog on room tiles
+
 ## 0.3.82
 - Home: Attention card at the top of the right column
 
