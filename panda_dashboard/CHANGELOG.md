@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.89
+- Gas rate in Settings; Home net cost after Energy Tracker income
+
 ## 0.3.88
 - Home: drop the breakeven text under the COP gas bar
 
