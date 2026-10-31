@@ -455,6 +455,10 @@ HD.views = HD.views || {};
     });
 
     return `
+      ${alerts.length ? `<section class="now-block alerts">
+        <h2>Attention</h2>
+        <ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>
+      </section>` : ''}
       <section class="now-block battery">
         <h2>Battery</h2>
         <p class="big">${pct(soc)}<small>${bat > 0.05 ? ' charging' : bat < -0.05 ? ' discharging' : ''}</small></p>
@@ -478,11 +482,7 @@ HD.views = HD.views || {};
         ${importBar(d, t)}
       </section>
       ${copBlock()}
-      ${HD.doorbell ? HD.doorbell.cardHtml() : ''}
-      ${alerts.length ? `<section class="now-block alerts">
-        <h2>Attention</h2>
-        <ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>
-      </section>` : ''}`;
+      ${HD.doorbell ? HD.doorbell.cardHtml() : ''}`;
   }
 
   HD.views.home = {
