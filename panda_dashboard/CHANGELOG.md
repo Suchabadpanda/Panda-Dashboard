@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.87
+- Home: gas breakeven from today's average import price
+
 ## 0.3.86
 - Home: COP card shows a gas breakeven bar instead of Design
 
