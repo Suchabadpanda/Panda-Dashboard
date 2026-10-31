@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.86
+- Home: COP card shows a gas breakeven bar instead of Design
+
 ## 0.3.85
 - Car: Refresh button; label readings taken before the car fell asleep
 
