@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.82
+- Home: Attention card at the top of the right column
+
 ## 0.3.81
 - Home: Today so far keeps only yesterday's net cost; import by rate as a bar
 
