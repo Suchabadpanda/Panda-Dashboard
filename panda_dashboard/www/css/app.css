@@ -258,7 +258,7 @@ button { font: inherit; color: inherit; }
 /* COP vs gas breakeven bar (Home, Heat pump COP card): breakeven from today's average import price,
    faint line = day-rate breakeven. Today label above, Month below */
 .cop-gas { margin-top: 12px; padding-top: 22px; }
-.cop-bar { position: relative; display: flex; height: 10px; border-radius: 5px; background: var(--room); margin-bottom: 22px; }
+.cop-bar { position: relative; display: flex; height: 10px; border-radius: 5px; background: var(--room); margin-bottom: 18px; }
 .cop-bar > i { display: block; height: 100%; }
 .cop-bar > i:first-child { border-radius: 5px 0 0 5px; }
 .cop-bar .lose { background: var(--critical); opacity: .75; }
@@ -272,8 +272,6 @@ button { font: inherit; color: inherit; }
 .cop-mark.month b { top: 13px; color: var(--accent); }
 .cop-mark.end b { left: auto; right: -4px; transform: none; }
 .cop-mark.start b { left: -4px; transform: none; }
-.cop-gas-key { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.cop-gas-key b { color: var(--ink); font-weight: 600; }
 .now-block p.big { color: var(--ink); }
 .now-block .sub { font-size: 13px; color: var(--faint); margin-top: 6px; }
 .soc-bar { height: 8px; background: var(--room); border-radius: 4px; overflow: hidden; margin: 8px 0 6px; }

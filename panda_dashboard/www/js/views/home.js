@@ -438,7 +438,6 @@ HD.views = HD.views || {};
             ${showDay ? `<span class="cop-line ref" style="left:${pc(b.day)}"></span>` : ''}
             ${ticks}
           </div>
-          <p class="cop-gas-key">Cheaper than gas above <b>${b.at.toFixed(2)}</b> ${b.cheapPct != null ? `at today’s ${pence(b.avg)}` : `at the cheap rate`}${showDay ? ` · ${b.day.toFixed(2)} on the day rate` : ''}</p>
         </div>`;
   }
 
