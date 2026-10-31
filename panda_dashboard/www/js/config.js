@@ -142,6 +142,8 @@ HD.config = {
 
   heatPump: {
     power: 'sensor.heat_pump_power_kw',
+    // subtract: ['sensor.wall_connector_power'],   // other loads measured on the same circuit as
+    //                                              // power (e.g. an EV charger on a SigenStor smart-load port)
     energyToday: 'sensor.heat_pump_energy_today',
     tankTemp: 'sensor.hot_water_tank_temperature',
     legionella: 'binary_sensor.legionella_cycle',

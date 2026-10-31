@@ -51,13 +51,19 @@ window.HD = window.HD || {};
   // One look back at the last hour so a reheat already under way shows straight after loading
   async function seed() {
     if (seeded || S().mode === 'demo') return; seeded = true;
-    const id = HD.config.heatPump.tankTemp; const pid = HD.config.heatPump.power;
-    const ids = [id, pid].filter(Boolean); if (!ids.length) return;
+    const id = HD.config.heatPump.tankTemp; const pid = HD.config.heatPump.power; const sub = subtractIds();
+    const ids = [id, pid, ...sub].filter(Boolean); if (!ids.length) return;
     try {
       const r = await HD.ha.callWS({ type: 'history/history_during_period', start_time: new Date(Date.now() - 3600e3).toISOString(), entity_ids: ids, minimal_response: true, no_attributes: true });
       const rows = (e) => (r[e] || []).map((x) => [((x.lu || x.lc) * 1000) || Date.parse(x.last_changed), parseFloat(x.s ?? x.state)]).filter(([, v]) => !isNaN(v));
       if (id) tank.unshift(...rows(id).filter(([t]) => !tank.length || t < tank[0][0]));
-      if (pid) power.unshift(...rows(pid).filter(([t]) => !power.length || t < power[0][0]));
+      if (pid) {
+        // Take the other loads off at each reading (their last value at or before it)
+        const others = sub.map(rows);
+        const at = (pts, t) => { let v = 0; for (const [ts, x] of pts) { if (ts > t) break; v = x; } return v; };
+        const net = rows(pid).map(([t, v]) => [t, Math.max(0, v - others.reduce((a, pts) => a + at(pts, t), 0))]);
+        power.unshift(...net.filter(([t]) => !power.length || t < power[0][0]));
+      }
     } catch (e) { console.warn('Heat pump history unavailable', e); }
     const cl = HD.config.heatPump.climate; if (!cl) return;
     try {
@@ -67,6 +73,16 @@ window.HD = window.HD || {};
       flowPts.unshift(...old);
     } catch (e) { console.warn('Heat pump flow history unavailable', e); }
   }
+  // Other loads measured on the same circuit as heatPump.power (e.g. the Wall Connector on
+  // SigenStor smart-load port 1, like the Energy Tracker's ev_on_smart_load)
+  const subtractIds = () => [].concat((HD.config.heatPump || {}).subtract || []).filter(Boolean);
+  // The heat pump's own draw now in kW: power minus the subtract loads, never below 0
+  function kwNow() {
+    const kw = S().num((HD.config.heatPump || {}).power);
+    if (kw == null) return null;
+    return Math.max(0, kw - subtractIds().reduce((t, id) => t + (S().num(id) || 0), 0));
+  }
+
   // Recent power readings, to tell a sustained heavy run from a short burst
   const power = [];
   function notePower(now, kw) {
@@ -128,7 +144,7 @@ window.HD = window.HD || {};
     noteTank(now); seed();
     const read = (id) => { if (!id || !S().get(id)) return null; const v = String(S().state(id)).toLowerCase(); return UNKNOWN.has(v) ? null : v; };
     const wh = read(c.waterHeater); const cl = read(c.climate);
-    const kw = S().num(c.power) || 0;
+    const kw = kwNow() || 0;
     notePower(now, kw);
     const running = kw > (c.runningAbove ?? 0.1);
     const rise = tankRise(now);
@@ -188,5 +204,5 @@ window.HD = window.HD || {};
     </span>`;
   }
 
-  HD.heatpump = { mode, lampsHtml, _flow: { noteFlow, flowClimb, reset: () => flowPts.splice(0) } };
+  HD.heatpump = { mode, lampsHtml, kw: kwNow, _flow: { noteFlow, flowClimb, reset: () => flowPts.splice(0) } };
 })();

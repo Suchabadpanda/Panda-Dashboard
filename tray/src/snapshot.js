@@ -19,6 +19,15 @@ function reader(states) {
   return { get, st, num, attr, available, ids };
 }
 
+// Heat pump draw: config.heatPump.power minus anything else measured on the same circuit
+// (heatPump.subtract, e.g. the Wall Connector on SigenStor smart-load port 1), never below 0
+function heatPumpKw(hp, r) {
+  const kw = r.num(hp.power);
+  if (kw == null) return null;
+  const others = [].concat(hp.subtract || []).reduce((t, id) => t + (r.num(id) || 0), 0);
+  return Math.max(0, kw - others);
+}
+
 // Heating, hot water, or both called for at once (the Samsung has one compressor and a
 // diverter valve, so "both" means the tank is being reheated and the heating waits)
 function heatPumpMode(c, r) {
@@ -26,7 +35,7 @@ function heatPumpMode(c, r) {
   if (!hp.power && !hp.waterHeater && !hp.climate) return null;
   const read = (id) => { const v = r.st(id); return v == null || UNKNOWN.has(String(v).toLowerCase()) ? null : String(v).toLowerCase(); };
   const wh = read(hp.waterHeater); const cl = read(hp.climate);
-  const kw = r.num(hp.power);
+  const kw = heatPumpKw(hp, r);
   const running = kw != null && kw > (hp.runningAbove ?? 0.1);
   const heatingOn = cl != null && HEATING_ON.has(cl);
   // SmartThings can go quiet for hours while the tank reheats; with the heating off, a heavy

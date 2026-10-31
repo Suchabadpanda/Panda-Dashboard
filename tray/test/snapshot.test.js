@@ -26,6 +26,21 @@ test('heat pump: heating, hot water, both, resting', () => {
   assert.equal(view.heatPumpMode(config, view.reader({ ...base, 'climate.hp': S('off'), 'sensor.hp': S('0.4') })).key, 'other');
 });
 
+test('heat pump: a car charging on the same smart-load port is taken off', () => {
+  const c = { ...config, heatPump: { ...config.heatPump, subtract: ['sensor.wc'] } };
+  // 31 Oct 00:28: port 6.348 kW, Wall Connector 6.24 kW, Samsung climate off
+  const night = { 'sensor.hp': S('6.348'), 'sensor.wc': S('6.24'), 'climate.hp': S('off'), 'water_heater.hp': S('off') };
+  const m = view.heatPumpMode(c, view.reader(night));
+  assert.equal(m.key, 'rest');
+  assert.ok(Math.abs(m.kw - 0.108) < 1e-9);
+  // Car ramping down faster than the port reading: never below zero
+  assert.equal(view.heatPumpMode(c, view.reader({ ...night, 'sensor.wc': S('7') })).kw, 0);
+  // Wall Connector unavailable: nothing to take off
+  assert.equal(view.heatPumpMode(c, view.reader({ ...night, 'sensor.hp': S('1.1'), 'climate.hp': S('heat'), 'sensor.wc': S('unavailable') })).key, 'heat');
+  // A plain string works too
+  assert.equal(view.heatPumpMode({ ...c, heatPump: { ...c.heatPump, subtract: 'sensor.wc' } }, view.reader(night)).key, 'rest');
+});
+
 test('car: a source that has not heard from the car does not count', () => {
   const states = {
     'sensor.ble_soc': S('unavailable'), 'binary_sensor.ble_asleep': S('unavailable'),

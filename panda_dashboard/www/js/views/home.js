@@ -87,7 +87,7 @@ HD.views = HD.views || {};
     const bat = S().num(e.batteryPower) || 0;   // + charging
     const grid = S().num(e.gridPower) || 0;     // + importing
     const soc = S().num(e.soc);
-    const hpP = S().num(HD.config.heatPump.power) || 0;
+    const hpP = HD.heatpump.kw() || 0;
     // Standby draw (controls, circulation) isn't "running"; config.heatPump.runningAbove sets the line
     const hpOn = hpP > (HD.config.heatPump.runningAbove ?? 0.1);
     const hpm = HD.heatpump.mode();
