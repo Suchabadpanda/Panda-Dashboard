@@ -225,7 +225,7 @@ button { font: inherit; color: inherit; }
 .ac-mark .blades { fill: none; stroke: var(--acc); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transform-box: fill-box; transform-origin: center; }
 .ac-mark.active circle { fill: var(--acc); }
 .ac-mark.active .blades { stroke: #fff; animation: spin 2.4s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .ac-badge.active .ic, .ac-mark.active .blades { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ac-badge.active .ic, .ac-mark.active .blades, .chip.chip-pc.busy .ic { animation: none; } }
 .motion .ic { width: 18px; height: 18px; }
 
 .chip {
@@ -708,6 +708,9 @@ thead th { color: var(--muted); font-weight: 500; }
 .door-facts dd small { display: block; font: 400 12px/1.3 var(--font); color: var(--muted); }
 .live-snap { width: 100%; border-radius: var(--r-md); display: block; aspect-ratio: 4 / 3; object-fit: cover; background: #000; }
 .chip.appliance.on { background: var(--s-load); border-color: var(--s-load); color: #fff; }
+.chip.chip-pc.busy { border-color: var(--s-load); color: var(--s-load); }
+.chip.chip-pc.busy .ic { animation: pc-pulse 1.4s ease-in-out infinite; }
+@keyframes pc-pulse { 50% { opacity: .35; } }
 
 /* ── Floor plan ── */
 .plan-panel > header { align-items: center; }
@@ -1185,7 +1188,7 @@ body { font-variant-numeric: tabular-nums; }
 
 /* View-only screens (users other than those in config.controlBy): controls show their state but can't be used */
 body.view-only :is([data-toggle], [data-hvac], [data-press], [data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra],
-  [data-vac], [data-vac-select], [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-plan-room]) {
+  [data-vac], [data-vac-select], [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-plan-room], [data-pc]) {
   cursor: default; pointer-events: none;
 }
 body.view-only :is(button, select, input):is([data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra], [data-vac], [data-vac-select],

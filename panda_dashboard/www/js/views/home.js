@@ -55,6 +55,53 @@ HD.views = HD.views || {};
     return `<button class="chip appliance chip-tv icon-only ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${on}" aria-label="${tip}" title="${tip}">${icon('tv')}</button>`;
   }
 
+  // PC power: one button that wakes the PC when it's off and shuts it down when it's on.
+  // room.pc = { name, wake: button (Wake on LAN), shutdown: button (HASS.Agent), state? }
+  // "On" = the HASS.Agent entity (state, else shutdown) isn't unavailable: HASS.Agent's MQTT
+  // entities drop to unavailable when the PC is off. Its buttons sit at "unknown" until
+  // first pressed, so S().available() (which treats unknown as missing) isn't used here.
+  // After a press the button shows "starting…"/"shutting down…" until the agent agrees (≤4/3 min).
+  const pcPending = {};   // room name → { action: 'wake' | 'shutdown', until: ms }
+  function pcStatus(r) {
+    const agent = r.pc.state || r.pc.shutdown;
+    const st = agent && S().state(agent);
+    const on = st !== undefined && st !== null && st !== 'unavailable';
+    const p = pcPending[r.name];
+    if (p && (Date.now() > p.until || (p.action === 'wake') === on)) delete pcPending[r.name];
+    if (pcPending[r.name]) return pcPending[r.name].action === 'wake' ? 'starting' : 'stopping';
+    return on ? 'on' : 'off';
+  }
+  function pcBtn(r) {
+    if (!r.pc || !(r.pc.wake || r.pc.shutdown)) return '';
+    const name = r.pc.name || 'PC';
+    const s = pcStatus(r);
+    const can = s === 'on' ? !!r.pc.shutdown : s === 'off' ? !!r.pc.wake && S().state(r.pc.wake) !== undefined : false;
+    const tip = {
+      on: `${name}: on · tap to shut down`, off: `${name}: off · tap to wake`,
+      starting: `${name}: starting…`, stopping: `${name}: shutting down…`,
+    }[s];
+    return `<button class="chip appliance chip-pc icon-only ${s === 'on' ? 'on' : ''} ${s === 'starting' || s === 'stopping' ? 'busy' : ''}" data-pc="${esc(r.name)}" ${can ? '' : 'disabled'} aria-pressed="${s === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon('power')}</button>`;
+  }
+  const findRoom = (name) => HD.config.floors.flatMap((f) => f.rooms).find((x) => x.name === name);
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-pc]'); if (!b || b.disabled) return;
+    const r = findRoom(b.dataset.pc); if (!r || !r.pc) return;
+    const name = r.pc.name || 'PC';
+    const s = pcStatus(r);
+    let action, id;
+    if (s === 'on') {
+      if (!window.confirm(`Shut down ${name}?`)) return;
+      action = 'shutdown'; id = r.pc.shutdown;
+    } else if (s === 'off') { action = 'wake'; id = r.pc.wake; } else return;
+    b.disabled = true;
+    HD.ha.callService('button', 'press', { entity_id: id }).then(() => {
+      const wait = (action === 'wake' ? 4 : 3) * 60000;
+      pcPending[r.name] = { action, until: Date.now() + wait };
+      setTimeout(() => { HD.u.invalidate(); HD.app.refresh(); }, wait + 500);   // give up waiting even if nothing changes
+      HD.app.toast(action === 'wake' ? `Waking ${name}…` : `Shutting down ${name}…`);
+    }).catch((e) => HD.app.toast(`${name}: ${e.message}`)).finally(() => { HD.u.invalidate(); HD.app.refresh(); });
+  });
+
   function washerChip(r) {
     if (!r.washer) return '';
     const st = S().state(r.washer);
@@ -68,7 +115,7 @@ HD.views = HD.views || {};
     const t = S().num(r.temp); const h = S().num(r.hum);
     const motion = r.motion && S().state(r.motion) === 'on';
     const lux = r.lux != null ? S().num(r.lux) : null;
-    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name, l.icon)), acBtn(r.climate), tvBtn(r.tv), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
+    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name, l.icon)), acBtn(r.climate), tvBtn(r.tv), pcBtn(r), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
     // A room waiting for its sensor (config has area: but nothing's in that area yet)
     const waiting = t == null && !S().get(r.temp);

@@ -148,6 +148,7 @@ window.HD = window.HD || {};
     ['sensor.dishwasher_rinse_aid_nearly_empty', 'present', '', 'Dishwasher Rinse aid nearly empty', 'enum'],
     ['sensor.washing_machine_completion_time', 'unavailable', '', 'Washing machine Completion time'],
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
+    ['button.pandapc_shutdown_pc', 'unknown', '', 'PANDAPC Shutdown_PC'],
     ['input_boolean.ac_all_cool', 'off', '', 'AC Quick Cool'],
     ['button.pc_lock', 'unknown', '', 'PC Lock'],
     ['button.pc_mute', 'unknown', '', 'PC Mute'],
@@ -468,6 +469,12 @@ window.HD = window.HD || {};
           if (service === 'start') s.attributes.active_segments = (s.attributes.rooms[s.attributes.selected_map] || []).map((r) => r.id);
           s.state = { vacuum_clean_segment: 'cleaning', start: 'cleaning', pause: 'paused', return_to_base: 'returning' }[service] || s.state;
           if (s.state !== 'cleaning') s.attributes.active_segments = [];
+        }
+        // PC power button: shutdown → HASS.Agent goes offline; wake → back online, a few seconds later
+        if (domain === 'button' && service === 'press' && /^button\.(pandapc_shutdown_pc|wake_on_lan_pc)$/.test(id)) {
+          const agent = HD.store.states['button.pandapc_shutdown_pc'];
+          const off = id === 'button.pandapc_shutdown_pc';
+          if (agent) setTimeout(() => { agent.state = off ? 'unavailable' : 'unknown'; HD.store.emit('button.pandapc_shutdown_pc'); }, 3000);
         }
         HD.store.emit(id);
       }
