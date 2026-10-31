@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.79
+- Heat pump power: take off loads on the same circuit (heatPump.subtract)
+
 ## 0.3.78
 - Home: yesterday's net cost under today's
 
