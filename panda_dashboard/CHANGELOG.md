@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.81
+- Home: Today so far keeps only yesterday's net cost; import by rate as a bar
+
 ## 0.3.80
 - Home: PC power button on a room tile (wake when off, shut down when on)
 
