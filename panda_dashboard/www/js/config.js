@@ -157,6 +157,9 @@ HD.config = {
     legionella: 'binary_sensor.legionella_cycle',
     waterHeater: 'water_heater.heat_pump',
     climate: 'climate.heat_pump_indoor1',
+    // Gas comparison on Home's COP card (replaces the Design figure): gas unit rate in £/kWh inc. VAT
+    // and the boiler efficiency you'd compare against. Breakeven COP = electricity rate × efficiency ÷ gas rate.
+    gas: { rate: 0.0653, efficiency: 0.9 },
   },
 
   ev: {

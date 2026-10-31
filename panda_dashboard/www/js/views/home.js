@@ -389,9 +389,49 @@ HD.views = HD.views || {};
           <div><dt>Today</dt><dd>${f(c.today)}</dd></div>
           <div><dt>Yesterday</dt><dd>${f(c.yesterday)}</dd></div>
           <div><dt>This month</dt><dd>${f(c.month)}</dd></div>
-          <div><dt>Design</dt><dd>${f(c.design)}</dd></div>
+          ${breakeven() ? '' : `<div><dt>Design</dt><dd>${f(c.design)}</dd></div>`}
         </dl>
+        ${copBar(c)}
       </section>`;
+  }
+
+  // COP at which the heat pump costs the same per kWh of heat as a gas boiler:
+  // electricity price × boiler efficiency ÷ gas price. Needs heatPump.gas = { rate, efficiency }.
+  function breakeven() {
+    const g = HD.config.heatPump && HD.config.heatPump.gas;
+    if (!g || !(g.rate > 0)) return null;
+    const eff = g.efficiency > 0 ? g.efficiency : 0.9;
+    const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const t = HD.tariff.tariffAt(now);
+    if (!t || !(t.peak > 0)) return null;
+    const be = (rate) => (rate * eff) / g.rate;
+    return { day: be(t.peak), night: t.offPeak > 0 ? be(t.offPeak) : null, t, gas: g.rate, eff };
+  }
+
+  // Bar from 0 up: red below the night-rate breakeven, amber between night and day, green above
+  // the day-rate breakeven (beats gas whenever it runs). Today and this month are marked on it.
+  function copBar(c) {
+    const b = breakeven(); if (!b) return '';
+    const marks = [['Today', c.today, 'today'], ['Month', c.month, 'month']].filter((m) => m[1] != null && isFinite(m[1]));
+    const max = Math.max(5, Math.ceil(Math.max(b.day, ...marks.map((m) => m[1])) + 0.5));
+    const pc = (v) => `${Math.max(0, Math.min(100, (v / max) * 100)).toFixed(1)}%`;
+    const night = b.night != null ? b.night : 0;
+    const label = `Beats gas at any time above COP ${b.day.toFixed(2)} (day rate ${pence(b.t.peak)})`
+      + (b.night != null ? `, and on the night rate (${pence(b.t.offPeak)}) above ${b.night.toFixed(2)}` : '')
+      + `. Gas ${pence(b.gas)} at ${Math.round(b.eff * 100)}% boiler efficiency.`
+      + marks.map((m) => ` ${m[0] === 'Month' ? 'This month' : m[0]} ${m[1].toFixed(2)}.`).join('');
+    const edge = (v) => (v / max > 0.85 ? ' end' : v / max < 0.15 ? ' start' : '');
+    const ticks = marks.map((m) => `<span class="cop-mark ${m[2]}${edge(m[1])}" style="left:${pc(m[1])}"><b>${esc(m[0])} ${m[1].toFixed(2)}</b></span>`).join('');
+    return `
+        <div class="cop-gas" title="${esc(label)}">
+          <div class="cop-bar" role="img" aria-label="${esc(label)}">
+            <i class="lose" style="width:${pc(night)}"></i><i class="mixed" style="width:calc(${pc(b.day)} - ${pc(night)})"></i><i class="win"></i>
+            <span class="cop-line" style="left:${pc(b.day)}"></span>
+            ${b.night != null ? `<span class="cop-line night" style="left:${pc(night)}"></span>` : ''}
+            ${ticks}
+          </div>
+          <p class="cop-gas-key">Cheaper than gas above <b>${b.day.toFixed(2)}</b> on the day rate${b.night != null ? ` · <b>${b.night.toFixed(2)}</b> at night` : ''}</p>
+        </div>`;
   }
 
   function tilesHtml() {
