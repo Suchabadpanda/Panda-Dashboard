@@ -115,7 +115,7 @@ HD.views = HD.views || {};
     const t = S().num(r.temp); const h = S().num(r.hum);
     const motion = r.motion && S().state(r.motion) === 'on';
     const lux = r.lux != null ? S().num(r.lux) : null;
-    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name, l.icon)), acBtn(r.climate), tvBtn(r.tv), pcBtn(r), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
+    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name, l.icon)), acBtn(r.climate), HD.trv ? HD.trv.chip(r) : '', tvBtn(r.tv), pcBtn(r), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
     // A room waiting for its sensor (config has area: but nothing's in that area yet)
     const waiting = t == null && !S().get(r.temp);

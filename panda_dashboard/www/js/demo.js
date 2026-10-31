@@ -149,6 +149,10 @@ window.HD = window.HD || {};
     ['sensor.washing_machine_completion_time', 'unavailable', '', 'Washing machine Completion time'],
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
     ['button.pandapc_shutdown_pc', 'unknown', '', 'PANDAPC Shutdown_PC'],
+    ['climate.office_trv_thermostat', 'heat', '', 'Office TRV Thermostat'],
+    ['sensor.office_trv_battery', '98', '%', 'Office TRV Battery', 'battery'],
+    ['number.office_trv_external_temperature_sensor_value', '22.7', '°C', 'Office TRV External temperature sensor value', 'temperature'],
+    ['switch.office_trv_external_temperature_sensor', 'on', '', 'Office TRV External temperature sensor'],
     ['input_boolean.ac_all_cool', 'off', '', 'AC Quick Cool'],
     ['button.pc_lock', 'unknown', '', 'PC Lock'],
     ['button.pc_mute', 'unknown', '', 'PC Mute'],
@@ -205,6 +209,8 @@ window.HD = window.HD || {};
     };
     ac('climate.living_room', 'cool', { temperature: 22, fan_mode: 'medium', swing_mode: 'vertical', hvac_action: 'cooling', current_temperature: 23 });
     ac('climate.office', 'off', { temperature: 20 });
+    // Office radiator valve (SONOFF TRVZB on ZHA), heating towards 23°
+    Object.assign(states['climate.office_trv_thermostat'].attributes, { hvac_modes: ['off', 'heat'], min_temp: 4, max_temp: 35, temperature: 23, current_temperature: 22.7, hvac_action: 'heating' });
     ac('climate.bedroom_2_ac', 'off', { temperature: 19, swing_horizontal_modes: ['off', 'left', 'centre', 'right', 'wide'], swing_horizontal_mode: 'off', swing_modes: ['off', 'on'] });
     car('switch.living_room_display', 'on', { friendly_name: 'Living room Display' });
     car('switch.living_room_beeper', 'off', { friendly_name: 'Living room Beeper' });

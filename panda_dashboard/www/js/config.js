@@ -80,7 +80,10 @@ HD.config = {
           plugPower: 'sensor.sonoff_10026839a2_power', plugName: 'Computer',
           // PC power button: wakes the PC when off, shuts it down (after a confirm) when on.
           // On/off comes from the HASS.Agent entity (state, else shutdown), which is unavailable while the PC is off.
-          pc: { name: 'PC', wake: 'button.wake_on_lan_pc', shutdown: 'button.pandapc_shutdown_pc' } },
+          pc: { name: 'PC', wake: 'button.wake_on_lan_pc', shutdown: 'button.pandapc_shutdown_pc' },
+          // Smart radiator valve (ZHA SONOFF TRVZB): chip with the target, tap for a stepper and Off/Heat.
+          // Battery and external-sensor entities are found from the id; { climate, battery, external, externalSwitch } overrides.
+          trv: 'climate.office_trv_thermostat' },
         { name: 'Kitchen', temp: 'sensor.temp_humidity_kitchen_temperature', hum: 'sensor.temp_humidity_kitchen_humidity',
           thermostat: true,
           washer: 'sensor.washing_machine_machine_state', washerDone: 'sensor.washing_machine_completion_time' },

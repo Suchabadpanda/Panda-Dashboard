@@ -708,6 +708,9 @@ thead th { color: var(--muted); font-weight: 500; }
 .door-facts dd small { display: block; font: 400 12px/1.3 var(--font); color: var(--muted); }
 .live-snap { width: 100%; border-radius: var(--r-md); display: block; aspect-ratio: 4 / 3; object-fit: cover; background: #000; }
 .chip.appliance.on { background: var(--s-load); border-color: var(--s-load); color: #fff; }
+.chip.chip-trv { gap: 4px; padding-inline: 8px; font-variant-numeric: tabular-nums; }
+.chip.chip-trv.heating { background: var(--warm); border-color: var(--warm); color: #fff; }
+.chip.chip-trv.idle-off { color: var(--muted); }
 .chip.chip-pc.busy { border-color: var(--s-load); color: var(--s-load); }
 .chip.chip-pc.busy .ic { animation: pc-pulse 1.4s ease-in-out infinite; }
 @keyframes pc-pulse { 50% { opacity: .35; } }
@@ -1188,11 +1191,11 @@ body { font-variant-numeric: tabular-nums; }
 
 /* View-only screens (users other than those in config.controlBy): controls show their state but can't be used */
 body.view-only :is([data-toggle], [data-hvac], [data-press], [data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra],
-  [data-vac], [data-vac-select], [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-plan-room], [data-pc]) {
+  [data-vac], [data-vac-select], [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-plan-room], [data-pc], [data-trv-temp]) {
   cursor: default; pointer-events: none;
 }
 body.view-only :is(button, select, input):is([data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra], [data-vac], [data-vac-select],
-  [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-hvac], [data-press]) { opacity: .6; }
+  [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-hvac], [data-press], [data-trv-temp]) { opacity: .6; }
 body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac], [data-dw]) { display: none; }
 .status.view-only-badge { cursor: default; }
 .status.view-only-badge .ic { width: 16px; height: 16px; }
@@ -1234,3 +1237,17 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .import-key { display: flex; justify-content: space-between; margin: 5px 0 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .import-key span { display: inline-flex; align-items: center; gap: 5px; }
 .import-key i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+/* Radiator valve (TRV) dialog, opened from a room tile's radiator chip */
+.trv-dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); padding: 16px; width: min(92vw, 360px); }
+.trv-dialog::backdrop { background: rgb(0 0 0 / .6); }
+.trv-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.trv-dialog h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; }
+.trv-dialog header .btn { margin-top: 0; }
+.trv-state { margin: 6px 0 12px; color: var(--muted); }
+.trv-state.heating { color: var(--warm); }
+.trv-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.trv-dialog .seg button { flex: 1; }
+.trv-note { display: flex; gap: 6px; align-items: flex-start; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.trv-note .ic { flex: none; margin-top: 2px; }
+.trv-note.warn { color: var(--warning); }
