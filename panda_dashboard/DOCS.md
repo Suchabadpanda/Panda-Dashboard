@@ -77,3 +77,151 @@ Settings → ⋮ hides the rest of the sidebar if you want it to fill the screen
 Each push to `main` on GitHub that changes the dashboard bumps the version.
 Home Assistant shows the update under Settings → Add-ons; turn on
 **Auto update** on the add-on's page to install them without asking.
+
+
+## AC: follow the room sensors
+
+Each AC judges the temperature by its own sensor (often a degree or two off, and only whole degrees).
+With two Home Assistant automations and a target helper per room, the AC's setpoint is moved so the
+**room sensor** reaches the target. It only acts while an AC is on; it never turns one on or off.
+
+In the dashboard config give each AC room its helper: `acTarget: 'input_number.office_ac_target'`.
+The AC stepper on Rooms then sets the room target, and the card says what the unit itself is set to.
+Without the helper (or before it exists) the stepper sets the unit's setpoint as before.
+
+```yaml
+# AC follows the room sensors — two automations, plus a change to "AC Quick Cool - On".
+#
+# First create these helpers (Settings → Devices & services → Helpers → Create helper):
+#   Number  "Office AC target"          min 16, max 30, step 0.5, input field, unit °C  → input_number.office_ac_target
+#   Number  "Living room AC target"     min 16, max 30, step 0.5, input field, unit °C  → input_number.living_room_ac_target
+#   Number  "Rosalyn's room AC target"  min 16, max 30, step 0.5, input field, unit °C  → input_number.rosalyn_s_room_ac_target
+#   Toggle  "AC follow room sensors"    (then switch it on)                              → input_boolean.ac_follow_room_sensors
+# Set the targets to what you want each room to be (e.g. 22 / 22 / 21).
+#
+# Then: Settings → Automations → Create automation → ⋮ → Edit in YAML, paste one automation, save. Repeat.
+
+# ── 1 ─────────────────────────────────────────────────────────────────────────
+alias: AC - follow room sensors
+description: >-
+  While an AC is on (cool, heat or heat/cool), moves its own setpoint so the ROOM sensor
+  reaches the room target (input_number). Setpoint = target + (AC's own reading − room
+  sensor), ±1 while the room is more than 0.5 °C off target, rounded to the AC's 1 °C steps,
+  kept within target ±3 and 18–30. Never turns an AC on or off. Runs every 5 min, when a
+  target changes and 30 s after an AC starts. Switch off input_boolean.ac_follow_room_sensors
+  to pause.
+triggers:
+  - trigger: time_pattern
+    minutes: /5
+  - trigger: state
+    entity_id:
+      - input_number.office_ac_target
+      - input_number.living_room_ac_target
+      - input_number.rosalyn_s_room_ac_target
+  - trigger: state
+    entity_id:
+      - climate.office
+      - climate.living_room
+      - climate.rosalyn_s_room_ac
+    to: [cool, heat, heat_cool]
+    for:
+      seconds: 30
+  - trigger: state
+    entity_id: input_boolean.ac_follow_room_sensors
+    to: "on"
+conditions:
+  - condition: state
+    entity_id: input_boolean.ac_follow_room_sensors
+    state: "on"
+variables:
+  units:
+    - ac: climate.office
+      room: sensor.office_temp_humidity_temperature
+      target: input_number.office_ac_target
+    - ac: climate.living_room
+      room: sensor.livingroomsensor_temperature
+      target: input_number.living_room_ac_target
+    - ac: climate.rosalyn_s_room_ac
+      room: sensor.ewelink_snzb_02p_temperature
+      target: input_number.rosalyn_s_room_ac_target
+actions:
+  - repeat:
+      for_each: "{{ units }}"
+      sequence:
+        - variables:
+            mode: "{{ states(repeat.item.ac) }}"
+            room: "{{ states(repeat.item.room) | float(-99) }}"
+            tgt: "{{ states(repeat.item.target) | float(-99) }}"
+            acnow: "{{ state_attr(repeat.item.ac, 'current_temperature') | float(-99) }}"
+            sp: "{{ state_attr(repeat.item.ac, 'temperature') | float(-99) }}"
+            new_sp: >-
+              {% if mode in ['cool', 'heat', 'heat_cool'] and room > -99 and tgt > -99 and sp > -99 %}
+                {% set off = (acnow - room) if acnow > -99 else 0 %}
+                {% set off = [[off, -3] | max, 3] | min %}
+                {% set err = room - tgt %}
+                {% set trim = -1 if err > 0.5 else (1 if err < -0.5 else 0) %}
+                {% set want = (tgt + off + trim) | round(0) %}
+                {% set want = [[want, tgt - 3] | max, tgt + 3] | min | round(0) %}
+                {{ [[want, 18] | max, 30] | min | int }}
+              {% else %}-1{% endif %}
+        - if:
+            - condition: template
+              value_template: "{{ new_sp | int(-1) > 0 and (new_sp | float) != sp }}"
+          then:
+            - action: climate.set_temperature
+              target:
+                entity_id: "{{ repeat.item.ac }}"
+              data:
+                temperature: "{{ new_sp | int }}"
+mode: queued
+max: 3
+
+# ── 2 ─────────────────────────────────────────────────────────────────────────
+alias: AC - manual setpoint becomes room target
+description: >-
+  When a person changes an AC's setpoint (remote, airconwithme app, HA's own card) rather
+  than an automation, that value becomes the room target, so "AC - follow room sensors"
+  doesn't undo it.
+triggers:
+  - trigger: state
+    entity_id:
+      - climate.office
+      - climate.living_room
+      - climate.rosalyn_s_room_ac
+    attribute: temperature
+conditions:
+  - condition: state
+    entity_id: input_boolean.ac_follow_room_sensors
+    state: "on"
+  - condition: template
+    value_template: >-
+      {{ trigger.to_state.context.parent_id is none
+         and trigger.to_state.state in ['cool', 'heat', 'heat_cool']
+         and trigger.to_state.attributes.temperature is number }}
+variables:
+  targets:
+    climate.office: input_number.office_ac_target
+    climate.living_room: input_number.living_room_ac_target
+    climate.rosalyn_s_room_ac: input_number.rosalyn_s_room_ac_target
+actions:
+  - action: input_number.set_value
+    target:
+      entity_id: "{{ targets[trigger.entity_id] }}"
+    data:
+      value: "{{ trigger.to_state.attributes.temperature }}"
+mode: queued
+max: 5
+
+# ── 3: change to your existing "AC Quick Cool - On" ───────────────────────────
+# Add this as the FIRST action, otherwise "follow room sensors" moves the ACs off 20 °C
+# straight away (it would cool to the room targets instead):
+#
+#  - action: input_number.set_value
+#    target:
+#      entity_id:
+#        - input_number.office_ac_target
+#        - input_number.living_room_ac_target
+#        - input_number.rosalyn_s_room_ac_target
+#    data:
+#      value: 20
+```

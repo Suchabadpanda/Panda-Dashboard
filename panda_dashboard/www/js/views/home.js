@@ -40,7 +40,7 @@ HD.views = HD.views || {};
     if (!id) return '';
     const st = S().state(id); const avail = S().available(id);
     const on = avail && st !== 'off';
-    const target = S().attr(id, 'temperature');
+    const target = HD.ac ? HD.ac.target(id) : S().attr(id, 'temperature');
     const mode = { cool: 'Cool', heat: 'Heat', dry: 'Dry', fan_only: 'Fan', heat_cool: 'Auto', auto: 'Auto' }[st] || HD.u.cap(String(st || ''));
     const label = !avail ? 'AC · offline' : on ? `AC · ${mode}${target != null ? ` ${target}°` : ''}` : 'AC · off';
     return `<button class="chip appliance chip-ac icon-only ${on ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${on}" aria-label="${esc(label)}" title="${esc(label)} · tap to turn ${on ? 'off' : 'on (last mode)'}">${icon('snow')}</button>`;

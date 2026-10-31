@@ -45,7 +45,7 @@ HD.config = {
       name: 'Second floor', short: '2F',
       rooms: [
         { name: 'Bedroom 2', temp: 'sensor.ewelink_snzb_02p_temperature', hum: 'sensor.ewelink_snzb_02p_humidity',
-          climate: 'climate.bedroom_2_ac' },
+          climate: 'climate.bedroom_2_ac', acTarget: 'input_number.bedroom_2_ac_target' },
         { name: 'Upstairs', slim: true, temp: 'sensor.extra_temperature', hum: 'sensor.extra_humidity',
           light: 'switch.2f_landing', lightName: 'Landing', lightWhere: 'landing', motion: 'binary_sensor.2f_hallway_motion_sensor_occupancy',
           socket: 'switch.sonoff_s60zbtpg_2', socketName: 'Landing socket' },
@@ -61,7 +61,7 @@ HD.config = {
         // lux: a light-level sensor, shown on the room tile
         { name: 'Living room', temp: 'sensor.livingroomsensor_temperature', hum: 'sensor.livingroomsensor_humidity',
           lux: 'sensor.livingroomsensor_illuminance',
-          climate: 'climate.living_room', light: 'switch.living_room_light_switch', lightName: 'Main light',
+          climate: 'climate.living_room', acTarget: 'input_number.living_room_ac_target', light: 'switch.living_room_light_switch', lightName: 'Main light',
           tv: 'media_player.living_room_tv',
           motion: 'binary_sensor.living_room_livingroomsensor_occupancy',
           socket: 'switch.sonoff_s60zbtpg', socketName: 'TV socket', socketPower: 'sensor.sonoff_s60zbtpg_power' },
@@ -74,7 +74,9 @@ HD.config = {
       name: 'Ground floor', short: 'GF',
       rooms: [
         { name: 'Office', temp: 'sensor.office_temp_humidity_temperature', hum: 'sensor.office_temp_humidity_humidity',
-          climate: 'climate.office', light: 'switch.office_light', lightName: 'Light',
+          // acTarget: room target kept by the HA automation "AC - follow room sensors" (see DOCS.md);
+          // the AC stepper then sets this instead of the unit's own setpoint
+          climate: 'climate.office', acTarget: 'input_number.office_ac_target', light: 'switch.office_light', lightName: 'Light',
           tv: 'media_player.office_tv',
           motion: 'binary_sensor.office_motion_detector_occupancy',
           plugPower: 'sensor.sonoff_10026839a2_power', plugName: 'Computer',

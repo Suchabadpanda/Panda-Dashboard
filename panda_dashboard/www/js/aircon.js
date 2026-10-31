@@ -13,6 +13,11 @@
  *     quiet, turbo, vane position…), found from the entity registry at connect. A room can
  *     list them itself instead with `acExtras: ['switch.x', 'select.y']`.
  * Which cards have "More controls" open is kept per screen (localStorage hd.acOpen).
+ *
+ * Following the room sensor: a room with `acTarget: 'input_number.…'` has an HA automation
+ * ("AC - follow room sensors") that moves the unit's own setpoint so the room sensor reaches
+ * that target. The stepper then sets the room target (input_number.set_value, its min/max/step),
+ * and the card shows the unit's own setpoint underneath.
  */
 window.HD = window.HD || {};
 
@@ -74,8 +79,22 @@ window.HD = window.HD || {};
   try { open = new Set(JSON.parse(localStorage.getItem('hd.acOpen') || '[]')); } catch (e) { /* storage blocked */ }
   const saveOpen = () => { try { localStorage.setItem('hd.acOpen', JSON.stringify([...open])); } catch (e) { /* storage blocked */ } };
 
-  function target(id) { return pending[id] != null ? pending[id] : S().attr(id, 'temperature'); }
-  function step(id) { return Number(S().attr(id, 'target_temp_step')) || 0.5; }
+  // Room target helper (input_number) when the unit follows the room sensor, else null
+  function follow(id) {
+    const r = HD.config.floors.flatMap((f) => f.rooms).find((x) => x.climate === id);
+    const t = r && r.acTarget;
+    return t && S().get(t) ? t : null;
+  }
+  function target(id) {
+    if (pending[id] != null) return pending[id];
+    const f = follow(id);
+    return f ? S().num(f) : S().attr(id, 'temperature');
+  }
+  function step(id) { const f = follow(id); return Number(f ? S().attr(f, 'step') : S().attr(id, 'target_temp_step')) || 0.5; }
+  function limits(id) {
+    const f = follow(id); const src = f || id;
+    return [Number(S().attr(src, f ? 'min' : 'min_temp')) || 16, Number(S().attr(src, f ? 'max' : 'max_temp')) || 30];
+  }
   const fmtT = (v, st) => (v == null ? '–' : (st < 1 ? Number(v).toFixed(1) : String(Math.round(v))));
 
   // ── markup ──
@@ -136,15 +155,16 @@ window.HD = window.HD || {};
     const st = S().state(u.id); const avail = S().available(u.id);
     const modes = (a('hvac_modes') || ['off', 'cool', 'heat']).filter((m) => ORDER.includes(m)).sort((x, y) => ORDER.indexOf(x) - ORDER.indexOf(y));
     const t = target(u.id); const stp = step(u.id);
-    const lo = Number(a('min_temp')) || 16; const hi = Number(a('max_temp')) || 30;
+    const [lo, hi] = limits(u.id);
+    const fol = follow(u.id);
     const action = a('hvac_action');
     const roomT = S().num(u.room.temp) ?? a('current_temperature');
     const stateText = !avail ? 'Unavailable'
       : st === 'off' ? 'Off'
         : `${MODE_TEXT[st] || label(st)}${t != null && st !== 'fan_only' && st !== 'dry' ? ` to ${fmtT(t, stp)}°` : ''}${action && action !== 'off' && ACTION_TEXT[action] ? ` · ${ACTION_TEXT[action]}` : ''}`;
     // The stepper is there whenever the unit takes a temperature; it's dimmed while off
-    const showStep = a('temperature') !== undefined || pending[u.id] != null;
-    const canStep = avail && t != null && st !== 'off';
+    const showStep = a('temperature') !== undefined || pending[u.id] != null || !!fol;
+    const canStep = avail && t != null && (st !== 'off' || !!fol);   // a room target can be set ahead
     return `<li class="${st !== 'off' && avail ? `running ${esc(st)}` : ''}">
       <div class="ac-head"><span class="name">${esc(u.name)}</span><span class="state">${esc(stateText)}</span></div>
       <div class="ac-main">
@@ -154,6 +174,7 @@ window.HD = window.HD || {};
           <button data-ac="${u.id}" data-ac-temp="1" aria-label="Warmer" ${canStep && t < hi ? '' : 'disabled'}>+</button></div>` : ''}
         ${roomT != null ? `<p class="ac-room"><small>Room</small>${fmtT(roomT, 0.1)}°</p>` : ''}
       </div>
+      ${fol ? `<p class="ac-follow">Room target · ${st === 'off' || !avail ? 'kept by the room sensor when on' : `AC set to ${a('temperature') ?? '–'}° to get there`}</p>` : ''}
       <div class="seg" role="group" aria-label="${esc(u.name)} mode">${modes.map((m) => `<button data-hvac="${u.id}" data-mode="${m}" class="${st === m ? 'on' : ''}" ${avail ? '' : 'disabled'}>${esc(MODE_TEXT[m] || label(m))}</button>`).join('')}</div>
       ${moreHtml(u, avail)}
     </li>`;
@@ -177,7 +198,7 @@ window.HD = window.HD || {};
     let kind = { cool: 'cool', heat: 'heat', dry: 'dry', fan_only: 'fan' }[st];
     if (!kind) kind = act === 'heating' ? 'heat' : act === 'cooling' ? 'cool' : act === 'drying' ? 'dry' : 'fan';  // auto / heat_cool
     const active = act == null ? true : ['cooling', 'heating', 'drying', 'fan'].includes(act);
-    const t = S().attr(id, 'temperature');
+    const t = target(id);
     const text = active ? `AC ${KIND_TEXT[kind]}${t != null && (kind === 'cool' || kind === 'heat') ? ` to ${t}°` : ''}`
       : `AC on (${MODE_TEXT[st] || label(st)}${t != null ? ` ${t}°` : ''}), resting at target`;
     return { kind, active, text };
@@ -204,16 +225,18 @@ window.HD = window.HD || {};
   }
   function nudgeTemp(id, dir) {
     const stp = step(id);
-    const lo = Number(S().attr(id, 'min_temp')) || 16; const hi = Number(S().attr(id, 'max_temp')) || 30;
+    const [lo, hi] = limits(id);
     const cur = Number(target(id));
     if (!Number.isFinite(cur)) return;
     pending[id] = Math.min(hi, Math.max(lo, Math.round((cur + dir * stp) / stp) * stp));
+    const fol = follow(id);
     clearTimeout(timers[id]);
     HD.app.refresh();
     timers[id] = setTimeout(() => {
       delete timers[id];
       const v = pending[id];
-      HD.ha.callService('climate', 'set_temperature', { entity_id: id, temperature: v })
+      (fol ? HD.ha.callService('input_number', 'set_value', { entity_id: fol, value: v })
+        : HD.ha.callService('climate', 'set_temperature', { entity_id: id, temperature: v }))
         .catch(fail)
         // Keep showing the new value until Home Assistant reports it (or give up after 8 s)
         .finally(() => setTimeout(() => { if (pending[id] === v) { delete pending[id]; HD.app.refresh(); } }, 8000));
@@ -249,11 +272,15 @@ window.HD = window.HD || {};
 
   // Once Home Assistant reports the new target, drop the pending value
   function settle() {
-    Object.keys(pending).forEach((id) => { if (Number(S().attr(id, 'temperature')) === pending[id] && !timers[id]) delete pending[id]; });
+    Object.keys(pending).forEach((id) => {
+      const f = follow(id);
+      const now = Number(f ? S().num(f) : S().attr(id, 'temperature'));
+      if (now === pending[id] && !timers[id]) delete pending[id];
+    });
   }
 
   // (demo mode has no registry, so it hands over its made-up extras here)
   const setExtras = (map) => Object.assign(extrasFound, map);
 
-  HD.ac = { html, units, resolveExtras, extraIds, setExtras, status, badge };
+  HD.ac = { html, units, resolveExtras, extraIds, setExtras, status, badge, target, follow };
 })();

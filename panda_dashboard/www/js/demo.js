@@ -150,6 +150,9 @@ window.HD = window.HD || {};
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
     ['button.pandapc_shutdown_pc', 'unknown', '', 'PANDAPC Shutdown_PC'],
     ['climate.office_trv_thermostat', 'heat', '', 'Office TRV Thermostat'],
+    ['input_number.office_ac_target', '22', '°C', 'Office AC target'],
+    ['input_number.living_room_ac_target', '22', '°C', 'Living room AC target'],
+    ['input_number.bedroom_2_ac_target', '21', '°C', 'Bedroom 2 AC target'],
     ['sensor.office_trv_battery', '98', '%', 'Office TRV Battery', 'battery'],
     ['number.office_trv_external_temperature_sensor_value', '22.7', '°C', 'Office TRV External temperature sensor value', 'temperature'],
     ['switch.office_trv_external_temperature_sensor', 'on', '', 'Office TRV External temperature sensor'],
@@ -209,6 +212,7 @@ window.HD = window.HD || {};
     };
     ac('climate.living_room', 'cool', { temperature: 22, fan_mode: 'medium', swing_mode: 'vertical', hvac_action: 'cooling', current_temperature: 23 });
     ac('climate.office', 'off', { temperature: 20 });
+    ['office', 'living_room', 'bedroom_2'].forEach((r) => Object.assign(states[`input_number.${r}_ac_target`].attributes, { min: 16, max: 30, step: 0.5, mode: 'box' }));
     // Office radiator valve (SONOFF TRVZB on ZHA), heating towards 23°
     Object.assign(states['climate.office_trv_thermostat'].attributes, { hvac_modes: ['off', 'heat'], min_temp: 4, max_temp: 35, temperature: 23, current_temperature: 22.7, hvac_action: 'heating' });
     ac('climate.bedroom_2_ac', 'off', { temperature: 19, swing_horizontal_modes: ['off', 'left', 'centre', 'right', 'wide'], swing_horizontal_mode: 'off', swing_modes: ['off', 'on'] });
@@ -464,6 +468,7 @@ window.HD = window.HD || {};
         if (service === 'turn_on') s.state = 'on';
         else if (service === 'turn_off') s.state = 'off';
         else if (service === 'select_option') s.state = data.option;
+        else if (domain === 'input_number' && service === 'set_value') s.state = String(data.value);
         else if (domain === 'climate') {
           const k = { set_temperature: 'temperature', set_fan_mode: 'fan_mode', set_swing_mode: 'swing_mode', set_swing_horizontal_mode: 'swing_horizontal_mode', set_preset_mode: 'preset_mode', set_humidity: 'humidity' }[service];
           if (k) s.attributes[k] = data[k];
