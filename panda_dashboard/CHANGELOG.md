@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.80
+- Home: PC power button on a room tile (wake when off, shut down when on)
+
 ## 0.3.79
 - Heat pump power: take off loads on the same circuit (heatPump.subtract)
 
