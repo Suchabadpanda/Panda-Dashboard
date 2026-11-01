@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.92
+- Home: yesterday shows net cost after income; no estimate symbol
+
 ## 0.3.91
 - Home: yesterday's figure includes Energy Tracker extra income
 
