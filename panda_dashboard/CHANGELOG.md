@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.91
+- Home: yesterday's figure includes Energy Tracker extra income
+
 ## 0.3.90
 - Home: 'Net income today £X' with the breakdown on hover
 
