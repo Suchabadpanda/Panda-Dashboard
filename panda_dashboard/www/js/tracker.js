@@ -9,6 +9,7 @@
  *
  * HD.tracker.cop → { today, yesterday, month, design, hotWater, heating, eta } or null
  * HD.tracker.income → today's extra income (Axle events etc.) { gbp, entries, pending, estimated, netAfter } or null
+ * HD.tracker.incomeYesterday → the same for yesterday (from /api/income's entries) or null
  */
 window.HD = window.HD || {};
 
@@ -16,7 +17,10 @@ window.HD = window.HD || {};
   const S = () => HD.store;
   let base = null;          // the tracker's ingress path, once found
   let tried = false;
-  const state = { cop: null, income: null, loadedAt: 0 };
+  const state = { cop: null, income: null, incomeYesterday: null, loadedAt: 0 };
+  // Local calendar day as YYYY-MM-DD (the tracker's entry days are local days)
+  const isoDay = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const yesterdayKey = () => { const d = new Date(); d.setDate(d.getDate() - 1); return isoDay(d); };
 
   async function findTracker() {
     if (base || tried) return base;
@@ -40,10 +44,20 @@ window.HD = window.HD || {};
 
   async function load() {
     if (HD.config.tracker === false) return;
-    if (S().mode === 'demo') { state.cop = HD.demo.trackerCop || null; state.income = HD.demo.trackerIncome || null; HD.store.emit(null); return; }
+    if (S().mode === 'demo') { state.cop = HD.demo.trackerCop || null; state.income = HD.demo.trackerIncome || null; state.incomeYesterday = HD.demo.trackerIncomeYesterday || null; HD.store.emit(null); return; }
     if (S().mode !== 'live' || !(await findTracker())) return;
     try {
-      const [today, heating] = await Promise.all([getJson('/api/today'), getJson('/api/heating')]);
+      const [today, heating, extra] = await Promise.all([getJson('/api/today'), getJson('/api/heating'), getJson('/api/income').catch(() => null)]);
+      // Yesterday's extra income: the entries for that day (amount null = not measured yet)
+      const yKey = yesterdayKey();
+      const yRows = extra && Array.isArray(extra.entries) ? extra.entries.filter((e) => e.day === yKey) : [];
+      state.incomeYesterday = yRows.length ? {
+        gbp: Math.round(yRows.reduce((a, e) => a + (+e.amount_gbp || 0), 0) * 100) / 100,
+        entries: yRows.length,
+        pending: yRows.filter((e) => e.amount_gbp == null).length,
+        estimated: yRows.some((e) => e.estimated && e.amount_gbp != null),
+        day: yKey,
+      } : null;
       const t = today && today.by_device && today.by_device.parts && today.by_device.parts.heat_pump;
       const eff = heating && heating.efficiency;
       const tEff = t && t.efficiency;
@@ -116,5 +130,6 @@ window.HD = window.HD || {};
 
   HD.tracker = { init, load, tariffs, rates, get cop() { return state.cop; },
     // Only today's: after midnight the last figures belong to yesterday until the next load
-    get income() { const i = state.income; return i && (S().mode === 'demo' || i.day === new Date().toDateString()) ? i : null; } };
+    get income() { const i = state.income; return i && (S().mode === 'demo' || i.day === new Date().toDateString()) ? i : null; },
+    get incomeYesterday() { const i = state.incomeYesterday; return i && (S().mode === 'demo' || i.day === yesterdayKey()) ? i : null; } };
 })();

@@ -454,7 +454,18 @@ HD.views = HD.views || {};
   // Yesterday's net cost under today's
   function yesterdayHtml() {
     const y = HD.data.yesterday; if (!y) return '';
-    return `<p class="net yesterday">Yesterday <strong>${gbp(y.net)}</strong></p>`;
+    const inc = HD.tracker && HD.tracker.incomeYesterday;
+    if (!inc || !(inc.gbp > 0)) return `<p class="net yesterday">Yesterday <strong>${gbp(y.net)}</strong></p>`;
+    // With extra income (Axle etc.) shown like today's: net income, breakdown on hover
+    const approx = inc.estimated ? '≈' : '';
+    const net = inc.gbp - y.net;
+    const tip = [
+      `Extra income: ${approx}${gbp(inc.gbp)} (${inc.entries} ${inc.entries === 1 ? 'entry' : 'entries'}${inc.estimated ? ', partly the Energy Tracker’s estimate' : ''})`,
+      `Net cost before income: ${gbp(y.net)} (bought ${gbp(y.importCost)}, sold ${gbp(y.exportCredit)}, standing charge ${gbp(y.standing)})`,
+      `Net income: ${approx}${gbp(net)}${net < 0 ? ' (still a cost overall)' : ''}`,
+      inc.pending ? `${inc.pending === 1 ? 'An event is' : `${inc.pending} events are`} still to be measured` : '',
+    ].filter(Boolean).join('\n');
+    return `<p class="net yesterday">Yesterday net income <strong class="net-tip" title="${esc(tip)}" tabindex="0">${approx}${gbp(net)}</strong></p>`;
   }
 
   // Today's import split by rate, as a bar: cheap-rate share, then the rest
