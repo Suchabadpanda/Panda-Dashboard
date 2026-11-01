@@ -477,8 +477,15 @@ HD.views = HD.views || {};
     const approx = inc.estimated ? '≈' : '';
     const pending = inc.pending ? ` · ${inc.pending === 1 ? 'an event' : `${inc.pending} events`} still to be measured` : '';
     if (!(inc.gbp > 0)) return `Net cost today <strong>${gbp(d.net)}</strong> ${standing}${pending}`;
-    const tip = `Before extra income: ${gbp(d.net)}. Extra income today: ${approx}${gbp(inc.gbp)} (${inc.entries} ${inc.entries === 1 ? 'entry' : 'entries'}${inc.estimated ? ', partly the Energy Tracker’s estimate' : ''}).`;
-    return `<span title="${esc(tip)}">Net after income today <strong>${gbp(d.net - inc.gbp)}</strong> incl. ${approx}${gbp(inc.gbp)} extra income and ${gbp(d.standing)} standing charge${pending}</span>`;
+    // Shown as income (positive = earned more than the day cost); the breakdown is on hover
+    const net = inc.gbp - d.net;
+    const tip = [
+      `Extra income: ${approx}${gbp(inc.gbp)} (${inc.entries} ${inc.entries === 1 ? 'entry' : 'entries'}${inc.estimated ? ', partly the Energy Tracker’s estimate' : ''})`,
+      `Net cost before income: ${gbp(d.net)} (bought ${gbp(d.importCost)}, sold ${gbp(d.exportCredit)}, standing charge ${gbp(d.standing)})`,
+      `Net income: ${approx}${gbp(net)}${net < 0 ? ' (still a cost overall)' : ''}`,
+      inc.pending ? `${inc.pending === 1 ? 'An event is' : `${inc.pending} events are`} still to be measured` : '',
+    ].filter(Boolean).join('\n');
+    return `Net income today <strong class="net-tip" title="${esc(tip)}" tabindex="0">${approx}${gbp(net)}</strong>`;
   }
 
   function nowHtml() {
