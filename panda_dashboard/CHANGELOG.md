@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.93
+- Home: COP bar red / amber / green by cheap and day-rate breakevens
+
 ## 0.3.92
 - Home: yesterday shows net cost after income; no estimate symbol
 
