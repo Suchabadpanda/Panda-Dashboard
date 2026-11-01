@@ -411,31 +411,31 @@ HD.views = HD.views || {};
     const bought = d && d.importKwh > 0.05 && d.importCost > 0;
     const avg = bought ? d.importCost / d.importKwh : (t.offPeak > 0 ? t.offPeak : t.peak);
     const cheapPct = bought ? Math.round((d.offPeakKwh / d.importKwh) * 100) : null;
-    return { at: be(avg), avg, cheapPct, day: be(t.peak), t, gas: g.rate, eff };
+    return { at: be(avg), avg, cheapPct, day: be(t.peak), night: be(t.offPeak > 0 ? t.offPeak : t.peak), t, gas: g.rate, eff };
   }
 
-  // Bar from 0 up: red below today's breakeven (from today's average import price), green above.
-  // A faint line marks the day-rate breakeven for reference. Today and this month are marked on it.
+  // Bar from 0 up: red below the cheap-rate breakeven (loses to gas even on cheap electricity),
+  // amber up to the day-rate breakeven (beats gas only on the cheap rate), green above it (beats
+  // gas at any time). Today and this month are marked on it; today's actual breakeven is in the tooltip.
   function copBar(c) {
     const b = breakeven(); if (!b) return '';
     const marks = [['Today', c.today, 'today'], ['Month', c.month, 'month']].filter((m) => m[1] != null && isFinite(m[1]));
-    const max = Math.max(5, Math.ceil(Math.max(b.day, b.at, ...marks.map((m) => m[1])) + 0.5));
+    const max = Math.max(5, Math.ceil(Math.max(b.day, b.night, ...marks.map((m) => m[1])) + 0.5));
     const pc = (v) => `${Math.max(0, Math.min(100, (v / max) * 100)).toFixed(1)}%`;
     const why = b.cheapPct != null
       ? `today’s import averaged ${pence(b.avg)} (${b.cheapPct}% at the cheap rate)`
       : `nothing bought yet today, so the cheap rate (${pence(b.avg)})`;
-    const label = `Cheaper than gas above COP ${b.at.toFixed(2)}: ${why}. On the day rate (${pence(b.t.peak)}) it would need ${b.day.toFixed(2)}.`
+    const label = `Red below ${b.night.toFixed(2)} (gas is cheaper even on the cheap rate, ${pence(b.t.offPeak)}), amber up to ${b.day.toFixed(2)} (beats gas only on the cheap rate), green above (beats gas on the day rate too, ${pence(b.t.peak)}). Today’s breakeven ${b.at.toFixed(2)}: ${why}.`
       + ` Gas ${pence(b.gas)} at ${Math.round(b.eff * 100)}% boiler efficiency.`
       + marks.map((m) => ` ${m[0] === 'Month' ? 'This month' : m[0]} ${m[1].toFixed(2)}.`).join('');
     const edge = (v) => (v / max > 0.85 ? ' end' : v / max < 0.15 ? ' start' : '');
     const ticks = marks.map((m) => `<span class="cop-mark ${m[2]}${edge(m[1])}" style="left:${pc(m[1])}"><b>${esc(m[0])} ${m[1].toFixed(2)}</b></span>`).join('');
-    const showDay = b.day - b.at > 0.05;
     return `
         <div class="cop-gas" title="${esc(label)}">
           <div class="cop-bar" role="img" aria-label="${esc(label)}">
-            <i class="lose" style="width:${pc(b.at)}"></i><i class="win"></i>
-            <span class="cop-line" style="left:${pc(b.at)}"></span>
-            ${showDay ? `<span class="cop-line ref" style="left:${pc(b.day)}"></span>` : ''}
+            <i class="lose" style="width:${pc(b.night)}"></i><i class="mixed" style="width:calc(${pc(b.day)} - ${pc(b.night)})"></i><i class="win"></i>
+            <span class="cop-line" style="left:${pc(b.night)}"></span>
+            <span class="cop-line" style="left:${pc(b.day)}"></span>
             ${ticks}
           </div>
         </div>`;

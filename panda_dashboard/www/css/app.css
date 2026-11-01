@@ -262,9 +262,9 @@ button { font: inherit; color: inherit; }
 .cop-bar > i { display: block; height: 100%; }
 .cop-bar > i:first-child { border-radius: 5px 0 0 5px; }
 .cop-bar .lose { background: var(--critical); opacity: .75; }
+.cop-bar .mixed { background: var(--warning); opacity: .75; }
 .cop-bar .win { flex: 1; background: var(--good); opacity: .75; border-radius: 0 5px 5px 0; }
 .cop-line { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
-.cop-line.ref { opacity: .35; width: 1px; margin-left: 0; }
 .cop-mark { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--panel); border: 3px solid var(--ink); box-sizing: border-box; }
 .cop-mark.month { border-color: var(--accent); }
 .cop-mark b { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 600 12px/1 var(--font-num); color: var(--ink); }
