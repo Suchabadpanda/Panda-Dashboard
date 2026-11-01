@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.90
+- Home: 'Net income today £X' with the breakdown on hover
+
 ## 0.3.89
 - Gas rate in Settings; Home net cost after Energy Tracker income
 
