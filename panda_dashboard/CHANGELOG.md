@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.95
+- Radiator valve schedule: rename row highlight class to is-now
+
 ## 0.3.94
 - Radiator valve dialog: day/night schedule from HA helpers
 
