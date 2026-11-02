@@ -233,3 +233,60 @@ max: 5
 #    data:
 #      value: 20
 ```
+
+## Radiator valve: day/night schedule
+
+A room's radiator valve dialog (tap the radiator chip) shows a **Schedule** when these helpers
+exist. `<p>` is the climate id without `climate.` and `_thermostat`, so for
+`climate.2f_bedroom_trv_thermostat` it is `2f_bedroom_trv`:
+
+| Helper (Settings → Helpers) | Entity id |
+|---|---|
+| Toggle | `input_boolean.<p>_schedule` (on/off; optional) |
+| Number, °C, step 0.5 | `input_number.<p>_day_target`, `input_number.<p>_night_target` |
+| Date/time, time only | `input_datetime.<p>_day_start`, `input_datetime.<p>_night_start` |
+
+The dashboard only changes the helpers; an automation sets the valve. It changes the target at the
+two start times, again straight away when a helper changes, at start-up and when the valve comes
+back online. A target changed by hand lasts until the next start time. Other ids can be named with
+`trv: { climate, schedule: { on, day, night, dayStart, nightStart } }`, and `schedule: false` hides it.
+
+```yaml
+alias: Radiator valve day/night schedule (Panda Dashboard)
+triggers:
+  - trigger: time
+    at: input_datetime.<p>_day_start
+  - trigger: time
+    at: input_datetime.<p>_night_start
+  - trigger: state
+    entity_id: [input_number.<p>_day_target, input_number.<p>_night_target,
+                input_datetime.<p>_day_start, input_datetime.<p>_night_start]
+  - trigger: state
+    entity_id: input_boolean.<p>_schedule
+    to: "on"
+  - trigger: homeassistant
+    event: start
+  - trigger: state
+    entity_id: climate.<p>_thermostat
+    from: unavailable
+variables:
+  want: >-
+    {% set ds = states('input_datetime.<p>_day_start') %}
+    {% set ns = states('input_datetime.<p>_night_start') %}
+    {% set t = now().strftime('%H:%M:%S') %}
+    {% set day = (ds <= t < ns) if ds < ns else (t >= ds or t < ns) %}
+    {{ states('input_number.<p>_day_target' if day else 'input_number.<p>_night_target') | float(0) }}
+conditions:
+  - condition: state
+    entity_id: input_boolean.<p>_schedule
+    state: "on"
+  - "{{ want > 0 and states('climate.<p>_thermostat') not in ['unavailable', 'unknown']
+       and state_attr('climate.<p>_thermostat', 'temperature') | float(0) != want }}"
+actions:
+  - action: climate.set_temperature
+    target:
+      entity_id: climate.<p>_thermostat
+    data:
+      temperature: "{{ want }}"
+mode: queued
+```

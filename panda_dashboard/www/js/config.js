@@ -85,6 +85,7 @@ HD.config = {
           pc: { name: 'PC', wake: 'button.wake_on_lan_pc', shutdown: 'button.pandapc_shutdown_pc' },
           // Smart radiator valve (ZHA SONOFF TRVZB): chip with the target, tap for a stepper and Off/Heat.
           // Battery and external-sensor entities are found from the id; { climate, battery, external, externalSwitch } overrides.
+          // Day/night schedule helpers (input_number.<p>_day_target etc., see DOCS.md) show in the dialog when they exist.
           trv: 'climate.office_trv_thermostat' },
         { name: 'Kitchen', temp: 'sensor.temp_humidity_kitchen_temperature', hum: 'sensor.temp_humidity_kitchen_humidity',
           thermostat: true,

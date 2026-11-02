@@ -13,6 +13,13 @@
  * The tile chip shows the target (warm while the valve is calling for heat); tapping it
  * opens a small dialog with the target stepper, Off/Heat, and whether the valve is being
  * fed the room sensor. Stepper buttons are controls (view-only screens can look, not change).
+ *
+ * Day/night schedule (optional): when these helpers exist, the dialog shows and edits them.
+ * An HA automation does the switching (see DOCS.md); the dashboard only changes the helpers.
+ *   input_boolean.<p>_schedule                                  schedule on/off
+ *   input_number.<p>_day_target   / input_number.<p>_night_target
+ *   input_datetime.<p>_day_start  / input_datetime.<p>_night_start   (time only)
+ * Override with trv: { …, schedule: { on, day, night, dayStart, nightStart } }, or schedule: false.
  */
 window.HD = window.HD || {};
 
@@ -30,6 +37,10 @@ window.HD = window.HD || {};
       battery: c.battery || `sensor.${p}_battery`,
       external: c.external || `number.${p}_external_temperature_sensor_value`,
       externalSwitch: c.externalSwitch || `switch.${p}_external_temperature_sensor`,
+      schedule: c.schedule === false ? null : {
+        on: `input_boolean.${p}_schedule`, day: `input_number.${p}_day_target`, night: `input_number.${p}_night_target`,
+        dayStart: `input_datetime.${p}_day_start`, nightStart: `input_datetime.${p}_night_start`, ...(c.schedule || {}),
+      },
     };
   }
   const rooms = () => (HD.config.floors || []).flatMap((f) => f.rooms || []).filter((r) => r.trv);
@@ -85,8 +96,58 @@ window.HD = window.HD || {};
     return `<p class="trv-note">${icon('check')}Regulating on the room sensor (${fmtT(fed)}°).</p>`;
   }
 
+  // ── day/night schedule (helpers kept by an HA automation) ──
+  const hhmm = (v) => (typeof v === 'string' && /^\d{1,2}:\d{2}/.test(v) ? v.slice(0, 5).padStart(5, '0') : null);
+  const sched = (t) => (t.schedule && S().state(t.schedule.day) !== undefined && S().state(t.schedule.night) !== undefined ? t.schedule : null);
+  const hval = (id) => (pending[id] != null ? pending[id] : S().num(id));
+  // Which part of the schedule is in force now, and when it next changes
+  function phase(sc) {
+    const ds = hhmm(S().state(sc.dayStart)); const ns = hhmm(S().state(sc.nightStart));
+    if (!ds || !ns) return null;
+    const d = new Date(); const now = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const day = ds < ns ? (now >= ds && now < ns) : (now >= ds || now < ns);
+    return { day, until: day ? ns : ds, want: hval(day ? sc.day : sc.night), next: hval(day ? sc.night : sc.day) };
+  }
+
+  function schedHtml(t) {
+    const sc = sched(t); if (!sc) return '';
+    const on = S().state(sc.on) !== 'off';   // no switch helper = always on
+    const ph = phase(sc);
+    const row = (key, label, ic, startId) => {
+      const id = sc[key]; const v = hval(id);
+      const lo = Number(S().attr(id, 'min')) || 5; const hi = Number(S().attr(id, 'max')) || 30;
+      return `<div class="trv-sched-row ${ph && ph.day === (key === 'day') ? 'now' : ''}">
+        <span class="trv-sched-label">${icon(ic)}${label}<small>from</small>
+          <input type="time" data-trv-time="${esc(startId)}" value="${esc(hhmm(S().state(startId)) || '')}" aria-label="${label} starts at" ${S().available(startId) ? '' : 'disabled'}></span>
+        <div class="ac-step small" role="group" aria-label="${label} target">
+          <button data-trv-sched="-1" data-trv-id="${esc(id)}" aria-label="${label} cooler" ${v != null && v > lo ? '' : 'disabled'}>−</button>
+          <b class="${pending[id] != null ? 'pending' : ''}">${fmtT(v)}<small>°</small></b>
+          <button data-trv-sched="1" data-trv-id="${esc(id)}" aria-label="${label} warmer" ${v != null && v < hi ? '' : 'disabled'}>+</button></div>
+      </div>`;
+    };
+    const cur = Number(S().attr(t.climate, 'temperature'));
+    let note = '';
+    if (!on) note = 'Paused: the target stays where it is set.';
+    else if (ph && ph.want != null) {
+      note = `${ph.day ? 'Day' : 'Night'} now · ${ph.day ? 'night' : 'day'} ${fmtT(ph.next)}° from ${ph.until}`;
+      if (Number.isFinite(cur) && cur !== ph.want && S().state(t.climate) !== 'off') note = `Set by hand to ${fmtT(cur)}° · the schedule takes over again at ${ph.until} (${fmtT(ph.next)}°)`;
+    }
+    return `<section class="trv-sched" aria-label="Schedule">
+      <div class="trv-sched-head"><b>${icon('clock')}Schedule</b>
+        ${S().state(sc.on) !== undefined ? `<div class="seg" role="group" aria-label="Schedule on or off">
+          <button data-trv-sched-on="${esc(sc.on)}" data-on="0" class="${on ? '' : 'on'}">Off</button>
+          <button data-trv-sched-on="${esc(sc.on)}" data-on="1" class="${on ? 'on' : ''}">On</button></div>` : ''}</div>
+      ${row('day', 'Day', 'sun', sc.dayStart)}
+      ${row('night', 'Night', 'moon', sc.nightStart)}
+      ${note ? `<p class="trv-note muted">${esc(note)}</p>` : ''}
+    </section>`;
+  }
+
   function renderDialog() {
     const r = open && findRoom(open); if (!r) return;
+    // don't redraw under someone typing a time (live updates would reset the field)
+    const d0 = document.getElementById('trv-dialog');
+    if (d0 && d0.contains(document.activeElement) && document.activeElement.matches('[data-trv-time]')) return;
     const t = ids(r); const s = status(t);
     const lo = Math.max(5, Number(S().attr(t.climate, 'min_temp')) || 5);
     const hi = Math.min(30, Number(S().attr(t.climate, 'max_temp')) || 30);
@@ -106,6 +167,7 @@ window.HD = window.HD || {};
       <div class="seg" role="group" aria-label="${esc(t.name)} mode">
         <button data-hvac="${t.climate}" data-mode="off" class="${s.off ? 'on' : ''}" ${s.avail ? '' : 'disabled'}>Off</button>
         <button data-hvac="${t.climate}" data-mode="heat" class="${s.avail && !s.off ? 'on' : ''}" ${s.avail ? '' : 'disabled'}>Heat</button></div>
+      ${schedHtml(t)}
       ${sensorLine(r, t)}
       ${bat != null ? `<p class="trv-note muted">${icon('bolt')}Battery ${Math.round(bat)}%${bat < 20 ? ' · replace soon' : ''}</p>` : ''}`;
     HD.u.setHTML(dlg(), html);
@@ -136,11 +198,43 @@ window.HD = window.HD || {};
     }, 800);
   }
 
+  // Schedule targets: input_number helpers, same pause-then-send as the target stepper
+  function nudgeHelper(id, dir) {
+    const step = Number(S().attr(id, 'step')) || STEP;
+    const lo = Number(S().attr(id, 'min')) || 5; const hi = Number(S().attr(id, 'max')) || 30;
+    const cur = Number(hval(id)); if (!Number.isFinite(cur)) return;
+    pending[id] = Math.min(hi, Math.max(lo, Math.round((cur + dir * step) / step) * step));
+    clearTimeout(timers[id]);
+    renderDialog();
+    timers[id] = setTimeout(() => {
+      delete timers[id];
+      const v = pending[id];
+      HD.ha.callService('input_number', 'set_value', { entity_id: id, value: v })
+        .catch((e) => HD.app.toast(`Radiator schedule: ${e.message || e}`))
+        .finally(() => setTimeout(() => { if (pending[id] === v) { delete pending[id]; renderDialog(); } }, 8000));
+    }, 800);
+  }
+
+  document.addEventListener('change', (ev) => {
+    const i = ev.target.closest && ev.target.closest('[data-trv-time]');
+    if (!i || !HD.access.canControl() || !/^\d{2}:\d{2}$/.test(i.value)) return;
+    HD.ha.callService('input_datetime', 'set_datetime', { entity_id: i.dataset.trvTime, time: `${i.value}:00` })
+      .catch((e) => HD.app.toast(`Radiator schedule: ${e.message || e}`))
+      .finally(() => { i.blur(); renderDialog(); });
+  });
+
   document.addEventListener('click', (ev) => {
     const c = ev.target.closest('[data-trv]');
     if (c) { show(c.dataset.trv); return; }
     const b = ev.target.closest('[data-trv-temp]');
     if (b && !b.disabled) nudge(b.dataset.trvId, Number(b.dataset.trvTemp));
+    const h = ev.target.closest('[data-trv-sched]');
+    if (h && !h.disabled) nudgeHelper(h.dataset.trvId, Number(h.dataset.trvSched));
+    const o = ev.target.closest('[data-trv-sched-on]');
+    if (o) {
+      HD.ha.callService('input_boolean', o.dataset.on === '1' ? 'turn_on' : 'turn_off', { entity_id: o.dataset.trvSchedOn })
+        .catch((e) => HD.app.toast(`Radiator schedule: ${e.message || e}`));
+    }
     // Off/Heat use [data-hvac], handled in app.js; redraw the dialog once HA answers
   });
 
@@ -150,7 +244,11 @@ window.HD = window.HD || {};
   }
 
   function extraIds() {
-    return rooms().flatMap((r) => { const t = ids(r); return t ? [t.climate, t.battery, t.external, t.externalSwitch] : []; });
+    return rooms().flatMap((r) => {
+      const t = ids(r); if (!t) return [];
+      const sc = t.schedule ? [t.schedule.on, t.schedule.day, t.schedule.night, t.schedule.dayStart, t.schedule.nightStart] : [];
+      return [t.climate, t.battery, t.external, t.externalSwitch, ...sc];
+    });
   }
 
   HD.trv = { chip: (r) => { settle(); return chip(r); }, extraIds, show };

@@ -156,6 +156,11 @@ window.HD = window.HD || {};
     ['sensor.office_trv_battery', '98', '%', 'Office TRV Battery', 'battery'],
     ['number.office_trv_external_temperature_sensor_value', '22.7', '°C', 'Office TRV External temperature sensor value', 'temperature'],
     ['switch.office_trv_external_temperature_sensor', 'on', '', 'Office TRV External temperature sensor'],
+    ['input_boolean.office_trv_schedule', 'on', '', 'Office TRV schedule'],
+    ['input_number.office_trv_day_target', '23', '°C', 'Office TRV day target'],
+    ['input_number.office_trv_night_target', '18', '°C', 'Office TRV night target'],
+    ['input_datetime.office_trv_day_start', '06:00:00', '', 'Office TRV day start'],
+    ['input_datetime.office_trv_night_start', '22:00:00', '', 'Office TRV night start'],
     ['input_boolean.ac_all_cool', 'off', '', 'AC Quick Cool'],
     ['button.pc_lock', 'unknown', '', 'PC Lock'],
     ['button.pc_mute', 'unknown', '', 'PC Mute'],
@@ -213,6 +218,7 @@ window.HD = window.HD || {};
     ac('climate.living_room', 'cool', { temperature: 22, fan_mode: 'medium', swing_mode: 'vertical', hvac_action: 'cooling', current_temperature: 23 });
     ac('climate.office', 'off', { temperature: 20 });
     ['office', 'living_room', 'bedroom_2'].forEach((r) => Object.assign(states[`input_number.${r}_ac_target`].attributes, { min: 16, max: 30, step: 0.5, mode: 'box' }));
+    ['day', 'night'].forEach((k) => Object.assign(states[`input_number.office_trv_${k}_target`].attributes, { min: 5, max: 30, step: 0.5, mode: 'box' }));
     // Office radiator valve (SONOFF TRVZB on ZHA), heating towards 23°
     Object.assign(states['climate.office_trv_thermostat'].attributes, { hvac_modes: ['off', 'heat'], min_temp: 4, max_temp: 35, temperature: 23, current_temperature: 22.7, hvac_action: 'heating' });
     ac('climate.bedroom_2_ac', 'off', { temperature: 19, swing_horizontal_modes: ['off', 'left', 'centre', 'right', 'wide'], swing_horizontal_mode: 'off', swing_modes: ['off', 'on'] });
