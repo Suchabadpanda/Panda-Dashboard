@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.94
+- Radiator valve dialog: day/night schedule from HA helpers
+
 ## 0.3.93
 - Home: COP bar red / amber / green by cheap and day-rate breakevens
 
