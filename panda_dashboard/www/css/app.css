@@ -1288,7 +1288,7 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .trv-sched-head b { display: flex; align-items: center; gap: 6px; }
 .trv-sched-head .seg { flex: none; }
 .trv-sched-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px; border-radius: 10px; }
-.trv-sched-row.now { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.trv-sched-row.is-now { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .trv-sched-label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
 .trv-sched-label small { color: var(--muted); }
 .trv-sched-label input[type=time] { font: inherit; font-variant-numeric: tabular-nums; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; color-scheme: light dark; }

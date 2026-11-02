@@ -116,7 +116,7 @@ window.HD = window.HD || {};
     const row = (key, label, ic, startId) => {
       const id = sc[key]; const v = hval(id);
       const lo = Number(S().attr(id, 'min')) || 5; const hi = Number(S().attr(id, 'max')) || 30;
-      return `<div class="trv-sched-row ${ph && ph.day === (key === 'day') ? 'now' : ''}">
+      return `<div class="trv-sched-row ${ph && ph.day === (key === 'day') ? 'is-now' : ''}">
         <span class="trv-sched-label">${icon(ic)}${label}<small>from</small>
           <input type="time" data-trv-time="${esc(startId)}" value="${esc(hhmm(S().state(startId)) || '')}" aria-label="${label} starts at" ${S().available(startId) ? '' : 'disabled'}></span>
         <div class="ac-step small" role="group" aria-label="${label} target">
