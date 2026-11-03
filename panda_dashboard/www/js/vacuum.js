@@ -322,6 +322,12 @@ window.HD = window.HD || {};
   const sid = (domain, key) => `${domain}.${prefix()}_${key}`;
   const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   let passes = 1;                // times over each room, for the next clean (sent as repeats)
+  // "More settings" open or shut. The panel is rewritten on every change (and live while
+  // cleaning), so without this the section snapped shut and the page jumped up.
+  let moreOpen = false;
+  document.addEventListener('toggle', (ev) => {
+    if (ev.target.matches && ev.target.matches('.vac-more')) moreOpen = ev.target.open;
+  }, true);
 
   // Current value of a setting as a slug, from the select (when live) or the vacuum's attribute
   function value(key) {
@@ -451,7 +457,7 @@ window.HD = window.HD || {};
     }).join('');
     const btns = BUTTONS.filter(([key]) => S().available(sid('button', key)) || S().state(sid('button', key)) === 'unknown').map(([key, label]) =>
       `<button class="btn ghost" data-vac="press" data-key="${key}">${esc(label)}</button>`).join('');
-    const moreHtml = more.length || sw || btns ? `<details class="vac-more"><summary>More settings</summary>
+    const moreHtml = more.length || sw || btns ? `<details class="vac-more" ${moreOpen ? 'open' : ''}><summary>More settings</summary>
       ${more.join('')}${sw ? `<p class="eyebrow-label">Options</p><div class="room-controls vac-switches">${sw}</div>` : ''}
       ${btns ? `<p class="eyebrow-label">Base station</p><div class="vac-actions">${btns}</div>` : ''}</details>` : '';
 
