@@ -234,6 +234,36 @@ max: 5
 #      value: 20
 ```
 
+## Room sleep mode
+
+A **Sleep mode** button on a room's Home tile stops movement from switching that room's light on, so someone can sleep there. It's an `input_boolean` the room's motion-light automation checks; the dashboard only switches it.
+
+1. Add the helper (Settings → Devices & services → Helpers → Toggle, or in `configuration.yaml`):
+
+   ```yaml
+   input_boolean:
+     living_room_sleep_mode:
+       name: Living room sleep mode
+       icon: mdi:sleep
+   ```
+
+2. In the motion-light automation, add the helper to the condition of the step that turns the light **on** (leave the turn-off part alone, so a light switched on by hand still goes off once the room is empty):
+
+   ```yaml
+   - if:
+     - condition: state
+       entity_id: input_boolean.living_room_sleep_mode
+       state: 'off'
+     - condition: state
+       entity_id: switch.living_room_light_switch
+       state: 'off'
+     # …the existing light-level condition
+     then:
+     - action: switch.turn_on
+   ```
+
+3. In `config.js`, on the room: `sleep: 'input_boolean.living_room_sleep_mode'` (or `sleep: { id, name }` for another label). A moon shows in the room's header while it's on. Until the helper exists the button is greyed out.
+
 ## Radiator valve: day/night schedule
 
 A room's radiator valve dialog (tap the radiator chip) shows a **Schedule** when these helpers

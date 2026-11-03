@@ -64,6 +64,8 @@ HD.config = {
           climate: 'climate.living_room', acTarget: 'input_number.living_room_ac_target', light: 'switch.living_room_light_switch', lightName: 'Main light',
           tv: 'media_player.living_room_tv',
           motion: 'binary_sensor.living_room_livingroomsensor_occupancy',
+          // Sleep mode: an input_boolean the motion-light automation checks (see DOCS.md)
+          sleep: 'input_boolean.living_room_sleep_mode',
           socket: 'switch.sonoff_s60zbtpg', socketName: 'TV socket', socketPower: 'sensor.sonoff_s60zbtpg_power' },
         // slim: a narrower tile in the house drawing (landings, hallways)
         { name: '1F landing', slim: true, temp: 'sensor.ewelink_snzb_02p_temperature_2', hum: 'sensor.ewelink_snzb_02p_humidity_2',

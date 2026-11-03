@@ -227,6 +227,10 @@ button { font: inherit; color: inherit; }
 .ac-mark.active .blades { stroke: #fff; animation: spin 2.4s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .ac-badge.active .ic, .ac-mark.active .blades, .chip.chip-pc.busy .ic { animation: none; } }
 .motion .ic { width: 18px; height: 18px; }
+/* Sleep mode: a calm indigo instead of the light-on yellow */
+.chip.appliance.chip-sleep.on { background: #5b5bd6; border-color: #5b5bd6; color: #fff; box-shadow: 0 0 0 3px color-mix(in oklab, #5b5bd6 22%, transparent); }
+.sleep-mark { color: #8b8bf0; display: inline-flex; }
+.sleep-mark .ic { width: 16px; height: 16px; }
 
 .chip {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; flex: none;
