@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.96
+- Vacuum: keep More settings open across re-renders
+
 ## 0.3.95
 - Radiator valve schedule: rename row highlight class to is-now
 
