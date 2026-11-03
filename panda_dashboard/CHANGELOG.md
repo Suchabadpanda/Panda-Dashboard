@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.98
+- Home: Sleep mode button icon-only (moon)
+
 ## 0.3.97
 - Home: Sleep mode button on room tiles (living room)
 
