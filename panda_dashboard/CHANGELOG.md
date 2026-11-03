@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.97
+- Home: Sleep mode button on room tiles (living room)
+
 ## 0.3.96
 - Vacuum: keep More settings open across re-renders
 
