@@ -236,7 +236,7 @@ max: 5
 
 ## Room sleep mode
 
-A **Sleep mode** button on a room's Home tile stops movement from switching that room's light on, so someone can sleep there. It's an `input_boolean` the room's motion-light automation checks; the dashboard only switches it.
+A **Sleep mode** button (moon icon) on a room's Home tile stops movement from switching that room's light on, so someone can sleep there. It's an `input_boolean` the room's motion-light automation checks; the dashboard only switches it.
 
 1. Add the helper (Settings → Devices & services → Helpers → Toggle, or in `configuration.yaml`):
 

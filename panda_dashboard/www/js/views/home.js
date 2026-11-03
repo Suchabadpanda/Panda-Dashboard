@@ -47,7 +47,7 @@ HD.views = HD.views || {};
     const avail = S().available(c.id);
     const tip = !avail ? `${name}: not set up in Home Assistant yet` : st === 'on'
       ? `${name} on: movement won't switch the light on · tap to turn off` : `${name} off · tap so movement won't switch the light on`;
-    return `<button class="chip appliance chip-sleep ${st === 'on' ? 'on' : ''}" data-toggle="${esc(c.id)}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon('moon')}${esc(name)}</button>`;
+    return `<button class="chip appliance chip-sleep icon-only ${st === 'on' ? 'on' : ''}" data-toggle="${esc(c.id)}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon('moon')}</button>`;
   }
   const sleeping = (r) => { const c = sleepCfg(r); return !!c && S().state(c.id) === 'on'; };
 
