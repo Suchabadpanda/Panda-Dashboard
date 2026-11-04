@@ -21,6 +21,7 @@ HD.config = {
 
   // Target the heating is balanced around. Room tiles are tinted cooler/warmer than this.
   comfortTarget: 22,
+  comfortBand: 1,          // ± °C band around the target on Rooms → Last 24 hours
 
   // Who can use the buttons and Settings: person ids (matched through the person's
   // Home Assistant user), user names or user ids. Everyone else signed into Home Assistant
