@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.99
+- Rooms: comfort band on Last 24 hours ±1° (config.comfortBand)
+
 ## 0.3.98
 - Home: Sleep mode button icon-only (moon)
 
