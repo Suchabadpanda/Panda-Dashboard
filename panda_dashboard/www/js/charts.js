@@ -1,7 +1,8 @@
 /*
  * Small dependency-free SVG charts with hover tooltips.
  *   HD.chart.line(el, opts)   – time series, one shared y-axis
- *   HD.chart.bars(el, opts)   – categories, optional diverging (up/down) pair
+ *   HD.chart.bars(el, opts)   – categories, optional diverging (up/down) pair;
+ *                               a series' colors[i] overrides its colour for one bar
  * Colours are CSS custom properties so light/dark themes swap them.
  */
 window.HD = window.HD || {};
@@ -214,7 +215,7 @@ window.HD = window.HD || {};
           const p = sign > 0
             ? `M${x},${y0}V${top + r}Q${x},${top} ${x + r},${top}H${x + barW - r}Q${x + barW},${top} ${x + barW},${top + r}V${y0}Z`
             : `M${x},${y0}V${top + h - r}Q${x},${top + h} ${x + r},${top + h}H${x + barW - r}Q${x + barW},${top + h} ${x + barW},${top + h - r}V${y0}Z`;
-          el('path', { d: h < r * 2 ? `M${x},${top}h${barW}v${h}h${-barW}Z` : p, fill: s.color, class: `bar${s.faded && s.faded[i] ? ' faded' : ''}` }, svg);
+          el('path', { d: h < r * 2 ? `M${x},${top}h${barW}v${h}h${-barW}Z` : p, fill: (s.colors && s.colors[i]) || s.color, class: `bar${s.faded && s.faded[i] ? ' faded' : ''}` }, svg);
         });
       });
       drawSide(up, 1); drawSide(dn, -1);

@@ -157,6 +157,9 @@ HD.config = {
     // subtract: ['sensor.wall_connector_power'],   // other loads measured on the same circuit as
     //                                              // power (e.g. an EV charger on a SigenStor smart-load port)
     energyToday: 'sensor.heat_pump_energy_today',
+    // Devices → Heat pump cycling: hourly kWh from this counter (default energy.totals.heatPump),
+    // runs found from power's 5-minute statistics; runs of shortRun minutes or less count as short cycles
+    // energy: 'sensor.heat_pump_energy', shortRun: 20,
     tankTemp: 'sensor.hot_water_tank_temperature',
     legionella: 'binary_sensor.legionella_cycle',
     waterHeater: 'water_heater.heat_pump',

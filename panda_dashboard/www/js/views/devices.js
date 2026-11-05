@@ -1,7 +1,7 @@
 /*
  * Devices view: what isn't on the other pages — smart plugs and their use, the
- * dishwasher, the SigenStor hardware, sensor batteries and Home Assistant's own
- * housekeeping. (Lights, TVs, the washer and the PC are on Home and Rooms.)
+ * dishwasher, the SigenStor hardware, heat pump cycling, sensor batteries and Home
+ * Assistant's own housekeeping. (Lights, TVs, the washer and the PC are on Home and Rooms.)
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -167,9 +167,11 @@ HD.views = HD.views || {};
   // rather than redrawn each time, and only redrawn when its data or range changes.
   function render() {
     const root = document.getElementById('devices'); if (!root) return;
-    const oldBox = root.querySelector('#chart-pv');
-    if (HD.u.setHTML(root, html()) && oldBox) { const fresh = root.querySelector('#chart-pv'); if (fresh) fresh.replaceWith(oldBox); }
+    const keep = ['chart-pv', ...(HD.hpCycles ? HD.hpCycles.ids : [])];
+    const old = keep.map((id) => root.querySelector(`#${id}`));
+    if (HD.u.setHTML(root, html())) keep.forEach((id, i) => { const fresh = root.querySelector(`#${id}`); if (fresh && old[i]) fresh.replaceWith(old[i]); });
     drawStrings();
+    if (HD.hpCycles) HD.hpCycles.draw();
   }
 
   document.addEventListener('click', (ev) => {
@@ -235,6 +237,7 @@ HD.views = HD.views || {};
             <div><dt>Connection</dt><dd>${esc(S().message)}</dd></div>
             ${diskHtml()}
           </dl></section>
+        ${HD.hpCycles ? HD.hpCycles.html() : ''}
         ${bats.length ? `<section class="panel"><header><h2>Sensor batteries</h2><p>Lowest first</p></header><ul class="bat-list">${batRows}</ul></section>` : ''}
         ${stringsHtml()}
       </div>`;
@@ -246,6 +249,7 @@ HD.views = HD.views || {};
     update() {
       render();
       if (!pv || Date.now() - pvAt > 10 * 60e3) loadStrings().then(render);
+      if (HD.hpCycles && HD.hpCycles.stale()) HD.hpCycles.load().then(render);
       if (Date.now() - diskAt > 30 * 60e3) loadDisk().then(render);
     },
   };
