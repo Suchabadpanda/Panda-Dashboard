@@ -162,6 +162,7 @@ HD.views = HD.views || {};
           <header><h2>Hot water tank</h2><p>Last 24 hours</p></header>
           <div class="tank-body"><div id="tank"></div><div id="chart-tank" class="chart-box"></div></div>
         </section>` : ''}
+        ${HD.hpCycles && HD.hpCycles.enabled() ? '<section class="panel wide hpc-panel" id="hpc"></section>' : ''}
       </div>`;
       this.update(); this.redraw();
       if (HD.battery) HD.battery.load().then(() => { if (document.getElementById('plan')) this.redraw(); });
@@ -175,7 +176,10 @@ HD.views = HD.views || {};
       if (HD.battery) HD.battery.load();
       if (HD.carbon) HD.carbon.load();
     },
-    // Only the tank figures follow live states; the charts redraw on data refresh
-    update() { const tk = document.getElementById('tank'); if (tk && hasTank()) HD.u.setHTML(tk, tankHtml()); },
+    // Only the tank and heat pump cycling figures follow live states; the other charts redraw on data refresh
+    update() {
+      const tk = document.getElementById('tank'); if (tk && hasTank()) HD.u.setHTML(tk, tankHtml());
+      if (HD.hpCycles) HD.hpCycles.render();
+    },
   };
 })();

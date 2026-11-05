@@ -1,5 +1,5 @@
 /*
- * Heat pump cycling (Devices page): hourly kWh bars and the 5-minute power trace under
+ * Heat pump cycling (Energy page): hourly kWh bars and the 5-minute power trace under
  * them, so you can see how often the compressor starts and how long each run lasts.
  *
  * Data (config.heatPump):
@@ -114,8 +114,20 @@ window.HD = window.HD || {};
         <div id="chart-hpc-power" class="chart-box"></div>
         <p class="sub">Bars: kWh each hour${energyId() ? ' from the heat pump energy counter (the current hour from power)' : ' from the power readings'}; amber hours had 3 or more starts. Line: 5-minute average power — each hump is one run. Runs are worked out from 5-minute averages, so very short stops can merge into one run.</p>`;
     }
-    return `<section class="panel wide hpc-panel"><header><h2>Heat pump cycling</h2>${seg}</header>${body}</section>`;
+    return `<header><h2>Heat pump cycling</h2>${seg}</header>${body}`;
   }
+
+  // Fills the page's <section id="hpc">. Live values re-render it every second or so; the
+  // charts are carried over rather than redrawn each time, and only redrawn when their data changes.
+  const IDS = ['chart-hpc', 'chart-hpc-power'];
+  function render() {
+    const host = document.getElementById('hpc'); if (!host) return;
+    const old = IDS.map((id) => host.querySelector(`#${id}`));
+    if (HD.u.setHTML(host, html())) IDS.forEach((id, i) => { const fresh = host.querySelector(`#${id}`); if (fresh && old[i]) fresh.replaceWith(old[i]); });
+    draw();
+    if (stale()) load().then(() => { if (document.getElementById('hpc')) render(); });
+  }
+  const stale = () => !data || loadedRange !== range || Date.now() - at > 5 * 60e3;
 
   function draw() {
     const box = document.getElementById('chart-hpc'); const pbox = document.getElementById('chart-hpc-power');
@@ -161,9 +173,8 @@ window.HD = window.HD || {};
     const b = ev.target.closest('[data-hpc-range]'); if (!b) return;
     const r = Number(b.dataset.hpcRange); if (r === range) return;
     range = r;
-    if (HD.views.devices) HD.views.devices.update();
-    load(true).then(() => HD.views.devices && HD.views.devices.update());
+    render();
   });
 
-  HD.hpCycles = { html, draw, load, ids: ['chart-hpc', 'chart-hpc-power'], stale: () => !data || loadedRange !== range || Date.now() - at > 5 * 60e3 };
+  HD.hpCycles = { render, enabled: () => !!C().power };
 })();
