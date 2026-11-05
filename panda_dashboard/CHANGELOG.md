@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.100
+- Devices: heat pump cycling chart (hourly kWh, 5-minute power, run stats)
+
 ## 0.3.99
 - Rooms: comfort band on Last 24 hours ±1° (config.comfortBand)
 
