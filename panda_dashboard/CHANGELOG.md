@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.101
+- Energy: move heat pump cycling panel from Devices to Energy
+
 ## 0.3.100
 - Devices: heat pump cycling chart (hourly kWh, 5-minute power, run stats)
 
