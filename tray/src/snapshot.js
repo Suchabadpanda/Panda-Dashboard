@@ -30,7 +30,7 @@ function heatPumpKw(hp, r) {
 
 // Heating, hot water, or both called for at once (the Samsung has one compressor and a
 // diverter valve, so "both" means the tank is being reheated and the heating waits)
-function heatPumpMode(c, r) {
+function heatPumpMode(c, r, now = Date.now()) {
   const hp = c.heatPump || {};
   if (!hp.power && !hp.waterHeater && !hp.climate) return null;
   const read = (id) => { const v = r.st(id); return v == null || UNKNOWN.has(String(v).toLowerCase()) ? null : String(v).toLowerCase(); };
@@ -38,14 +38,22 @@ function heatPumpMode(c, r) {
   const kw = heatPumpKw(hp, r);
   const running = kw != null && kw > (hp.runningAbove ?? 0.1);
   const heatingOn = cl != null && HEATING_ON.has(cl);
+  const flow = hp.climate ? r.attr(hp.climate, 'current_temperature') : null;
+  const target = hp.climate ? r.attr(hp.climate, 'temperature') : null;
+  // A fresh, low flow near the heating's own target = the radiators, whatever the climate mode
+  // says (6 Nov 2026: climate "off", flow 31 °C on a 30 °C target, 0.7 kW). A reheat drives the
+  // flow past its target towards 48 °C+. An old flow reading (SmartThings quiet) says nothing.
+  const flowAt = hp.climate && r.get(hp.climate) ? Date.parse(r.get(hp.climate).last_updated) : NaN;
+  const radiatorFlow = Number.isFinite(flowAt) && now - flowAt <= 15 * 60e3 && typeof flow === 'number' && flow < 45 &&
+    (typeof target !== 'number' || flow <= target + 5);
   // SmartThings can go quiet for hours while the tank reheats; with the heating off, a heavy
   // draw can only be the tank (the dashboard also wants it held for 10 min; the tray can't see history)
-  const hotWater = (wh != null && !OFF.has(wh)) || (!heatingOn && kw != null && kw >= (hp.hotWaterAbove ?? 0.5));
-  const flow = hp.climate ? r.attr(hp.climate, 'current_temperature') : null;
+  const heavy = !heatingOn && kw != null && kw >= (hp.hotWaterAbove ?? 0.5);
+  const hotWater = (wh != null && !OFF.has(wh)) || (heavy && !radiatorFlow);
   let key = 'rest'; let label = 'Resting';
   if (hotWater && heatingOn) { key = 'both'; label = 'Hot water + heating'; }
   else if (hotWater) { key = 'water'; label = 'Hot water'; }
-  else if (running && heatingOn) { key = 'heat'; label = 'Heating'; }
+  else if ((running && heatingOn) || (heavy && radiatorFlow)) { key = 'heat'; label = 'Heating'; }
   else if (running) { key = 'other'; label = 'Running'; }
   return {
     key, label, kw, running, hotWater, heatingOn,

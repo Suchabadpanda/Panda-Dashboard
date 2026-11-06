@@ -17,7 +17,9 @@
  * drawing at least `hotWaterAbove` kW (default 0.5) for 10 minutes is counted as reheating
  * the tank — it's the only long, heavy job it does with the heating off (defrosts are short).
  * If the tank reading hasn't moved for 20 min while that's happening, Samsung's data is
- * flagged as delayed.
+ * flagged as delayed. Exception: a fresh (≤ 15 min) flow reading below 45 °C and within 5 °C
+ * of the heating's own target means it's heating the radiators, even if the climate entity
+ * says "off" (6 Nov 2026).
  *
  * A monobloc like the Samsung Mono has one compressor and a diverter valve, so it heats
  * the radiators OR the tank at any instant. "Both" therefore means both are calling: the
@@ -164,8 +166,20 @@ window.HD = window.HD || {};
     // A water heater switched off after the flow passed 48 °C has ended the reheat
     const climb = climbing && !(whOffAt != null && whOffAt >= climbing.crossed) ? climbing : null;
     const reported = (wh != null && !OFF.has(wh)) || (running && rise >= 1 && !offAfterRise) || !!climb;
-    // Heating off, yet a long heavy run: it's reheating the tank, whatever Samsung says
-    const likely = !reported && !heatingOn && sustained(now, c.hotWaterAbove ?? 0.5, 10);
+    // A fresh flow reading that's low and sitting near the heating's own target says the
+    // radiators are being heated, whatever the climate mode says (6 Nov 2026: climate "off"
+    // from 17:38 while the flow climbed 22 → 31 °C on a 30 °C target at 0.7 kW, and the card
+    // said "Hot water"). A tank reheat drives the flow well past its target towards 48 °C+.
+    // If SmartThings has gone quiet the flow reading is old and this says nothing.
+    const flowAt = c.climate && S().get(c.climate) ? Date.parse(S().get(c.climate).last_updated) : null;
+    const flowFresh = flowAt != null && (S().mode === 'demo' || now - flowAt <= 15 * 60e3);
+    const radiatorFlow = flowFresh && Number.isFinite(flow) && flow < REHEAT_FLOW - 3 &&
+      (!Number.isFinite(flowTarget) || flow <= flowTarget + 5);
+    // Heating off, yet a long heavy run: it's reheating the tank, whatever Samsung says —
+    // unless the flow says it's the radiators
+    const heavy = !reported && !heatingOn && sustained(now, c.hotWaterAbove ?? 0.5, 10);
+    const likely = heavy && !radiatorFlow;
+    const heatingSeen = heavy && radiatorFlow;
     const hotWater = reported || likely;
     const tankAt = c.tankTemp && S().get(c.tankTemp) ? Date.parse(S().get(c.tankTemp).last_updated) : null;
     const delayed = likely && tankAt != null && S().mode !== 'demo' && now - tankAt > 20 * 60e3;
@@ -184,13 +198,14 @@ window.HD = window.HD || {};
       note = climb && (wh == null || OFF.has(wh)) ? `Flow ${Math.round(flow)}° and climbing past ${REHEAT_FLOW}°, so it's reheating the tank`
         : likely ? `Heating's off and it's drawing ${kw.toFixed(1)} kW, so it's reheating the tank${delayed ? ' · Samsung data delayed' : ''}`
         : rise >= 0.5 ? `Tank up ${rise.toFixed(1)}° in 30 min` : 'Reheating the tank';
-    } else if (heatingOn) {
+    } else if (heatingOn || heatingSeen) {
       key = 'heat'; label = 'Heating';
       note = flow != null ? `Flow ${Math.round(flow)}°${flowTarget != null ? ` → ${Math.round(flowTarget)}°` : ''}` : 'Radiators';
+      if (heatingSeen) note += ' · Samsung says heating is off';
     } else {
       key = 'other'; label = 'Running'; note = 'Defrost or pump run';
     }
-    return { key, label, note, running, power: kw, hotWater, likely, delayed, heatingOn, waterKnown: wh != null, heatingKnown: cl != null, flow, flowTarget, rise, climb };
+    return { key, label, note, running, power: kw, hotWater, likely, heatingSeen, delayed, heatingOn, waterKnown: wh != null, heatingKnown: cl != null, flow, flowTarget, rise, climb };
   }
 
   // Two small lamps: radiator and tap. Lit = that job is active now; dim outline = switched on but idle.

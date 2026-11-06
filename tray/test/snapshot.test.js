@@ -26,6 +26,18 @@ test('heat pump: heating, hot water, both, resting', () => {
   assert.equal(view.heatPumpMode(config, view.reader({ ...base, 'climate.hp': S('off'), 'sensor.hp': S('0.4') })).key, 'other');
 });
 
+test('heat pump: climate says off but a fresh low flow near its target is the radiators', () => {
+  // 6 Nov 2026 20:19: climate "off" since 17:38, flow 31 °C on a 30 °C target, 0.7 kW
+  const now = Date.parse('2026-11-06T20:19:37Z');
+  const cl = (flow, target, at) => ({ state: 'off', attributes: { current_temperature: flow, temperature: target }, last_updated: at });
+  const eve = { 'sensor.hp': S('0.695'), 'water_heater.hp': S('off'), 'climate.hp': cl(31, 30, '2026-11-06T20:17:26Z') };
+  assert.equal(view.heatPumpMode(config, view.reader(eve), now).key, 'heat');
+  // Flow reading over 15 min old (SmartThings quiet): still the heavy-draw rule
+  assert.equal(view.heatPumpMode(config, view.reader({ ...eve, 'climate.hp': cl(31, 30, '2026-11-06T19:50:00Z') }), now).key, 'water');
+  // Flow well past its target: a reheat
+  assert.equal(view.heatPumpMode(config, view.reader({ ...eve, 'climate.hp': cl(44, 30, '2026-11-06T20:17:26Z') }), now).key, 'water');
+});
+
 test('heat pump: a car charging on the same smart-load port is taken off', () => {
   const c = { ...config, heatPump: { ...config.heatPump, subtract: ['sensor.wc'] } };
   // 31 Oct 00:28: port 6.348 kW, Wall Connector 6.24 kW, Samsung climate off
