@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.102
+- Heat pump: a fresh low flow near its target is heating, even if Samsung says heating is off
+
 ## 0.3.101
 - Energy: move heat pump cycling panel from Devices to Energy
 
