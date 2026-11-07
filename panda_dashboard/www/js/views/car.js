@@ -650,21 +650,22 @@ HD.views = HD.views || {};
       <path class="body" d="M150 22 C168 22 182 23 193 28 Q201 32 202 47 L204 89 Q204 99 203 110 L201 214 Q201 232 204 249 L203 291 Q202 308 192 312 Q150 320 108 312 Q98 308 97 291 L96 249 Q99 232 99 214 L97 110 Q96 99 96 89 L98 47 Q99 32 107 28 C118 23 132 22 150 22 Z"/>
       <ellipse class="mirror" cx="91" cy="114" rx="7" ry="4"/><ellipse class="mirror" cx="209" cy="114" rx="7" ry="4"/>
       <path class="hood ${st.frunk ? 'open' : ''}" d="M109 48 Q150 39 191 48 L188 91 Q150 81 112 91 Z"/>
-      <path d="M104 42 Q150 31 196 42" fill="none" stroke="#17212d" stroke-width="8" stroke-linecap="round"/>
-      <path class="lamp head" style="stroke-width:2.5" d="M105 41 Q115 38 127 37 M130 37 Q150 35 170 37 M173 37 Q185 38 195 41"/>
-      <path class="lamp head" style="stroke-width:2" d="M101 51 L107 49 M199 51 L193 49"/>
+      <path d="M104 42 Q150 31 196 42" class="lamp-housing front"/>
+      <path class="lamp head light-bar" d="M105 41 Q115 38 127 37 M130 37 Q150 35 170 37 M173 37 Q185 38 195 41"/>
+      <path class="lamp head lower-lamp" d="M101 51 L107 49 M199 51 L193 49"/>
       <path class="glass screen" d="M110 100 C130 90 170 90 190 100 L184 134 C166 128 134 128 116 134 Z"/>
       <path class="glass sunroof" d="M116 138 C134 132 166 132 184 138 L186 234 C166 240 134 240 114 234 Z"/>
+      <path class="roof-bar" d="M115 186 Q150 184 185 186"/>
       <path class="glass rear" d="M114 240 C134 246 166 246 186 240 L182 268 C166 274 134 274 118 268 Z"/>
       <path class="win ${st.windows ? 'open' : ''}" d="M103 110 L110 106 L110 232 L102 228 Z"/><path class="win ${st.windows ? 'open' : ''}" d="M197 110 L190 106 L190 232 L198 228 Z"/>
       <path class="boot ${st.trunk ? 'open' : ''}" d="M110 278 Q150 286 190 278 L195 293 Q150 300 105 293 Z"/>
-      <path d="M104 300 Q150 309 196 300" fill="none" stroke="#17212d" stroke-width="9" stroke-linecap="round"/>
-      <path class="lamp tail" style="stroke-width:3" d="M106 301 Q150 309 194 301"/>
+      <path d="M104 300 Q150 309 196 300" class="lamp-housing rear"/>
+      <path class="lamp tail light-bar" d="M106 301 Q150 309 194 301"/>
       ${door('l', 106, 168, st.doors[0])}${door('r', 106, 168, st.doors[1])}${door('l', 170, 232, st.doors[2])}${door('r', 170, 232, st.doors[3])}
       <g class="air"><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/></g>
       <circle class="sentry-eye" cx="150" cy="104" r="4"/>
       <circle class="port" cx="99" cy="268" r="5"/>
-      ${st.charging ? '<circle class="port-glow" cx="99" cy="268" r="16" fill="url(#car-glow)"/>' : ''}
+      ${st.charging ? '<circle class="port-glow" cx="99" cy="268" r="16"/>' : ''}
       ${st.asleep ? '<text class="zz" x="214" y="40">z<tspan dx="2" dy="-8">z</tspan></text>' : ''}
       ${lab(tyres[0], 82, 92, 'end')}${lab(tyres[1], 218, 92, 'start')}${lab(tyres[2], 82, 254, 'end')}${lab(tyres[3], 218, 254, 'start')}
     </svg>`;
