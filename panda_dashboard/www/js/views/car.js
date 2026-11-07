@@ -623,6 +623,9 @@ HD.views = HD.views || {};
   // It shows what the car is doing: charging (port glows, energy flows down the cable),
   // plugged in, doors/frunk/boot/windows open, climate running, sentry on, asleep,
   // lights flashing and low tyres. Tyre pressures sit beside each wheel.
+  const juniperPhoto = new Image();
+  juniperPhoto.addEventListener('load', () => HD.views.car.update());
+  juniperPhoto.src = 'juniper-photo.png';
   let flashUntil = 0;
   function carSvg(tyres, target, st) {
     const low = (v) => v != null && v < target - 3;
@@ -634,9 +637,12 @@ HD.views = HD.views || {};
       if (!open) return `<path class="seam" d="M${x} ${y1}h${side === 'l' ? 7 : -7}"/>`;
       return `<g class="door-open" transform="rotate(${side === 'l' ? 38 : -38} ${x} ${y0})"><rect x="${side === 'l' ? x - 6 : x}" y="${y0}" width="6" height="${y1 - y0}" rx="3"/></g>`;
     };
+    const flashing = Date.now() < flashUntil;
+    const showPhoto = juniperPhoto.naturalWidth > 0 && !flashing
+      && !st.frunk && !st.trunk && !st.windows && !st.doors.some(Boolean);
     const cls = [
       st.asleep ? 'asleep' : '', st.charging ? 'charging' : '', st.plugged ? 'plugged' : '',
-      st.climate ? 'climate' : '', st.sentry ? 'sentry' : '', Date.now() < flashUntil ? 'flashing' : '',
+      st.climate ? 'climate' : '', st.sentry ? 'sentry' : '', flashing ? 'flashing' : '',
     ].filter(Boolean).join(' ');
     return `<svg class="car-top ${cls}" style="--paint:${esc(C().ev.colour || '#5f7fa8')}" viewBox="0 0 300 340" role="img" aria-label="The car from above: ${esc(st.summary)}">
       <defs>
@@ -644,7 +650,10 @@ HD.views = HD.views || {};
         <radialGradient id="car-glow"><stop offset="0" class="glow-a"/><stop offset="1" class="glow-b"/></radialGradient>
       </defs>
       <ellipse class="shadow" cx="150" cy="172" rx="70" ry="160"/>
-      ${st.plugged ? '<path class="cable" d="M96 268 C 60 274 46 300 22 334"/><path class="cable-flow" d="M22 334 C 46 300 60 274 96 268"/>' : ''}
+      ${st.plugged ? '<path class="cable" d="M99 268 C 62 269 46 301 22 334"/><path class="cable-flow" d="M22 334 C 46 301 62 269 99 268"/>' : ''}
+      ${showPhoto
+        ? '<image class="juniper-photo" href="juniper-photo.png" x="79" y="22" width="142" height="296"/>'
+        : `
       ${wheel(86, 66, tyres[0])}${wheel(198, 66, tyres[1])}${wheel(86, 228, tyres[2])}${wheel(198, 228, tyres[3])}
       <g class="beams"><path d="M105 49 L79 -20 L131 -20 Z"/><path d="M195 49 L169 -20 L221 -20 Z"/></g>
       <path class="body" d="M150 22 C168 22 182 23 193 28 Q201 32 202 47 L204 89 Q204 99 203 110 L201 214 Q201 232 204 249 L203 291 Q202 308 192 312 Q150 320 108 312 Q98 308 97 291 L96 249 Q99 232 99 214 L97 110 Q96 99 96 89 L98 47 Q99 32 107 28 C118 23 132 22 150 22 Z"/>
@@ -662,12 +671,13 @@ HD.views = HD.views || {};
       <path d="M104 300 Q150 309 196 300" class="lamp-housing rear"/>
       <path class="lamp tail light-bar" d="M106 301 Q150 309 194 301"/>
       ${door('l', 106, 168, st.doors[0])}${door('r', 106, 168, st.doors[1])}${door('l', 170, 232, st.doors[2])}${door('r', 170, 232, st.doors[3])}
-      ${!st.frunk && !st.trunk && !st.windows && !st.doors.some(Boolean) && !cls.includes('flashing')
-        ? '<image class="juniper-photo" href="juniper-photo.png" x="79" y="22" width="142" height="296"/>'
-        : ''}
+      `}
+      ${showPhoto ? [
+        [86, 66], [198, 66], [86, 228], [198, 228],
+      ].map(([x, y], i) => low(tyres[i]) ? wheel(x, y, tyres[i]) : '').join('') : ''}
       <g class="air"><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/></g>
       <circle class="sentry-eye" cx="150" cy="104" r="4"/>
-      <circle class="port" cx="99" cy="268" r="5"/>
+      ${!showPhoto || st.plugged ? '<circle class="port" cx="99" cy="268" r="5"/>' : ''}
       ${st.charging ? '<circle class="port-glow" cx="99" cy="268" r="16"/>' : ''}
       ${st.asleep ? '<text class="zz" x="214" y="40">z<tspan dx="2" dy="-8">z</tspan></text>' : ''}
       ${lab(tyres[0], 82, 92, 'end')}${lab(tyres[1], 218, 92, 'start')}${lab(tyres[2], 82, 254, 'end')}${lab(tyres[3], 218, 254, 'start')}
