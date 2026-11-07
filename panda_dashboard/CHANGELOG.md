@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.105
+- Week page: routine items can rotate their name weekly (which bin goes out)
+
 ## 0.3.104
 - Week page: remove the To-do, Things that touch work and Every week panels
 
