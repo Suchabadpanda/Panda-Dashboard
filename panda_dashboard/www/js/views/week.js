@@ -42,8 +42,7 @@ HD.views = HD.views || {};
   const parseDay = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
   const y = (h) => (Math.min(Math.max(h, TOP), BOTTOM) - TOP) * PX;
 
-  // ── View state: template week or a dated week (offset from this week) ──
-  let mode = ls('hd.week.mode') === 'template' ? 'template' : 'dated';
+  // ── View state: which week is shown (offset from this week) ──
   let offset = 0;
   function weekStart(off = offset) {
     const d = new Date(); d.setHours(0, 0, 0, 0);
@@ -98,7 +97,7 @@ HD.views = HD.views || {};
   }
   let ev = { key: null, at: 0, list: [], error: '', cals: 0, loading: false };
   async function loadEvents(force) {
-    if (mode !== 'dated' || S().mode === 'connecting') return;
+    if (S().mode === 'connecting') return;
     const ws = weekStart(); const key = ws.getTime();
     if (ev.loading || (!force && ev.key === key && Date.now() - ev.at < RELOAD)) return;
     const cals = calendars();
@@ -140,7 +139,7 @@ HD.views = HD.views || {};
     return Math.round((weekStart(off).getTime() - f.getTime()) / 6048e5);
   }
   function happens(r) {
-    if (!(r.every > 1) || !r.from || mode === 'template') return true;
+    if (!(r.every > 1) || !r.from) return true;
     return mod(weeksFrom(r.from), r.every) === 0;
   }
   // Items whose name rotates week by week: label '{} bin out', cycle: ['Refuse', 'Recycling'],
@@ -149,23 +148,20 @@ HD.views = HD.views || {};
     if (!Array.isArray(r.cycle) || !r.cycle.length || !r.from) return { label: r.label, note: r.note };
     const name = (i) => r.cycle[mod(i, r.cycle.length)];
     const fill = (v) => (String(r.label || '{}').includes('{}') ? String(r.label || '{}').replace('{}', v) : `${r.label} · ${v}`);
-    if (mode !== 'template') return { label: fill(name(weeksFrom(r.from))), note: r.note };
-    const now = name(weeksFrom(r.from, 0));
-    return { label: fill(r.cycle.join(' / ')), note: [r.note, `Alternate weeks · this week: ${now}`].filter(Boolean).join(' · ') };
+    return { label: fill(name(weeksFrom(r.from))), note: r.note };
   }
-  const isDone = (r) => mode === 'dated' && offset === 0 && r.doneWhen && S().state(r.doneWhen) === 'on';
+  const isDone = (r) => offset === 0 && r.doneWhen && S().state(r.doneWhen) === 'on';
 
   function dayModel(i) {
-    const key = KEYS[i]; const dated = mode === 'dated';
+    const key = KEYS[i];
     const date = addDays(weekStart(), i); const next = addDays(date, 1);
     const w = work(); const hours = hoursFor(key);
     const ws = hours > 0 ? startFor(key) : null; const we = ws != null ? ws + hours + w.breakH : null;
-    const d = { i, key, name: NAMES[i], date, hours, ws, we, blocks: [], events: [], chips: [], today: dated && ymd(date) === ymd(new Date()) };
+    const d = { i, key, name: NAMES[i], date, hours, ws, we, blocks: [], events: [], chips: [], today: ymd(date) === ymd(new Date()) };
     d.warn = ws == null ? '' : we > w.to + 1e-6 ? `Finishes ${hm(we)}, past ${hm(w.to)}` : ws < w.from - 1e-6 ? `Starts before ${hm(w.from)}` : '';
 
     routine().filter((r) => r.days.includes(key) && happens(r)).forEach((r) => {
-      const c = cycled(r);
-      const note = mode === 'template' && r.every > 1 ? [c.note, 'Alternate weeks'].filter(Boolean).join(' · ') : c.note;
+      const c = cycled(r); const note = c.note;
       if (r.allDay) { d.chips.push({ title: c.label, type: r.type || 'family' }); return; }
       const s = toH(r.start); const e = toH(r.end) ?? s + 0.5;
       if (s == null) return;
@@ -173,29 +169,22 @@ HD.views = HD.views || {};
     });
 
     const evList = ev.key === weekStart().getTime() ? ev.list : [];   // never last week's events on this week's days
-    if (dated) {
-      evList.forEach((x) => {
-        if (x.allDay) { if (x.s < next && x.e > date) d.chips.push({ title: x.title, type: 'event', cal: x.cal }); return; }
-        if (!(x.s < next && x.e > date)) return;
-        const s = x.s < date ? 0 : hourOf(x.s); const e = x.e >= next ? 24 : hourOf(x.e);
-        const clash = ws != null && s < we && e > ws;
-        const evt = { s, e, title: x.title, note: x.where || `${hm(s)} – ${hm(e)}`, type: 'event', clash, cal: x.cal };
-        d.events.push(evt);
-      });
-      // Rules like "bins out the evening before refuse collection"
-      (C().dayBefore || []).forEach((r) => {
-        let re; try { re = new RegExp(r.match, 'i'); } catch { return; }
-        if (evList.some((x) => re.test(x.title) && ymd(x.s) === ymd(next))) {
-          const s = toH(r.start) ?? 19.5;
-          d.blocks.push({ s, e: toH(r.end) ?? s + 0.5, title: r.label, note: r.note || '', type: r.type || 'home' });
-        }
-      });
-    } else {
-      (C().dayBefore || []).filter((r) => r.templateDay === key).forEach((r) => {
+    evList.forEach((x) => {
+      if (x.allDay) { if (x.s < next && x.e > date) d.chips.push({ title: x.title, type: 'event', cal: x.cal }); return; }
+      if (!(x.s < next && x.e > date)) return;
+      const s = x.s < date ? 0 : hourOf(x.s); const e = x.e >= next ? 24 : hourOf(x.e);
+      const clash = ws != null && s < we && e > ws;
+      const evt = { s, e, title: x.title, note: x.where || `${hm(s)} – ${hm(e)}`, type: 'event', clash, cal: x.cal };
+      d.events.push(evt);
+    });
+    // Rules like "bins out the evening before refuse collection"
+    (C().dayBefore || []).forEach((r) => {
+      let re; try { re = new RegExp(r.match, 'i'); } catch { return; }
+      if (evList.some((x) => re.test(x.title) && ymd(x.s) === ymd(next))) {
         const s = toH(r.start) ?? 19.5;
         d.blocks.push({ s, e: toH(r.end) ?? s + 0.5, title: r.label, note: r.note || '', type: r.type || 'home' });
-      });
-    }
+      }
+    });
     d.events.sort((a, b) => a.s - b.s || b.e - a.e);
     // Side-by-side lanes for events that overlap each other
     let cluster = []; let clusterEnd = -1;
@@ -230,7 +219,7 @@ HD.views = HD.views || {};
     const now = new Date(); const nowH = hourOf(now);
     let html = '<div class="wk-head wk-corner"></div>';
     days.forEach((d) => {
-      html += `<div class="wk-head${d.ws == null ? ' off' : ''}${d.today ? ' today' : ''}"><div class="wk-d">${d.name}${mode === 'dated' ? ` <span>${dateLabel(d.date)}</span>` : ''}</div>
+      html += `<div class="wk-head${d.ws == null ? ' off' : ''}${d.today ? ' today' : ''}"><div class="wk-d">${d.name} <span>${dateLabel(d.date)}</span></div>
         <div class="wk-h">${dayLine(d)}</div>${d.warn ? `<div class="wk-warn">${icon('alert')}${esc(d.warn)}</div>` : ''}</div>`;
     });
     html += '<div class="wk-allday wk-corner"></div>';
@@ -261,7 +250,7 @@ HD.views = HD.views || {};
       const rows = d.chips.map((c) => `<div class="wk-row"><div class="tm">All day</div><i class="bar wk-${c.type}"></i><div><div class="t">${esc(c.title)}</div>${c.cal ? `<div class="m">${esc(c.cal)}</div>` : ''}</div></div>`)
         .concat(items.map((b) => `<div class="wk-row${b.clash ? ' clash' : ''}${b.done ? ' done' : ''}"><div class="tm">${b.type === 'flex' ? 'Flexible' : hm(b.s) + (b.e - b.s >= 0.75 ? ` – ${hm(b.e)}` : '')}</div>
           <i class="bar wk-${b.type}"></i><div><div class="t">${b.done ? '✓ ' : ''}${esc(b.title)}${b.clash ? ' · <em>during work</em>' : ''}</div>${b.note ? `<div class="m">${esc(b.note)}</div>` : ''}</div></div>`));
-      return `<div class="wk-day${d.today ? ' today' : ''}"><h3><span>${d.name}${mode === 'dated' ? ` <small>${dateLabel(d.date)}</small>` : ''}</span><small>${dayLine(d)}</small></h3>
+      return `<div class="wk-day${d.today ? ' today' : ''}"><h3><span>${d.name} <small>${dateLabel(d.date)}</small></span><small>${dayLine(d)}</small></h3>
         ${d.warn ? `<p class="wk-warn">${icon('alert')}${esc(d.warn)}</p>` : ''}
         ${rows.length ? rows.join('') : '<div class="wk-row"><div class="m">Nothing planned</div></div>'}</div>`;
     }).join('');
@@ -279,18 +268,14 @@ HD.views = HD.views || {};
   function headerHtml() {
     const ws = weekStart(); const we = addDays(ws, 6);
     const range = `${HD.u.fmt(ws, { day: 'numeric', month: 'short' })} – ${HD.u.fmt(we, { day: 'numeric', month: 'short', year: 'numeric' })}`;
-    return `<h2>${mode === 'template' ? 'Every week' : offset === 0 ? 'This week' : offset === 1 ? 'Next week' : offset === -1 ? 'Last week' : 'Week'}${mode === 'dated' ? ` <small class="wk-range">${range}</small>` : ''}</h2>
+    return `<h2>${offset === 0 ? 'This week' : offset === 1 ? 'Next week' : offset === -1 ? 'Last week' : 'Week'} <small class="wk-range">${range}</small></h2>
       <div class="wk-tools">
-        ${mode === 'dated' ? `<div class="seg wk-nav" role="group" aria-label="Change week">
-          <button data-week-nav="-1" aria-label="Previous week">‹</button><button data-week-nav="0" class="${offset === 0 ? 'on' : ''}">This week</button><button data-week-nav="1" aria-label="Next week">›</button></div>` : ''}
-        <div class="seg" role="group" aria-label="Show">
-          <button data-week-mode="template" class="${mode === 'template' ? 'on' : ''}">Template</button>
-          <button data-week-mode="dated" class="${mode === 'dated' ? 'on' : ''}">Dated week</button></div>
+        <div class="seg wk-nav" role="group" aria-label="Change week">
+          <button data-week-nav="-1" aria-label="Previous week">‹</button><button data-week-nav="0" class="${offset === 0 ? 'on' : ''}">This week</button><button data-week-nav="1" aria-label="Next week">›</button></div>
       </div>`;
   }
 
   function sourceHtml() {
-    if (mode !== 'dated') return 'Your routine and work hours only. Switch to Dated week to add your calendars.';
     if (ev.error) return `Couldn't read the calendars: ${esc(ev.error)}`;
     if (ev.key !== weekStart().getTime()) return 'Loading calendars…';
     if (!ev.cals) return 'No calendars in Home Assistant yet. Add the CalDAV (iCloud) or Google Calendar integration and they appear here.';
@@ -301,7 +286,7 @@ HD.views = HD.views || {};
     return `<div class="wk-legend">
       <span><i class="sw wk-work"></i>Work</span><span><i class="sw wk-hatch"></i>Flexible window (${hm(work().from)}–${hm(work().to)})</span>
       <span><i class="sw wk-family"></i>Family routine</span><span><i class="sw wk-flex"></i>Flexible</span><span><i class="sw wk-home"></i>Home</span>
-      ${mode === 'dated' ? '<span><i class="sw wk-event"></i>Calendar</span><span><i class="sw wk-event clash"></i>Overlaps work</span>' : ''}</div>`;
+      <span><i class="sw wk-event"></i>Calendar</span><span><i class="sw wk-event clash"></i>Overlaps work</span></div>`;
   }
 
   // ── Events ──
@@ -315,10 +300,9 @@ HD.views = HD.views || {};
     HD.views.week.update(true);
   });
   document.addEventListener('click', (e) => {
-    const m = e.target.closest('[data-week-mode],[data-week-nav]');
+    const m = e.target.closest('[data-week-nav]');
     if (!m || !document.getElementById('wk-grid')) return;
-    if (m.dataset.weekMode) { mode = m.dataset.weekMode; lsSet('hd.week.mode', mode); }
-    if (m.dataset.weekNav) { offset = m.dataset.weekNav === '0' ? 0 : offset + +m.dataset.weekNav; }
+    offset = m.dataset.weekNav === '0' ? 0 : offset + +m.dataset.weekNav;
     HD.views.week.update(true);
     loadEvents(true);
   });

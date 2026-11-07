@@ -339,7 +339,7 @@ input_datetime:
 
 (If you create them in YAML, leave `initial` out once they exist, or a restart resets them.) Without the helpers, start times are saved on each screen. Optional `input_number.work_hours_<day>` overrides that day's hours.
 
-**Alternating items.** A routine item with `cycle: ['Refuse', 'Recycling']` and `from` (a date in a Refuse week) changes its name every week; `{}` in `label` is replaced, e.g. `label: '{} bin out'`. Template mode shows both names and which one is due this week.
+**Alternating items.** A routine item with `cycle: ['Refuse', 'Recycling']` and `from` (a date in a Refuse week) changes its name every week; `{}` in `label` is replaced, e.g. `label: '{} bin out'`.
 
 **Ticking off a routine item.** Give a routine item `doneWhen: 'input_boolean.…'`; while it's on, the item is shown ticked for the current week. For example, an automation can turn it on when you've been in a zone for 20 minutes on Saturday or Sunday, and another turns it off at Monday 00:00:
 
