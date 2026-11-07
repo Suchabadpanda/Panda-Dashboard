@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.103
+- Week page: weekly timetable from HA calendars, work start helpers and routine config
+
 ## 0.3.102
 - Heat pump: a fresh low flow near its target is heating, even if Samsung says heating is off
 
