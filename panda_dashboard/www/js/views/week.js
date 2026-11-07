@@ -133,11 +133,25 @@ HD.views = HD.views || {};
   // ── Building each day ──
   const routine = () => (C().routine || []).map((r) => ({ ...r, days: [].concat(r.days || r.day || []) }));
   // Fortnightly items: every: 2, from: 'YYYY-MM-DD' (a date in a week it happens)
+  // Whole weeks from the week containing `from` to the week shown (or this week)
+  const mod = (a, n) => ((a % n) + n) % n;
+  function weeksFrom(from, off = offset) {
+    const f = parseDay(from); f.setDate(f.getDate() - ((f.getDay() + 6) % 7));
+    return Math.round((weekStart(off).getTime() - f.getTime()) / 6048e5);
+  }
   function happens(r) {
     if (!(r.every > 1) || !r.from || mode === 'template') return true;
-    const f = parseDay(r.from); f.setDate(f.getDate() - ((f.getDay() + 6) % 7));
-    const weeks = Math.round((weekStart().getTime() - f.getTime()) / 6048e5);
-    return ((weeks % r.every) + r.every) % r.every === 0;
+    return mod(weeksFrom(r.from), r.every) === 0;
+  }
+  // Items whose name rotates week by week: label '{} bin out', cycle: ['Refuse', 'Recycling'],
+  // from: a date in a week that has the first name
+  function cycled(r) {
+    if (!Array.isArray(r.cycle) || !r.cycle.length || !r.from) return { label: r.label, note: r.note };
+    const name = (i) => r.cycle[mod(i, r.cycle.length)];
+    const fill = (v) => (String(r.label || '{}').includes('{}') ? String(r.label || '{}').replace('{}', v) : `${r.label} · ${v}`);
+    if (mode !== 'template') return { label: fill(name(weeksFrom(r.from))), note: r.note };
+    const now = name(weeksFrom(r.from, 0));
+    return { label: fill(r.cycle.join(' / ')), note: [r.note, `Alternate weeks · this week: ${now}`].filter(Boolean).join(' · ') };
   }
   const isDone = (r) => mode === 'dated' && offset === 0 && r.doneWhen && S().state(r.doneWhen) === 'on';
 
@@ -150,11 +164,12 @@ HD.views = HD.views || {};
     d.warn = ws == null ? '' : we > w.to + 1e-6 ? `Finishes ${hm(we)}, past ${hm(w.to)}` : ws < w.from - 1e-6 ? `Starts before ${hm(w.from)}` : '';
 
     routine().filter((r) => r.days.includes(key) && happens(r)).forEach((r) => {
-      const note = mode === 'template' && r.every > 1 ? [r.note, 'Alternate weeks'].filter(Boolean).join(' · ') : r.note;
-      if (r.allDay) { d.chips.push({ title: r.label, type: r.type || 'family' }); return; }
+      const c = cycled(r);
+      const note = mode === 'template' && r.every > 1 ? [c.note, 'Alternate weeks'].filter(Boolean).join(' · ') : c.note;
+      if (r.allDay) { d.chips.push({ title: c.label, type: r.type || 'family' }); return; }
       const s = toH(r.start); const e = toH(r.end) ?? s + 0.5;
       if (s == null) return;
-      d.blocks.push({ s, e, title: r.label, note: note || '', type: r.type || 'family', done: isDone(r) });
+      d.blocks.push({ s, e, title: c.label, note: note || '', type: r.type || 'family', done: isDone(r) });
     });
 
     const evList = ev.key === weekStart().getTime() ? ev.list : [];   // never last week's events on this week's days

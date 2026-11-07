@@ -355,13 +355,15 @@ HD.config = {
     },
     // type: work | family | flex (dashed, "either day") | home | event. allDay: true → a chip.
     // every: 2, from: 'YYYY-MM-DD' → alternate weeks. doneWhen: an input_boolean that ticks it off this week.
+    // cycle: ['A', 'B'] + from → the name rotates each week ('{}' in label is replaced); from = a date in an 'A' week.
     routine: [
       { day: 'sat', start: '09:00', end: '10:00', label: 'Swimming lesson', note: 'Leisure centre', type: 'family' },
       { day: 'sat', start: '16:00', end: '18:00', label: 'Visit family', note: 'Saturday or Sunday', type: 'flex', doneWhen: 'input_boolean.visit_done' },
       { day: 'sun', start: '11:00', end: '14:00', label: 'Visit family', note: 'If not done Saturday', type: 'flex', doneWhen: 'input_boolean.visit_done' },
+      { day: 'sun', start: '19:30', end: '20:00', label: '{} bin out', cycle: ['Refuse', 'Recycling'], from: '2026-11-08', type: 'home' },
     ],
     // A block the evening before any calendar event matching `match` (a regular expression)
-    dayBefore: [{ match: 'refuse|bin collection', what: 'bin day', label: 'Bins out', start: '19:30', end: '20:00', type: 'home', templateDay: 'sun', note: 'Alternate weeks' }],
+    dayBefore: [{ match: 'school trip|swimming gala', what: 'a school trip or gala', label: 'Pack the kit bag', start: '19:00', end: '19:30', type: 'home' }],
     markers: [{ at: '09:35', label: 'Brief' }],   // dotted line on every day
   },
 
