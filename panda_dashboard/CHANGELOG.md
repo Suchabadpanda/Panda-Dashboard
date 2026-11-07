@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.106
+- Week page: remove the Template view
+
 ## 0.3.105
 - Week page: routine items can rotate their name weekly (which bin goes out)
 
