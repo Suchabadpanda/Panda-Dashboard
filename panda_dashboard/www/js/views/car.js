@@ -662,6 +662,9 @@ HD.views = HD.views || {};
       <path d="M104 300 Q150 309 196 300" class="lamp-housing rear"/>
       <path class="lamp tail light-bar" d="M106 301 Q150 309 194 301"/>
       ${door('l', 106, 168, st.doors[0])}${door('r', 106, 168, st.doors[1])}${door('l', 170, 232, st.doors[2])}${door('r', 170, 232, st.doors[3])}
+      ${!st.frunk && !st.trunk && !st.windows && !st.doors.some(Boolean) && !cls.includes('flashing')
+        ? '<image class="juniper-photo" href="juniper-photo.png" x="79" y="22" width="142" height="296"/>'
+        : ''}
       <g class="air"><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/></g>
       <circle class="sentry-eye" cx="150" cy="104" r="4"/>
       <circle class="port" cx="99" cy="268" r="5"/>

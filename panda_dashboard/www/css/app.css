@@ -929,6 +929,7 @@ thead th { color: var(--muted); font-weight: 500; }
 .car-top .sentry-eye { fill: transparent; }
 .car-top.sentry .sentry-eye { fill: var(--critical); animation: blink 2s ease-in-out infinite; }
 .car-top.asleep .body, .car-top.asleep .hood, .car-top.asleep .boot { filter: saturate(.75) brightness(.88); }
+.car-top.asleep .juniper-photo { filter: saturate(.75) brightness(.72); }
 .car-top.asleep .lamp { opacity: .25; }
 .car-top .zz { fill: var(--muted); font: 600 16px var(--font-num); animation: float 3s ease-in-out infinite; }
 @keyframes door-swing { from { transform: rotate(-30deg); } }
