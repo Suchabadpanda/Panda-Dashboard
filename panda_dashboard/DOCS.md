@@ -320,3 +320,44 @@ actions:
       temperature: "{{ want }}"
 mode: queued
 ```
+
+## Week page
+
+Add a `week` block to config.js (see the example in `js/config.js`) and a **Week** page appears after Home. Remove the block to hide it.
+
+**Calendars.** Events come from Home Assistant's `calendar.*` entities, read with `calendar.get_events` for the week shown. For Apple/iCloud calendars add the **CalDAV** integration (server `https://caldav.icloud.com`, your Apple ID and an app-specific password from appleid.apple.com). Google calendars use the **Google Calendar** integration. Every calendar is shown unless you list `calendars` or `hide` some. The same event on two calendars (same title and start) is shown once.
+
+**Work start times.** Create one helper per workday so every screen shares the same start times (Settings → Devices & services → Helpers → Create helper → Date and/or time → *Time*):
+
+```yaml
+input_datetime:
+  work_start_mon: { name: Work start Monday, has_date: false, has_time: true, initial: "08:00" }
+  work_start_tue: { name: Work start Tuesday, has_date: false, has_time: true, initial: "08:00" }
+  work_start_wed: { name: Work start Wednesday, has_date: false, has_time: true, initial: "08:00" }
+  work_start_thu: { name: Work start Thursday, has_date: false, has_time: true, initial: "08:00" }
+```
+
+(If you create them in YAML, leave `initial` out once they exist, or a restart resets them.) Without the helpers, start times are saved on each screen. Optional `input_number.work_hours_<day>` overrides that day's hours.
+
+**Ticking off a routine item.** Give a routine item `doneWhen: 'input_boolean.…'`; while it's on, the item is shown ticked for the current week. For example, an automation can turn it on when you've been in a zone for 20 minutes on Saturday or Sunday, and another turns it off at Monday 00:00:
+
+```yaml
+- alias: Week - visit done
+  triggers: [{ trigger: zone, entity_id: person.you, zone: zone.visit, event: enter }]
+  conditions: [{ condition: time, weekday: [sat, sun] }]
+  actions:
+    - wait_for_trigger: [{ trigger: zone, entity_id: person.you, zone: zone.visit, event: leave }]
+      timeout: "00:20:00"
+      continue_on_timeout: true
+    - if: [{ condition: template, value_template: "{{ wait.trigger is none }}" }]
+      then: [{ action: input_boolean.turn_on, target: { entity_id: input_boolean.visit_done } }]
+- alias: Week - reset visit
+  triggers: [{ trigger: time, at: "00:00:00" }]
+  conditions: [{ condition: time, weekday: [mon] }]
+  actions: [{ action: input_boolean.turn_off, target: { entity_id: input_boolean.visit_done } }]
+```
+
+**To-dos.** Every `todo.*` list is shown (or the ones in `week.todo`; `false` hides the panel). Ticking an item marks it completed in Home Assistant. Apple Reminders can't be read by Home Assistant; use the **Local To-do** integration, or copy Reminders across with an iOS Shortcut.
+
+View-only screens see everything but can't change start times or tick items off.
+

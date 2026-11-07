@@ -338,6 +338,34 @@ HD.config = {
     program: 'dishcare_dishwasher_program_eco_50',   // used only if the machine doesn't offer Auto; pick on the Devices card
   },
 
+  // ── Week page: a Monday–Sunday timetable. Remove this block to hide the page. ──
+  // Work blocks = each workday's start time + hours. Start times live in Home Assistant helpers
+  // input_datetime.work_start_mon … _sun (time only) so every screen shows the same; without
+  // them they're saved per screen. input_number.work_hours_<day> overrides hours if it exists.
+  // Routine blocks are drawn from this list, never written to a calendar. Calendar events come
+  // from every calendar.* entity (or the list below); any that overlap work are flagged.
+  week: {
+    // calendars: ['calendar.family', { id: 'calendar.work', name: 'Work' }],
+    // hide: ['calendar.holidays'],                // with the default (every calendar)
+    // todo: ['todo.home'],                        // default: every to-do list; false = none
+    work: {
+      hours: { mon: 9.5, tue: 9.5, wed: 9.5, thu: 9 },   // days not listed are off
+      window: ['07:00', '19:00'],                        // flexible-hours window (hatched)
+      start: '08:00',                                    // until a start time is set
+      breakMins: 0,                                      // added to each day's end time
+    },
+    // type: work | family | flex (dashed, "either day") | home | event. allDay: true → a chip.
+    // every: 2, from: 'YYYY-MM-DD' → alternate weeks. doneWhen: an input_boolean that ticks it off this week.
+    routine: [
+      { day: 'sat', start: '09:00', end: '10:00', label: 'Swimming lesson', note: 'Leisure centre', type: 'family' },
+      { day: 'sat', start: '16:00', end: '18:00', label: 'Visit family', note: 'Saturday or Sunday', type: 'flex', doneWhen: 'input_boolean.visit_done' },
+      { day: 'sun', start: '11:00', end: '14:00', label: 'Visit family', note: 'If not done Saturday', type: 'flex', doneWhen: 'input_boolean.visit_done' },
+    ],
+    // A block the evening before any calendar event matching `match` (a regular expression)
+    dayBefore: [{ match: 'refuse|bin collection', what: 'bin day', label: 'Bins out', start: '19:30', end: '20:00', type: 'home', templateDay: 'sun', note: 'Alternate weeks' }],
+    markers: [{ at: '09:35', label: 'Brief' }],   // dotted line on every day
+  },
+
   tariffName: '',          // e.g. 'Octopus Go' — shown on the Energy view
   // ── Tariffs. Add a row when a rate changes; rows apply from their date. ──
   tariffs: [

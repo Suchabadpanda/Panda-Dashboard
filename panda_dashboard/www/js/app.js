@@ -4,7 +4,8 @@ window.HD = window.HD || {};
 (function () {
   const { esc, icon } = HD.u;
   const S = HD.store;
-  const VIEWS = ['home', 'rooms', 'energy', 'car', 'devices'];
+  // The Week page shows only when config.week is set
+  const allViews = () => ['home', ...(HD.config.week ? ['week'] : []), 'rooms', 'energy', 'car', 'devices'];
   const ALIASES = { plan: 'rooms', climate: 'rooms', people: 'home', map: 'home' }; // old bookmarks
   let current = null;
 
@@ -25,7 +26,8 @@ window.HD = window.HD || {};
   // View-only screens (see HD.access in ha.js): anything that changes something is disabled
   const CONTROLS = ['[data-toggle]', '[data-hvac]', '[data-press]', '[data-shortcut]', '[data-car]', '[data-dw]', '[data-dw-prog]', '[data-dw-extra]',
     '[data-vac]', '[data-vac-select]', '[data-ac-set]', '[data-ac-select]', '[data-ac-temp]', '[data-ac-hum]', '[data-ac-switch]', '[data-ac-option]',
-    '[data-plan-room]', '[data-pc]', '[data-trv-temp]', '[data-trv-sched]', '[data-trv-sched-on]', '[data-trv-time]'].join(',');
+    '[data-plan-room]', '[data-pc]', '[data-trv-temp]', '[data-trv-sched]', '[data-trv-sched-on]', '[data-trv-time]',
+    '[data-week-start]', '[data-todo-done]'].join(',');
   const viewOnly = () => !HD.access.canControl();
 
   function statusHtml() {
@@ -41,14 +43,14 @@ window.HD = window.HD || {};
     HD.u.setHTML(document.getElementById('status-slot'), statusHtml());
   }
 
-  const NAV_ICONS = { home: 'house', rooms: 'rooms', energy: 'bolt', car: 'car', devices: 'plug' };
+  const NAV_ICONS = { home: 'house', week: 'calendar', rooms: 'rooms', energy: 'bolt', car: 'car', devices: 'plug' };
   function navHtml() {
-    return VIEWS.map((v) => `<a href="#${v}" class="${v === current ? 'active' : ''}" ${v === current ? 'aria-current="page"' : ''}>${HD.u.icon(NAV_ICONS[v])}<span>${HD.views[v].title}</span></a>`).join('');
+    return allViews().map((v) => `<a href="#${v}" class="${v === current ? 'active' : ''}" ${v === current ? 'aria-current="page"' : ''}>${HD.u.icon(NAV_ICONS[v])}<span>${HD.views[v].title}</span></a>`).join('');
   }
 
   function show(name) {
     name = ALIASES[name] || name;
-    if (!VIEWS.includes(name)) name = 'home';
+    if (!allViews().includes(name)) name = 'home';
     const changed = current !== name;
     current = name;
     document.body.dataset.view = name;

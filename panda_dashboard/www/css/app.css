@@ -948,6 +948,7 @@ body {
 body[data-view="energy"] { --view-tint: var(--s-solar); }
 body[data-view="car"] { --view-tint: var(--s-battery); }
 body[data-view="rooms"] { --view-tint: var(--c5); }
+body[data-view="week"] { --view-tint: #c6613f; }
 .panel, .now-block, .node, .info-tile {
   box-shadow: inset 0 1px 0 color-mix(in oklab, var(--ink) 7%, transparent), 0 6px 18px -12px rgb(0 0 0 / .5);
 }
@@ -1232,11 +1233,11 @@ body { font-variant-numeric: tabular-nums; }
 /* View-only screens (users other than those in config.controlBy): controls show their state but can't be used */
 body.view-only :is([data-toggle], [data-hvac], [data-press], [data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra],
   [data-vac], [data-vac-select], [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-plan-room], [data-pc], [data-trv-temp],
-  [data-trv-sched], [data-trv-sched-on], [data-trv-time]) {
+  [data-trv-sched], [data-trv-sched-on], [data-trv-time], [data-week-start], [data-todo-done]) {
   cursor: default; pointer-events: none;
 }
 body.view-only :is(button, select, input):is([data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra], [data-vac], [data-vac-select],
-  [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-hvac], [data-press], [data-trv-temp], [data-trv-sched], [data-trv-sched-on], [data-trv-time]) { opacity: .6; }
+  [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-hvac], [data-press], [data-trv-temp], [data-trv-sched], [data-trv-sched-on], [data-trv-time], [data-week-start], [data-todo-done]) { opacity: .6; }
 body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac], [data-dw]) { display: none; }
 .status.view-only-badge { cursor: default; }
 .status.view-only-badge .ic { width: 16px; height: 16px; }
@@ -1301,3 +1302,106 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .trv-sched-label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
 .trv-sched-label small { color: var(--muted); }
 .trv-sched-label input[type=time] { font: inherit; font-variant-numeric: tabular-nums; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; color-scheme: light dark; }
+
+/* ── Week page (views/week.js) ──
+ * Block colours are fixed in both themes: they carry meaning (work, family, home, calendar),
+ * like the energy colours. Everything else follows the palette. Class names are wk-* only. */
+.panel-grid.week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wk-panel > header h2 .wk-range { font-weight: 500; font-size: 14px; color: var(--muted); margin-left: 6px; }
+.wk-tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.wk-tools .seg button { flex: none; padding: 0 12px; text-transform: none; }
+.wk-nav button[data-week-nav="-1"], .wk-nav button[data-week-nav="1"] { font-size: 18px; padding: 0 12px; }
+.wk-controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; background: var(--room); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 12px; }
+.wk-ctl { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.wk-ctl b { color: var(--ink); font-weight: 600; font-size: 13px; }
+.wk-ctl input[type=time] { font: 500 15px var(--font-num); padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); color: var(--ink); min-height: 36px; }
+.wk-sync { flex: 1 1 220px; font-size: 12.5px; color: var(--muted); margin: 0; align-self: center; }
+.wk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+.wk-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.wk-legend .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.wk-legend .sw.wk-hatch { background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--ink) 30%, transparent) 0 2px, transparent 2px 5px); }
+
+.wk-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--room); }
+.wk-grid { display: grid; grid-template-columns: 52px repeat(7, minmax(118px, 1fr)); min-width: 900px; }
+.wk-head { position: sticky; top: 0; z-index: 3; background: var(--panel); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 8px 8px 6px; font-size: 13px; }
+.wk-grid > .wk-head:nth-child(8), .wk-grid > .wk-allday:nth-child(16) { border-right: 0; }
+.wk-head .wk-d { font-weight: 600; font-size: 14px; }
+.wk-head .wk-d span { color: var(--faint); font-weight: 400; }
+.wk-head .wk-h { color: var(--muted); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.wk-head.off .wk-d { color: var(--muted); }
+.wk-head.today { box-shadow: inset 0 -3px 0 #c6613f; }
+.wk-warn { display: flex; align-items: center; gap: 4px; color: #e07a55; font-size: 12px; margin-top: 2px; }
+.wk-warn .ic { width: 13px; height: 13px; flex: none; }
+.wk-allday { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 4px; min-height: 30px; display: flex; flex-direction: column; gap: 3px; background: var(--panel); }
+.wk-chip { font-size: 11.5px; line-height: 1.3; padding: 3px 6px; border-radius: 5px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.wk-chip .ic { width: 11px; height: 11px; vertical-align: -1px; margin-right: 3px; }
+.wk-gutter { position: relative; border-right: 1px solid var(--line); }
+.wk-gutter div { position: absolute; right: 6px; font-size: 11px; color: var(--faint); transform: translateY(-7px); font-variant-numeric: tabular-nums; }
+.wk-col { position: relative; border-right: 1px solid var(--line); }
+.wk-col:last-child { border-right: 0; }
+.wk-col.weekend { background: color-mix(in oklab, var(--panel) 45%, transparent); }
+.wk-col.today { background: color-mix(in oklab, #c6613f 6%, transparent); }
+.wk-hr { position: absolute; left: 0; right: 0; border-top: 1px solid color-mix(in oklab, var(--line) 60%, transparent); }
+.wk-window { position: absolute; left: 0; right: 0; background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--ink) 7%, transparent) 0 6px, transparent 6px 12px); }
+.wk-blk { position: absolute; left: 4px; right: 4px; border-radius: 7px; padding: 5px 7px; font-size: 12px; line-height: 1.3; overflow: hidden; }
+.wk-blk .t { font-weight: 600; }
+.wk-blk .m { opacity: .85; font-size: 11.5px; }
+.wk-blk.short { padding: 3px 7px; display: flex; align-items: center; }
+.wk-blk.short .one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+.wk-blk.short .one .m { font-weight: 400; }
+.wk-blk.done { opacity: .5; }
+.wk-mark { position: absolute; left: 0; right: 0; border-top: 1.5px dotted var(--faint); z-index: 1; pointer-events: none; }
+.wk-mark span { position: absolute; right: 4px; top: -9px; font-size: 10.5px; color: var(--muted); background: var(--room); padding: 0 3px; border-radius: 3px; }
+.wk-now { position: absolute; left: 0; right: 0; border-top: 2px solid #c6613f; z-index: 4; pointer-events: none; }
+.wk-now::before { content: ''; position: absolute; left: -4px; top: -5px; width: 8px; height: 8px; border-radius: 50%; background: #c6613f; }
+
+/* the block types (grid blocks, chips, legend swatches, agenda bars) */
+.wk-work { background: #DCE6EE; color: #2F4A5E; }
+.wk-family { background: #E9E2F2; color: #4F3D6B; }
+.wk-flex { background: transparent; border: 1.5px dashed #A99BC2; color: #4F3D6B; }
+.wk-blk.wk-flex { background: color-mix(in oklab, #E9E2F2 22%, transparent); color: var(--ink); }
+.wk-home { background: #E4EEDF; color: #3D5A33; }
+.wk-event { background: #FBE7DE; color: #8A3B1E; z-index: 2; }
+.wk-chip.wk-todo { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+.wk-event.clash { box-shadow: 0 0 0 2px #C6613F; }
+.wk-legend .sw.wk-flex { border-width: 1.5px; }
+
+/* phones: an agenda instead of the grid */
+.wk-agenda { display: none; }
+.wk-day { border: 1px solid var(--line); border-radius: var(--r-md); margin-bottom: 10px; overflow: hidden; }
+.wk-day.today { border-color: #c6613f; }
+.wk-day h3 { margin: 0; padding: 10px 12px; font-size: 15px; background: var(--room); display: flex; justify-content: space-between; gap: 8px; }
+.wk-day h3 small { color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.wk-day > .wk-warn { padding: 6px 12px 0; }
+.wk-row { display: flex; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 14px; align-items: flex-start; }
+.wk-day h3 + .wk-row, .wk-day .wk-warn + .wk-row { border-top: 0; }
+.wk-row .tm { width: 92px; flex: none; color: var(--muted); font-size: 12.5px; padding-top: 1px; font-variant-numeric: tabular-nums; }
+.wk-row .bar { width: 4px; align-self: stretch; border-radius: 2px; flex: none; border: 0; }
+.wk-row .bar.wk-flex { background: #A99BC2; }
+.wk-row .bar.wk-todo { background: var(--faint); }
+.wk-row .bar.wk-event { background: #C6613F; }
+.wk-row .m { color: var(--muted); font-size: 12.5px; }
+.wk-row.clash .t em { color: #e07a55; font-style: normal; font-weight: 600; }
+.wk-row.done { opacity: .55; }
+
+.wk-clashes, .wk-rules { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.wk-clashes li + li, .wk-rules li + li { margin-top: 4px; }
+.wk-clashes b, .wk-rules b { color: var(--ink); font-weight: 600; }
+.wk-clashes span { display: block; color: #e07a55; }
+.wk-todos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 24px; }
+.wk-todos .empty { padding: 8px 0; }
+.wk-list h3 { font-size: 14px; margin-bottom: 6px; }
+.wk-list h3 small { color: var(--faint); font-weight: 500; }
+.wk-list ul { list-style: none; margin: 0; padding: 0; }
+.wk-list li { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.wk-list li small { color: var(--muted); }
+.wk-tick { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line); background: transparent; display: grid; place-items: center; cursor: pointer; color: transparent; padding: 0; }
+.wk-tick:hover:not(:disabled) { color: var(--good); border-color: var(--good); }
+.wk-tick .ic { width: 14px; height: 14px; }
+.wk-tick:disabled { cursor: default; }
+
+@media (max-width: 760px) {
+  .panel-grid.week { grid-template-columns: 1fr; }
+  .wk-scroll, .wk-legend { display: none; }
+  .wk-agenda { display: block; }
+}
