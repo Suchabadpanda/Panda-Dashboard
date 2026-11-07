@@ -189,11 +189,10 @@ window.HD = window.HD || {};
       if (dc) attributes.device_class = dc;
       states[id] = { entity_id: id, state, attributes, last_changed: ts, last_updated: ts };
     });
-    // Week page: calendars, a to-do list and the work start helpers
+    // Week page: calendars and the work start helpers
     const st = (id, state, attributes) => { states[id] = { entity_id: id, state, attributes, last_changed: ts, last_updated: ts }; };
     st('calendar.family', 'off', { friendly_name: 'Family' });
     st('calendar.work', 'off', { friendly_name: 'Work' });
-    st('todo.home', String(DEMO_TODO.length), { friendly_name: 'Home jobs' });
     ['mon', 'tue', 'wed', 'thu'].forEach((d) => st(`input_datetime.work_start_${d}`, '08:00:00', { friendly_name: `Work start ${d}`, has_date: false, has_time: true }));
     st('input_boolean.visit_done', 'off', { friendly_name: 'Visit done' });
     states['weather.forecast_home'] = { entity_id: 'weather.forecast_home', ...WEATHER, last_changed: ts, last_updated: ts };
@@ -442,11 +441,6 @@ window.HD = window.HD || {};
   }
 
   // Week page: made-up events placed on the requested week's weekdays
-  const DEMO_TODO = [
-    { uid: 't1', summary: 'Fix the shed door', status: 'needs_action' },
-    { uid: 't2', summary: 'Re-seal the bath', status: 'needs_action' },
-    { uid: 't3', summary: 'Clear the gutters', status: 'needs_action' },
-  ];
   function demoEvents(sd) {
     const mon = new Date(sd.start_date_time); mon.setHours(0, 0, 0, 0);
     mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
@@ -472,10 +466,6 @@ window.HD = window.HD || {};
 
   function callWS(msg) {
     if (msg.type === 'call_service' && msg.domain === 'calendar' && msg.service === 'get_events') return Promise.resolve({ response: demoEvents(msg.service_data) });
-    if (msg.type === 'call_service' && msg.domain === 'todo' && msg.service === 'get_items') {
-      const res = {}; [].concat(msg.service_data.entity_id).forEach((id) => { res[id] = { items: id === 'todo.home' ? DEMO_TODO.filter((t) => t.status === 'needs_action') : [] }; });
-      return Promise.resolve({ response: res });
-    }
     if (msg.type === 'supervisor/api' && msg.endpoint === '/host/info') return Promise.resolve({ disk_total: 28, disk_used: 14.2, disk_free: 12.6 });
     if (msg.type !== 'recorder/statistics_during_period') return Promise.resolve(null);
     const res = {};
@@ -520,7 +510,6 @@ window.HD = window.HD || {};
         else if (service === 'select_option') s.state = data.option;
         else if (domain === 'input_number' && service === 'set_value') s.state = String(data.value);
         else if (domain === 'input_datetime' && service === 'set_datetime') s.state = data.time;
-        else if (domain === 'todo' && service === 'update_item') { const t = DEMO_TODO.find((x) => x.uid === data.item); if (t) t.status = data.status; }
         else if (domain === 'climate') {
           const k = { set_temperature: 'temperature', set_fan_mode: 'fan_mode', set_swing_mode: 'swing_mode', set_swing_horizontal_mode: 'swing_horizontal_mode', set_preset_mode: 'preset_mode', set_humidity: 'humidity' }[service];
           if (k) s.attributes[k] = data[k];

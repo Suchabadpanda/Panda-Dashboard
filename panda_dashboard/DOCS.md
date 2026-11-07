@@ -357,7 +357,5 @@ input_datetime:
   actions: [{ action: input_boolean.turn_off, target: { entity_id: input_boolean.visit_done } }]
 ```
 
-**To-dos.** Every `todo.*` list is shown (or the ones in `week.todo`; `false` hides the panel). Ticking an item marks it completed in Home Assistant. Apple Reminders can't be read by Home Assistant; use the **Local To-do** integration, or copy Reminders across with an iOS Shortcut.
-
-View-only screens see everything but can't change start times or tick items off.
+View-only screens see everything but can't change start times.
 

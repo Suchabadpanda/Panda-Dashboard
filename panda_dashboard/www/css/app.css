@@ -1233,11 +1233,11 @@ body { font-variant-numeric: tabular-nums; }
 /* View-only screens (users other than those in config.controlBy): controls show their state but can't be used */
 body.view-only :is([data-toggle], [data-hvac], [data-press], [data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra],
   [data-vac], [data-vac-select], [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-plan-room], [data-pc], [data-trv-temp],
-  [data-trv-sched], [data-trv-sched-on], [data-trv-time], [data-week-start], [data-todo-done]) {
+  [data-trv-sched], [data-trv-sched-on], [data-trv-time], [data-week-start]) {
   cursor: default; pointer-events: none;
 }
 body.view-only :is(button, select, input):is([data-shortcut], [data-car], [data-dw], [data-dw-prog], [data-dw-extra], [data-vac], [data-vac-select],
-  [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-hvac], [data-press], [data-trv-temp], [data-trv-sched], [data-trv-sched-on], [data-trv-time], [data-week-start], [data-todo-done]) { opacity: .6; }
+  [data-ac-set], [data-ac-select], [data-ac-temp], [data-ac-hum], [data-ac-switch], [data-ac-option], [data-hvac], [data-press], [data-trv-temp], [data-trv-sched], [data-trv-sched-on], [data-trv-time], [data-week-start]) { opacity: .6; }
 body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac], [data-dw]) { display: none; }
 .status.view-only-badge { cursor: default; }
 .status.view-only-badge .ic { width: 16px; height: 16px; }
@@ -1306,7 +1306,7 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 /* ── Week page (views/week.js) ──
  * Block colours are fixed in both themes: they carry meaning (work, family, home, calendar),
  * like the energy colours. Everything else follows the palette. Class names are wk-* only. */
-.panel-grid.week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panel-grid.week { grid-template-columns: 1fr; }
 .wk-panel > header h2 .wk-range { font-weight: 500; font-size: 14px; color: var(--muted); margin-left: 6px; }
 .wk-tools { display: flex; gap: 10px; flex-wrap: wrap; }
 .wk-tools .seg button { flex: none; padding: 0 12px; text-transform: none; }
@@ -1334,7 +1334,6 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .wk-warn .ic { width: 13px; height: 13px; flex: none; }
 .wk-allday { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 4px; min-height: 30px; display: flex; flex-direction: column; gap: 3px; background: var(--panel); }
 .wk-chip { font-size: 11.5px; line-height: 1.3; padding: 3px 6px; border-radius: 5px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.wk-chip .ic { width: 11px; height: 11px; vertical-align: -1px; margin-right: 3px; }
 .wk-gutter { position: relative; border-right: 1px solid var(--line); }
 .wk-gutter div { position: absolute; right: 6px; font-size: 11px; color: var(--faint); transform: translateY(-7px); font-variant-numeric: tabular-nums; }
 .wk-col { position: relative; border-right: 1px solid var(--line); }
@@ -1362,7 +1361,6 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .wk-blk.wk-flex { background: color-mix(in oklab, #E9E2F2 22%, transparent); color: var(--ink); }
 .wk-home { background: #E4EEDF; color: #3D5A33; }
 .wk-event { background: #FBE7DE; color: #8A3B1E; z-index: 2; }
-.wk-chip.wk-todo { background: transparent; border: 1px solid var(--line); color: var(--ink); }
 .wk-event.clash { box-shadow: 0 0 0 2px #C6613F; }
 .wk-legend .sw.wk-flex { border-width: 1.5px; }
 
@@ -1378,30 +1376,12 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .wk-row .tm { width: 92px; flex: none; color: var(--muted); font-size: 12.5px; padding-top: 1px; font-variant-numeric: tabular-nums; }
 .wk-row .bar { width: 4px; align-self: stretch; border-radius: 2px; flex: none; border: 0; }
 .wk-row .bar.wk-flex { background: #A99BC2; }
-.wk-row .bar.wk-todo { background: var(--faint); }
 .wk-row .bar.wk-event { background: #C6613F; }
 .wk-row .m { color: var(--muted); font-size: 12.5px; }
 .wk-row.clash .t em { color: #e07a55; font-style: normal; font-weight: 600; }
 .wk-row.done { opacity: .55; }
 
-.wk-clashes, .wk-rules { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; line-height: 1.55; }
-.wk-clashes li + li, .wk-rules li + li { margin-top: 4px; }
-.wk-clashes b, .wk-rules b { color: var(--ink); font-weight: 600; }
-.wk-clashes span { display: block; color: #e07a55; }
-.wk-todos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 24px; }
-.wk-todos .empty { padding: 8px 0; }
-.wk-list h3 { font-size: 14px; margin-bottom: 6px; }
-.wk-list h3 small { color: var(--faint); font-weight: 500; }
-.wk-list ul { list-style: none; margin: 0; padding: 0; }
-.wk-list li { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
-.wk-list li small { color: var(--muted); }
-.wk-tick { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line); background: transparent; display: grid; place-items: center; cursor: pointer; color: transparent; padding: 0; }
-.wk-tick:hover:not(:disabled) { color: var(--good); border-color: var(--good); }
-.wk-tick .ic { width: 14px; height: 14px; }
-.wk-tick:disabled { cursor: default; }
-
 @media (max-width: 760px) {
-  .panel-grid.week { grid-template-columns: 1fr; }
   .wk-scroll, .wk-legend { display: none; }
   .wk-agenda { display: block; }
 }

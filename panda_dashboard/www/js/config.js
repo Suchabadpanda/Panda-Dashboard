@@ -343,11 +343,10 @@ HD.config = {
   // input_datetime.work_start_mon … _sun (time only) so every screen shows the same; without
   // them they're saved per screen. input_number.work_hours_<day> overrides hours if it exists.
   // Routine blocks are drawn from this list, never written to a calendar. Calendar events come
-  // from every calendar.* entity (or the list below); any that overlap work are flagged.
+  // from every calendar.* entity (or the list below); any that overlap work get a clay ring.
   week: {
     // calendars: ['calendar.family', { id: 'calendar.work', name: 'Work' }],
     // hide: ['calendar.holidays'],                // with the default (every calendar)
-    // todo: ['todo.home'],                        // default: every to-do list; false = none
     work: {
       hours: { mon: 9.5, tue: 9.5, wed: 9.5, thu: 9 },   // days not listed are off
       window: ['07:00', '19:00'],                        // flexible-hours window (hatched)

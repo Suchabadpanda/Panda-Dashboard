@@ -27,7 +27,7 @@ window.HD = window.HD || {};
   const CONTROLS = ['[data-toggle]', '[data-hvac]', '[data-press]', '[data-shortcut]', '[data-car]', '[data-dw]', '[data-dw-prog]', '[data-dw-extra]',
     '[data-vac]', '[data-vac-select]', '[data-ac-set]', '[data-ac-select]', '[data-ac-temp]', '[data-ac-hum]', '[data-ac-switch]', '[data-ac-option]',
     '[data-plan-room]', '[data-pc]', '[data-trv-temp]', '[data-trv-sched]', '[data-trv-sched-on]', '[data-trv-time]',
-    '[data-week-start]', '[data-todo-done]'].join(',');
+    '[data-week-start]'].join(',');
   const viewOnly = () => !HD.access.canControl();
 
   function statusHtml() {

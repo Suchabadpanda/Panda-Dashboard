@@ -254,7 +254,7 @@ window.HD = window.HD || {};
   // dashboard: controls are disabled and any service call that would change something is
   // refused here. (Home Assistant has no read-only users, so this only covers this
   // dashboard; HA's own pages still work for them.)
-  const VIEW_SERVICES = new Set(['get_forecasts', 'get_events', 'get_items', 'start_p2p_livestream', 'stop_p2p_livestream', 'generate_image']);
+  const VIEW_SERVICES = new Set(['get_forecasts', 'get_events', 'start_p2p_livestream', 'stop_p2p_livestream', 'generate_image']);
   const access = {
     canControl() {
       if (store.mode !== 'live') return true;           // demo, or not connected yet

@@ -5,7 +5,6 @@
  *   - Routine blocks: generated from config.week.routine, so nothing is written to a calendar.
  *   - Calendar events: Home Assistant calendars via calendar.get_events, de-duplicated on
  *     title + start. Any timed event that overlaps the day's work block is a clash.
- *   - To-dos: todo.get_items (needs_action), tickable for screens that can control things.
  * Phones (≤ 760 px) get a day-by-day agenda instead of the grid. All personal values (routine
  * text, calendars) live in config.js; this file is generic.
  */
@@ -37,7 +36,6 @@ HD.views = HD.views || {};
     return `${String(hh % 24).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
   };
   const hrs = (h) => `${parseFloat(h.toFixed(2))} h`;
-  const q15 = (h, up) => (up ? Math.ceil(h * 4 - 1e-6) : Math.floor(h * 4 + 1e-6)) / 4;
   const hourOf = (d) => d.getHours() + d.getMinutes() / 60;
   const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -98,13 +96,6 @@ HD.views = HD.views || {};
     return list.filter((c) => c.id && !c.hide && !hide.has(c.id))
       .map((c) => ({ ...c, name: c.name || S().attr(c.id, 'friendly_name') || c.id }));
   }
-  function todoLists() {
-    const cfg = C().todo;
-    if (cfg === false) return [];
-    const ids = cfg ? [].concat(cfg) : Object.keys(S().states).filter((id) => id.startsWith('todo.')).sort();
-    return ids.map((id) => ({ id, name: S().attr(id, 'friendly_name') || id }));
-  }
-
   let ev = { key: null, at: 0, list: [], error: '', cals: 0, loading: false };
   async function loadEvents(force) {
     if (mode !== 'dated' || S().mode === 'connecting') return;
@@ -139,24 +130,6 @@ HD.views = HD.views || {};
     HD.views.week.update();
   }
 
-  let todo = { at: 0, lists: [], error: '', loading: false };
-  async function loadTodos(force) {
-    if (S().mode === 'connecting') return;
-    if (todo.loading || (!force && Date.now() - todo.at < RELOAD)) return;
-    const lists = todoLists();
-    if (!lists.length) { todo = { at: Date.now(), lists: [], error: '', loading: false }; return; }
-    todo.loading = true;
-    try {
-      const res = await HD.ha.callWS({
-        type: 'call_service', domain: 'todo', service: 'get_items', return_response: true,
-        service_data: { entity_id: lists.map((l) => l.id), status: 'needs_action' },
-      });
-      const resp = (res && res.response) || {};
-      todo = { at: Date.now(), error: '', loading: false, lists: lists.map((l) => ({ ...l, items: (resp[l.id] && resp[l.id].items) || [] })) };
-    } catch (e) { todo = { at: Date.now(), lists: [], error: e.message, loading: false }; }
-    HD.views.week.update();
-  }
-
   // ── Building each day ──
   const routine = () => (C().routine || []).map((r) => ({ ...r, days: [].concat(r.days || r.day || []) }));
   // Fortnightly items: every: 2, from: 'YYYY-MM-DD' (a date in a week it happens)
@@ -173,7 +146,7 @@ HD.views = HD.views || {};
     const date = addDays(weekStart(), i); const next = addDays(date, 1);
     const w = work(); const hours = hoursFor(key);
     const ws = hours > 0 ? startFor(key) : null; const we = ws != null ? ws + hours + w.breakH : null;
-    const d = { i, key, name: NAMES[i], date, hours, ws, we, blocks: [], events: [], chips: [], clashes: [], today: dated && ymd(date) === ymd(new Date()) };
+    const d = { i, key, name: NAMES[i], date, hours, ws, we, blocks: [], events: [], chips: [], today: dated && ymd(date) === ymd(new Date()) };
     d.warn = ws == null ? '' : we > w.to + 1e-6 ? `Finishes ${hm(we)}, past ${hm(w.to)}` : ws < w.from - 1e-6 ? `Starts before ${hm(w.from)}` : '';
 
     routine().filter((r) => r.days.includes(key) && happens(r)).forEach((r) => {
@@ -193,7 +166,6 @@ HD.views = HD.views || {};
         const clash = ws != null && s < we && e > ws;
         const evt = { s, e, title: x.title, note: x.where || `${hm(s)} – ${hm(e)}`, type: 'event', clash, cal: x.cal };
         d.events.push(evt);
-        if (clash) d.clashes.push(evt);
       });
       // Rules like "bins out the evening before refuse collection"
       (C().dayBefore || []).forEach((r) => {
@@ -203,8 +175,6 @@ HD.views = HD.views || {};
           d.blocks.push({ s, e: toH(r.end) ?? s + 0.5, title: r.label, note: r.note || '', type: r.type || 'home' });
         }
       });
-      // To-dos due this day
-      todo.lists.forEach((l) => l.items.forEach((t) => { if (t.due && String(t.due).slice(0, 10) === ymd(date)) d.chips.push({ title: t.summary, type: 'todo', cal: l.name }); }));
     } else {
       (C().dayBefore || []).filter((r) => r.templateDay === key).forEach((r) => {
         const s = toH(r.start) ?? 19.5;
@@ -223,16 +193,6 @@ HD.views = HD.views || {};
     });
     if (cluster.length) close();
     return d;
-  }
-
-  // What to do about an event inside work hours
-  function advice(d, x) {
-    const w = work(); const len = d.hours + w.breakH;
-    const before = q15(x.s - len, false);
-    if (x.s - len >= w.from - 1e-6) return `Start by ${hm(before)} to finish before it.`;
-    const after = q15(x.e, true);
-    if (after + len <= w.to + 1e-6) return `Start at ${hm(after)} or later to be clear of it.`;
-    return 'No start time inside your window avoids it.';
   }
 
   // ── HTML ──
@@ -259,7 +219,7 @@ HD.views = HD.views || {};
         <div class="wk-h">${dayLine(d)}</div>${d.warn ? `<div class="wk-warn">${icon('alert')}${esc(d.warn)}</div>` : ''}</div>`;
     });
     html += '<div class="wk-allday wk-corner"></div>';
-    days.forEach((d) => { html += `<div class="wk-allday">${d.chips.map((c) => `<div class="wk-chip wk-${c.type}" title="${esc([c.title, c.cal].filter(Boolean).join(' · '))}">${c.type === 'todo' ? icon('check') : ''}${esc(c.title)}</div>`).join('')}</div>`; });
+    days.forEach((d) => { html += `<div class="wk-allday">${d.chips.map((c) => `<div class="wk-chip wk-${c.type}" title="${esc([c.title, c.cal].filter(Boolean).join(' · '))}">${esc(c.title)}</div>`).join('')}</div>`; });
     html += `<div class="wk-gutter" style="height:${H}px">${Array.from({ length: BOTTOM - TOP - 1 }, (_, k) => `<div style="top:${y(TOP + k + 1)}px">${hm(TOP + k + 1)}</div>`).join('')}</div>`;
     days.forEach((d) => {
       let c = '';
@@ -329,46 +289,6 @@ HD.views = HD.views || {};
       ${mode === 'dated' ? '<span><i class="sw wk-event"></i>Calendar</span><span><i class="sw wk-event clash"></i>Overlaps work</span>' : ''}</div>`;
   }
 
-  function clashHtml(days) {
-    if (mode !== 'dated') return '<p class="empty">Switch to Dated week to check your calendars against your hours.</p>';
-    if (ev.error || !ev.cals) return `<p class="empty">${sourceHtml()}</p>`;
-    const list = days.flatMap((d) => d.clashes.map((x) => ({ d, x })));
-    if (!list.length) return '<p class="empty">Nothing this week overlaps your work hours.</p>';
-    return `<ul class="wk-clashes">${list.map(({ d, x }) => `<li><b>${d.name}:</b> ${esc(x.title)} (${hm(x.s)} – ${hm(x.e)}) falls inside your ${hm(d.ws)} – ${hm(d.we)} work day.
-      <span>${advice(d, x)}</span></li>`).join('')}</ul>`;
-  }
-
-  function rulesHtml() {
-    const w = work(); const lines = [];
-    KEYS.forEach((k, i) => {
-      const h = hoursFor(k);
-      if (h > 0) lines.push(`<li><b>${NAMES[i].slice(0, 3)}:</b> ${hrs(h)}${w.breakH ? ` + ${Math.round(w.breakH * 60)} min break` : ''}. Latest start that finishes by ${hm(w.to)} is ${hm(q15(w.to - h - w.breakH, false))}.</li>`);
-    });
-    const off = KEYS.filter((k, i) => i < 5 && !(hoursFor(k) > 0)).map((k) => NAMES[KEYS.indexOf(k)].slice(0, 3));
-    if (off.length) lines.push(`<li><b>${off.join(', ')}:</b> off.</li>`);
-    const seen = new Set();
-    routine().forEach((r) => {
-      const k = `${r.label}|${r.type}`;
-      const days = routine().filter((x) => `${x.label}|${x.type}` === k).flatMap((x) => x.days).map((d) => NAMES[KEYS.indexOf(d)]?.slice(0, 3)).filter(Boolean);
-      if (seen.has(k)) return; seen.add(k);
-      const when = r.allDay ? 'all day' : r.type === 'flex' ? 'flexible' : `${r.start}${r.end ? `–${r.end}` : ''}`;
-      lines.push(`<li><b>${[...new Set(days)].join(' or ')}:</b> ${esc(r.label)} (${when}${r.every > 1 ? ', alternate weeks' : ''}).</li>`);
-    });
-    (C().dayBefore || []).forEach((r) => lines.push(`<li><b>Evening before ${esc(r.what || `“${r.match}”`)}:</b> ${esc(r.label)} at ${esc(r.start || '19:30')}.</li>`));
-    (C().markers || []).forEach((m) => lines.push(`<li><b>Daily, ${esc(m.at)}:</b> ${esc(m.label)}.</li>`));
-    return lines.length ? `<ul class="wk-rules">${lines.join('')}</ul>` : '<p class="empty">Add <code>week.routine</code> to config.js.</p>';
-  }
-
-  function todoHtml() {
-    if (todo.error) return `<p class="empty">Couldn't read the to-do lists: ${esc(todo.error)}</p>`;
-    if (!todo.at) return '<p class="empty">Loading…</p>';
-    if (!todo.lists.length) return '<p class="empty">No to-do lists in Home Assistant yet. Add the Local To-do integration.</p>';
-    const can = HD.access.canControl();
-    return todo.lists.map((l) => `<div class="wk-list"><h3>${esc(l.name)} <small>${l.items.length}</small></h3>
-      ${l.items.length ? `<ul>${l.items.map((t) => `<li><button class="wk-tick" data-todo-done="${esc(l.id)}" data-uid="${esc(t.uid)}" title="Mark done" aria-label="Mark ${esc(t.summary)} done" ${can ? '' : 'disabled'}>${icon('check')}</button>
-        <span>${esc(t.summary)}${t.due ? ` <small>due ${esc(HD.u.fmt(String(t.due).length === 10 ? parseDay(t.due) : new Date(t.due), { weekday: 'short', day: 'numeric', month: 'short' }))}</small>` : ''}</span></li>`).join('')}</ul>` : '<p class="empty">All done.</p>'}</div>`).join('');
-  }
-
   // ── Events ──
   document.addEventListener('change', (e) => {
     const t = e.target.closest && e.target.closest('[data-week-start]');
@@ -380,16 +300,10 @@ HD.views = HD.views || {};
     HD.views.week.update(true);
   });
   document.addEventListener('click', (e) => {
-    const m = e.target.closest('[data-week-mode],[data-week-nav],[data-todo-done]');
+    const m = e.target.closest('[data-week-mode],[data-week-nav]');
     if (!m || !document.getElementById('wk-grid')) return;
     if (m.dataset.weekMode) { mode = m.dataset.weekMode; lsSet('hd.week.mode', mode); }
     if (m.dataset.weekNav) { offset = m.dataset.weekNav === '0' ? 0 : offset + +m.dataset.weekNav; }
-    if (m.dataset.todoDone) {
-      m.disabled = true;
-      HD.ha.callService('todo', 'update_item', { entity_id: m.dataset.todoDone, item: m.dataset.uid, status: 'completed' })
-        .then(() => loadTodos(true)).catch((err) => { m.disabled = false; HD.app.toast(`Couldn't tick that off: ${err.message}`); });
-      return;
-    }
     HD.views.week.update(true);
     loadEvents(true);
   });
@@ -403,7 +317,6 @@ HD.views = HD.views || {};
     },
     // Exposed for tests
     _dayModel: dayModel,
-    _advice: advice,
   };
 
   HD.views.week = {
@@ -419,17 +332,13 @@ HD.views = HD.views || {};
           <div id="wk-agenda" class="wk-agenda"></div>
           <p id="wk-source" class="note"></p>
         </section>
-        <section class="panel"><header><h2>Things that touch work</h2></header><div id="wk-clash"></div></section>
-        <section class="panel"><header><h2>Every week</h2></header><div id="wk-rules"></div></section>
-        <section class="panel wide"><header><h2>To-do</h2></header><div id="wk-todo" class="wk-todos"></div></section>
       </div>`;
       this.update(true);
-      loadEvents(); loadTodos();
+      loadEvents();
     },
     update(force) {
       const g = document.getElementById('wk-grid'); if (!g) return;
       if (ev.key !== weekStart().getTime() || Date.now() - ev.at > RELOAD) loadEvents();
-      if (Date.now() - todo.at > RELOAD) loadTodos();
       const days = KEYS.map((_, i) => dayModel(i));
       if (force) HD.u.invalidate();
       HD.u.setHTML(document.getElementById('wk-head'), headerHtml());
@@ -439,9 +348,6 @@ HD.views = HD.views || {};
       HD.u.setHTML(g, gridHtml(days));
       HD.u.setHTML(document.getElementById('wk-agenda'), agendaHtml(days));
       HD.u.setHTML(document.getElementById('wk-source'), sourceHtml());
-      HD.u.setHTML(document.getElementById('wk-clash'), clashHtml(days));
-      HD.u.setHTML(document.getElementById('wk-rules'), rulesHtml());
-      HD.u.setHTML(document.getElementById('wk-todo'), todoHtml());
     },
   };
 })();
