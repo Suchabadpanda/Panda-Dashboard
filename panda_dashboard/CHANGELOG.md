@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.104
+- Week page: remove the To-do, Things that touch work and Every week panels
+
 ## 0.3.103
 - Week page: weekly timetable from HA calendars, work start helpers and routine config
 
