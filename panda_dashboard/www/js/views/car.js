@@ -650,7 +650,7 @@ HD.views = HD.views || {};
         <radialGradient id="car-glow"><stop offset="0" class="glow-a"/><stop offset="1" class="glow-b"/></radialGradient>
       </defs>
       <ellipse class="shadow" cx="150" cy="172" rx="70" ry="160"/>
-      ${st.plugged ? '<path class="cable" d="M99 268 C 62 269 46 301 22 334"/><path class="cable-flow" d="M22 334 C 46 301 62 269 99 268"/>' : ''}
+      ${st.plugged ? '<path class="cable" d="M22 334 C 41 330 44 307 57 289 C 67 275 78 269 99 268"/><path class="cable-sheen" d="M22 334 C 41 330 44 307 57 289 C 67 275 78 269 99 268" transform="translate(0 -1)"/><path class="cable-flow" pathLength="100" d="M22 334 C 41 330 44 307 57 289 C 67 275 78 269 99 268"/>' : ''}
       ${showPhoto
         ? '<image class="juniper-photo" href="juniper-photo.png" x="79" y="22" width="142" height="296"/>'
         : `
@@ -677,7 +677,7 @@ HD.views = HD.views || {};
       ].map(([x, y], i) => low(tyres[i]) ? wheel(x, y, tyres[i]) : '').join('') : ''}
       <g class="air"><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/><circle cx="150" cy="186" r="14"/></g>
       <circle class="sentry-eye" cx="150" cy="104" r="4"/>
-      ${!showPhoto || st.plugged ? '<circle class="port" cx="99" cy="268" r="5"/>' : ''}
+      ${st.plugged ? '<g class="charge-plug" transform="translate(99 268) rotate(-5)"><path class="plug-strain" d="M-16 -2 L-8 -3 V3 L-16 2 Z"/><rect class="plug-shell" x="-11" y="-4" width="14" height="8" rx="2.5"/><path class="plug-grip" d="M-8 -2 H-4 M-8 0 H-4 M-8 2 H-4"/><circle class="port" r="2.2"/></g>' : !showPhoto ? '<circle class="port" cx="99" cy="268" r="5"/>' : ''}
       ${st.charging ? '<circle class="port-glow" cx="99" cy="268" r="16"/>' : ''}
       ${st.asleep ? '<text class="zz" x="214" y="40">z<tspan dx="2" dy="-8">z</tspan></text>' : ''}
       ${lab(tyres[0], 82, 92, 'end')}${lab(tyres[1], 218, 92, 'start')}${lab(tyres[2], 82, 254, 'end')}${lab(tyres[3], 218, 254, 'start')}
