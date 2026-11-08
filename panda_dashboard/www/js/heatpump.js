@@ -134,8 +134,9 @@ window.HD = window.HD || {};
     for (let i = tank.length - 1; i > 0; i--) if (tank[i][1] > tank[i - 1][1]) return tank[i][0];
     return null;
   }
-  function tankRise(now) {
-    const recent = tank.filter(([t]) => now - t <= 30 * 60e3);
+  // Rise over the last 30 min, counting only readings at or after `since` (ms) when given
+  function tankRise(now, since) {
+    const recent = tank.filter(([t]) => now - t <= 30 * 60e3 && (since == null || t >= since));
     if (recent.length < 2) return 0;
     return recent[recent.length - 1][1] - Math.min(...recent.map(([, v]) => v));
   }
@@ -149,7 +150,6 @@ window.HD = window.HD || {};
     const kw = kwNow() || 0;
     notePower(now, kw);
     const running = kw > (c.runningAbove ?? 0.1);
-    const rise = tankRise(now);
     const heatingOn = cl != null && HEATING_ON.has(cl);
     // The tank-rise backup is for a water heater entity that's missing or lagging. If Samsung
     // switched it to off after the tank's last rise, the reheat has finished: trust the off,
@@ -159,6 +159,10 @@ window.HD = window.HD || {};
     const whOffAt = wh != null && OFF.has(wh) && S().get(c.waterHeater) ? Date.parse(S().get(c.waterHeater).last_changed) : null;
     const riseAt = lastTankRise();
     const offAfterRise = whOffAt != null && riseAt != null && whOffAt >= riseAt;
+    // Once Samsung has switched the water heater off, only count the tank's rise since then:
+    // the tank keeps creeping up for a while on leftover heat (8 Nov 2026: off 02:57, tank
+    // 64.0 → 64.5 °C at 03:07, and the card said "Hot water + heating" with the radiators on)
+    const rise = tankRise(now, whOffAt);
     const flow = c.climate ? S().attr(c.climate, 'current_temperature') : null;
     const flowTarget = c.climate ? S().attr(c.climate, 'temperature') : null;
     noteFlow(now, flow, flowTarget);
