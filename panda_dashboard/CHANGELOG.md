@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.107
+- Car page: show Tesla's configurator pictures of the car (swipe between views)
+
 ## 0.3.106
 - Week page: remove the Template view
 
