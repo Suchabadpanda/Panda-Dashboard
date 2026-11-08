@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.108
+- Remove personal details from docs, comments and the example config
+
 ## 0.3.107
 - Car page: show Tesla's configurator pictures of the car (swipe between views)
 
