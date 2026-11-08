@@ -234,6 +234,26 @@ max: 5
 #      value: 20
 ```
 
+## Washing machine
+
+A **Washing machine** card on Devices for a Samsung washer added through Home Assistant's SmartThings integration. It shows what the machine is doing, the wash phase (weighing, washing, rinsing, spinning), a progress bar, the finish time, Smart control and child lock, and the last wash (start, end and length) from history. Buttons: Start, Pause, Resume and Stop (Stop asks first). While it isn't washing you can set the temperature, spin speed, number of rinses and bubble soak. A chip on the room's Home tile links to the card, and Attention shows "finished: ready to unload" for `doneAlertHours` after a wash (default 2; 0 turns it off).
+
+1. Add the SmartThings integration with the washer.
+2. In `config.js`:
+
+   ```js
+   washer: { name: 'Washing machine', room: 'Kitchen', state: 'sensor.washing_machine_machine_state' },
+   ```
+
+   The other entities (job state, progress, completion time, the operating-state select, remote control, child lock, water temperature, spin level, rinse cycles, bubble soak) are found from the `state` id. Set `progress`, `finish` and so on only if yours are named differently.
+3. On the machine, switch it on and press **Smart Control** to use it from the dashboard.
+
+Notes:
+
+- Samsung washers go offline when switched off, so their entities are unavailable then and the card shows only the last wash.
+- Home Assistant can't choose the programme: Start runs the one set on the dial. It can't switch the washer on either.
+- View-only screens see the card but can't use the buttons or settings.
+
 ## Room sleep mode
 
 A **Sleep mode** button (moon icon) on a room's Home tile stops movement from switching that room's light on, so someone can sleep there. It's an `input_boolean` the room's motion-light automation checks; the dashboard only switches it.

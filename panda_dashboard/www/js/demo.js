@@ -128,7 +128,17 @@ window.HD = window.HD || {};
     // devices
     ['media_player.office_tv', 'on', '', 'Office TV', 'tv'],
     ['media_player.living_room_tv', 'unavailable', '', 'Living room TV', 'tv'],
-    ['sensor.washing_machine_machine_state', 'unavailable', '', 'Washing machine Machine state'],
+    // Samsung washing machine (SmartThings), part-way through a wash
+    ['sensor.washing_machine_machine_state', 'run', '', 'Washing machine Machine state', 'enum'],
+    ['sensor.washing_machine_job_state', 'rinse', '', 'Washing machine Job state', 'enum'],
+    ['sensor.washing_machine_progress', '62', '%', 'Washing machine Progress'],
+    ['select.washing_machine', 'run', '', 'Washing machine'],
+    ['binary_sensor.washing_machine_remote_control', 'on', '', 'Washing machine Remote control'],
+    ['binary_sensor.washing_machine_child_lock', 'off', '', 'Washing machine Child lock'],
+    ['select.washing_machine_water_temperature', '40', '', 'Washing machine Water temperature'],
+    ['select.washing_machine_spin_level', '1200', '', 'Washing machine Spin level'],
+    ['number.washing_machine_rinse_cycles', '2', 'cycles', 'Washing machine Rinse cycles'],
+    ['switch.washing_machine_bubble_soak', 'off', '', 'Washing machine Bubble soak'],
     // Aqara FP300 in the living room
     ['sensor.livingroomsensor_temperature', '22.9', '°C', 'LivingRoomSensor Temperature', 'temperature'],
     ['sensor.livingroomsensor_humidity', '53', '%', 'LivingRoomSensor Humidity', 'humidity'],
@@ -147,7 +157,7 @@ window.HD = window.HD || {};
     ['select.dishwasher_selected_programme', 'dishcare_dishwasher_program_eco_50', '', 'Dishwasher Selected programme'],
     ['binary_sensor.dishwasher_remote_start', 'on', '', 'Dishwasher Remote start'],
     ['sensor.dishwasher_rinse_aid_nearly_empty', 'present', '', 'Dishwasher Rinse aid nearly empty', 'enum'],
-    ['sensor.washing_machine_completion_time', 'unavailable', '', 'Washing machine Completion time'],
+    ['sensor.washing_machine_completion_time', '2026-10-18T23:58:00+01:00', '', 'Washing machine Completion time', 'timestamp'],
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
     ['button.pandapc_shutdown_pc', 'unknown', '', 'PANDAPC Shutdown_PC'],
     ['climate.office_trv_thermostat', 'heat', '', 'Office TRV Thermostat'],
@@ -243,6 +253,12 @@ window.HD = window.HD || {};
         cleangenius: 'Routine cleaning', cleangenius_mode: 'Mop after vacuum' } };
     // Its settings, as the Dreame integration names them (live, as if it were paused)
     const vsel = (k, state, options) => { states[`select.dreame_vacuum_${k}`] = { entity_id: `select.dreame_vacuum_${k}`, state, last_changed: ts, last_updated: ts, attributes: { options } }; };
+    // Washing machine option lists, as SmartThings gives them
+    const wopt = (id, a) => { if (states[id]) Object.assign(states[id].attributes, a); };
+    wopt('select.washing_machine', { options: ['stop', 'run', 'pause'] });
+    wopt('select.washing_machine_water_temperature', { options: ['none', 'cold', '20', '30', '40', '60', '90'] });
+    wopt('select.washing_machine_spin_level', { options: ['rinse_hold', 'no_spin', '400', '800', '1000', '1200', '1400'] });
+    wopt('number.washing_machine_rinse_cycles', { min: 0, max: 5, step: 1 });
     vsel('cleaning_mode', 'mopping_after_sweeping', ['sweeping', 'mopping', 'sweeping_and_mopping', 'mopping_after_sweeping']);
     vsel('cleangenius', 'routine_cleaning', ['off', 'routine_cleaning', 'deep_cleaning']);
     vsel('cleangenius_mode', 'mop_after_vacuum', ['vacuum_and_mop', 'mop_after_vacuum']);
@@ -488,6 +504,7 @@ window.HD = window.HD || {};
 
   HD.demo = {
     snapshotTime: SNAP,
+    washerLast: { start: SNAP - 864e5 - 3 * 3600e3, end: SNAP - 864e5 - 3 * 3600e3 + 68 * 60e3 },   // yesterday's wash; this one is still running
     trackerIncomeYesterday: { gbp: 3.10, entries: 1, pending: 0, estimated: false },
     trackerIncome: { gbp: 1.85, entries: 1, pending: 0, estimated: true, netAfter: null },
     trackerCop: { today: 4.42, todayKwh: 7.1, todayHeat: 31, heating: 4.47, hotWater: 4.76, yesterday: 2.9, month: 3.63, design: 3.78, eta: 0.495, measured: true },
@@ -508,7 +525,7 @@ window.HD = window.HD || {};
         if (service === 'turn_on') s.state = 'on';
         else if (service === 'turn_off') s.state = 'off';
         else if (service === 'select_option') s.state = data.option;
-        else if (domain === 'input_number' && service === 'set_value') s.state = String(data.value);
+        else if ((domain === 'input_number' || domain === 'number') && service === 'set_value') s.state = String(data.value);
         else if (domain === 'input_datetime' && service === 'set_datetime') s.state = data.time;
         else if (domain === 'climate') {
           const k = { set_temperature: 'temperature', set_fan_mode: 'fan_mode', set_swing_mode: 'swing_mode', set_swing_horizontal_mode: 'swing_horizontal_mode', set_preset_mode: 'preset_mode', set_humidity: 'humidity' }[service];

@@ -118,6 +118,8 @@ HD.views = HD.views || {};
   });
 
   function washerChip(r) {
+    // config.washer (washer.js) puts a fuller chip on its room; room.washer is the old read-only chip
+    if (HD.washer && HD.washer.enabled()) return HD.washer.chip(r.name);
     if (!r.washer) return '';
     const st = S().state(r.washer);
     if (!S().available(r.washer)) return `<span class="chip status" title="Washing machine is offline in Home Assistant">${icon('drop')}Washer · offline</span>`;
@@ -540,6 +542,7 @@ HD.views = HD.views || {};
     if (S().state(HD.config.heatPump.legionella) === 'on') alerts.push(['flame', 'Legionella cycle running', 'info']);
     if (HD.doorbell) alerts.push(...HD.doorbell.alerts());
     if (HD.dishwasher) alerts.push(...HD.dishwasher.alerts());
+    if (HD.washer) alerts.push(...HD.washer.alerts());
     // Battery-powered sensors running low
     (HD.config.devices.sensorBatteries || []).forEach((id) => {
       const v = S().num(id);
@@ -587,6 +590,7 @@ HD.views = HD.views || {};
     update() {
       const house = document.getElementById('house'); const now = document.getElementById('now');
       if (!house) return;
+      if (HD.washer) HD.washer.maybeLoad();
       HD.u.setHTML(house, houseHtml());
       if (HD.sky) HD.sky.place(document.getElementById('sky-host'), house);
       // The doorbell picture element is kept so it isn't re-fetched (and the camera isn't

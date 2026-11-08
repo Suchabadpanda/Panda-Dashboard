@@ -1,7 +1,7 @@
 /*
  * Devices view: what isn't on the other pages — smart plugs and their use, the
- * dishwasher, the SigenStor hardware, sensor batteries and Home Assistant's own
- * housekeeping. (Lights, TVs, the washer and the PC are on Home and Rooms.)
+ * dishwasher, the washing machine, the SigenStor hardware, sensor batteries and Home
+ * Assistant's own housekeeping. (Lights, TVs and the PC are on Home and Rooms.)
  */
 window.HD = window.HD || {};
 HD.views = HD.views || {};
@@ -217,6 +217,7 @@ HD.views = HD.views || {};
       <div class="panel-grid devices">
         <section class="panel"><header><h2>Smart plugs</h2></header><ul class="tiles">${plugRows}</ul></section>
         ${HD.dishwasher ? HD.dishwasher.cardHtml() : ''}
+        ${HD.washer ? HD.washer.cardHtml() : ''}
         <section class="panel"><header><h2>Solar and battery hardware</h2></header>
           <dl class="kv">
             <div><dt>EMS mode</dt><dd>${esc(S().state(e.emsMode) || '–')}</dd></div>
@@ -242,6 +243,7 @@ HD.views = HD.views || {};
     title: 'Devices',
     mount(root) { root.innerHTML = '<div id="devices"></div>'; this.update(); },
     update() {
+      if (HD.washer) HD.washer.maybeLoad();
       render();
       if (!pv || Date.now() - pvAt > 10 * 60e3) loadStrings().then(render);
       if (Date.now() - diskAt > 30 * 60e3) loadDisk().then(render);

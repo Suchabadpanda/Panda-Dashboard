@@ -333,6 +333,16 @@ HD.config = {
     sensorBatteries: ['sensor.livingroomsensor_battery', 'sensor.ewelink_snzb_02p_battery', 'sensor.office_temp_humidity_battery', 'sensor.1f_motion_sensor_battery'],
   },
 
+  // Washing machine via SmartThings (Samsung): a card on Devices with start / pause / stop and its
+  // settings, and a chip on its room. Only state is needed; the other entities are found from it.
+  // Controlling it needs Smart Control on at the machine. Remove this block if you don't have one.
+  washer: {
+    name: 'Washing machine', room: 'Kitchen',
+    state: 'sensor.washing_machine_machine_state',
+    // progress: 'sensor.washing_machine_progress', finish: 'sensor.washing_machine_completion_time',
+    // doneAlertHours: 2,   // how long "finished: ready to unload" stays on Home
+  },
+
   // Dishwasher via Home Connect (Bosch, Siemens, Neff). Remove this block if you don't have one.
   dishwasher: {
     name: 'Dishwasher', room: 'Kitchen',
