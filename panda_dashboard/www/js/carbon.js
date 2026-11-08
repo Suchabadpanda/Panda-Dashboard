@@ -1,7 +1,7 @@
 /*
  * Grid carbon intensity for your region, from the GB Carbon Intensity API (NESO,
  * api.carbonintensity.org.uk; free, no key, CC BY 4.0). Only the first half of your postcode is
- * sent. config.carbon = { postcode: 'PO15' } turns it on.
+ * sent. config.carbon = { postcode: 'SW1A' } turns it on.
  *
  * Gives the half-hourly regional forecast from midnight today for 48 hours: now, the greenest
  * 3-hour window in the next 24 hours, today's mix, and an estimate of the CO₂ in what the house

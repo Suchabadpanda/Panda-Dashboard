@@ -88,7 +88,7 @@ window.HD = window.HD || {};
   }
 
   // The tracker's tariff history: every period with its import bands and VAT, back to
-  // whenever Nan entered them (the dashboard's own tariffs only start in Oct 2025).
+  // whenever they were entered (the dashboard's own tariffs only start in Oct 2025).
   // → [{ from (ms, local midnight), vat (multiplier), dynamic, bands: [{ s, e (minutes), p (£/kWh ex VAT) }] }]
   let tariffCache = null; let tariffAt = 0;
   async function tariffs() {

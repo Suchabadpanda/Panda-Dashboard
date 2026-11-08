@@ -249,7 +249,7 @@ window.HD = window.HD || {};
 
   // ── Who may control things ──
   // config.controlBy lists who can press buttons and open Settings: person ids
-  // ('person.nan_lieu', matched through the person's linked user), user names or user ids.
+  // ('person.alex', matched through the person's linked user), user names or user ids.
   // Without it, Home Assistant administrators can. Everyone else gets a view-only
   // dashboard: controls are disabled and any service call that would change something is
   // refused here. (Home Assistant has no read-only users, so this only covers this

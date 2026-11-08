@@ -261,7 +261,7 @@ HD.views = HD.views || {};
   }
 
   // ── Charging totals: lifetime and each calendar year, with an estimated cost ──
-  // Rates come from the Energy Tracker's tariff history (every period Nan has entered, with
+  // Rates come from the Energy Tracker's tariff history (every period entered there, with
   // its own band times and VAT), so each hour is priced at what was actually being charged
   // then; hours the tracker can't price (no tracker, a dynamic tariff) use the dashboard's
   // own tariffs. The Wall Connector's lifetime counter (config.ev.lifetime) goes back

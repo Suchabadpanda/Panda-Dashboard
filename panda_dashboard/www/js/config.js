@@ -352,7 +352,7 @@ HD.config = {
     // calendars: ['calendar.family', { id: 'calendar.work', name: 'Work' }],
     // hide: ['calendar.holidays'],                // with the default (every calendar)
     work: {
-      hours: { mon: 9.5, tue: 9.5, wed: 9.5, thu: 9 },   // days not listed are off
+      hours: { mon: 8, tue: 8, wed: 8, thu: 8, fri: 8 }, // days not listed are off
       window: ['07:00', '19:00'],                        // flexible-hours window (hatched)
       start: '08:00',                                    // until a start time is set
       breakMins: 0,                                      // added to each day's end time
@@ -368,7 +368,7 @@ HD.config = {
     ],
     // A block the evening before any calendar event matching `match` (a regular expression)
     dayBefore: [{ match: 'school trip|swimming gala', what: 'a school trip or gala', label: 'Pack the kit bag', start: '19:00', end: '19:30', type: 'home' }],
-    markers: [{ at: '09:35', label: 'Brief' }],   // dotted line on every day
+    markers: [{ at: '09:30', label: 'Stand-up' }], // dotted line on every day
   },
 
   tariffName: '',          // e.g. 'Octopus Go' — shown on the Energy view

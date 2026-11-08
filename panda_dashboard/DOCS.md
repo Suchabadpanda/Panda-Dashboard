@@ -66,7 +66,7 @@ to carry the house through the peak hours after it, from the last 7 days' use (c
 out) and the weather entity's hourly cloud forecast. It's advice only; it doesn't change the
 battery's settings. `energy.batteryReserve` (%) is what it keeps back (default 5).
 
-**Grid carbon** needs `carbon: { postcode: 'PO15' }` (the first half of your postcode). It
+**Grid carbon** needs `carbon: { postcode: 'SW1A' }` (the first half of your postcode). It
 fetches the regional forecast from the GB Carbon Intensity API (api.carbonintensity.org.uk);
 only the postcode district is sent.
 
@@ -103,7 +103,7 @@ Without the helper (or before it exists) the stepper sets the unit's setpoint as
 # First create these helpers (Settings → Devices & services → Helpers → Create helper):
 #   Number  "Office AC target"          min 16, max 30, step 0.5, input field, unit °C  → input_number.office_ac_target
 #   Number  "Living room AC target"     min 16, max 30, step 0.5, input field, unit °C  → input_number.living_room_ac_target
-#   Number  "Rosalyn's room AC target"  min 16, max 30, step 0.5, input field, unit °C  → input_number.rosalyn_s_room_ac_target
+#   Number  "Bedroom 2 AC target"        min 16, max 30, step 0.5, input field, unit °C  → input_number.bedroom_2_ac_target
 #   Toggle  "AC follow room sensors"    (then switch it on)                              → input_boolean.ac_follow_room_sensors
 # Set the targets to what you want each room to be (e.g. 22 / 22 / 21).
 #
@@ -125,12 +125,12 @@ triggers:
     entity_id:
       - input_number.office_ac_target
       - input_number.living_room_ac_target
-      - input_number.rosalyn_s_room_ac_target
+      - input_number.bedroom_2_ac_target
   - trigger: state
     entity_id:
       - climate.office
       - climate.living_room
-      - climate.rosalyn_s_room_ac
+      - climate.bedroom_2_ac
     to: [cool, heat, heat_cool]
     for:
       seconds: 30
@@ -149,9 +149,9 @@ variables:
     - ac: climate.living_room
       room: sensor.livingroomsensor_temperature
       target: input_number.living_room_ac_target
-    - ac: climate.rosalyn_s_room_ac
+    - ac: climate.bedroom_2_ac
       room: sensor.ewelink_snzb_02p_temperature
-      target: input_number.rosalyn_s_room_ac_target
+      target: input_number.bedroom_2_ac_target
 actions:
   - repeat:
       for_each: "{{ units }}"
@@ -195,7 +195,7 @@ triggers:
     entity_id:
       - climate.office
       - climate.living_room
-      - climate.rosalyn_s_room_ac
+      - climate.bedroom_2_ac
     attribute: temperature
 conditions:
   - condition: state
@@ -210,7 +210,7 @@ variables:
   targets:
     climate.office: input_number.office_ac_target
     climate.living_room: input_number.living_room_ac_target
-    climate.rosalyn_s_room_ac: input_number.rosalyn_s_room_ac_target
+    climate.bedroom_2_ac: input_number.bedroom_2_ac_target
 actions:
   - action: input_number.set_value
     target:
@@ -229,7 +229,7 @@ max: 5
 #      entity_id:
 #        - input_number.office_ac_target
 #        - input_number.living_room_ac_target
-#        - input_number.rosalyn_s_room_ac_target
+#        - input_number.bedroom_2_ac_target
 #    data:
 #      value: 20
 ```

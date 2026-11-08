@@ -29,9 +29,7 @@ This repo is a Home Assistant add-on repository. Installed as an add-on, the das
 own sidebar entry, sits behind your HA login, and updates from GitHub.
 
 1. **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, add
-   `https://github.com/Suchabadpanda/Panda-Dashboard`. While the repo is private, add it as
-   `https://<token>@github.com/Suchabadpanda/Panda-Dashboard` using a fine-grained token with
-   read-only *Contents* access to this repo.
+   `https://github.com/Suchabadpanda/Panda-Dashboard`.
 2. Close the dialog, refresh, and open **Panda Dashboard** in the store. Click **Install**
    (the first build takes a minute or two).
 3. Turn on **Start on boot**, **Show in sidebar** and **Auto update**, then **Start**.
