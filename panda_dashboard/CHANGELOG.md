@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.109
+- Car page: time to full at the live charging rate
+
 ## 0.3.108
 - Remove personal details from docs, comments and the example config
 
