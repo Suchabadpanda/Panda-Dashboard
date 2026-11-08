@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.111
+- Heat pump card: count tank rise only since the water heater switched off
+
 ## 0.3.110
 - Remove explanatory footnotes (charging totals, recent charging, solar strings averages, heat pump cycling)
 
