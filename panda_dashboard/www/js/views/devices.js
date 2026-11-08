@@ -133,12 +133,10 @@ HD.views = HD.views || {};
         const yieldCmp = r.x.kwp && g.x.kwp ? Math.round(((g.a.day / g.x.kwp) / (r.a.day / r.x.kwp)) * 100) : null;
         compare = `<p class="sub pv-compare">Over the last ${r.a.dayN} days the ${esc(g.x.name.toLowerCase())} made ${ratio}% as much as the ${esc(r.x.name.toLowerCase())}${yieldCmp != null ? `; per kWp of panels it made ${yieldCmp}% as much` : ''}.${!anyKwp ? ' Add pv1Kwp / pv2Kwp to the energy settings to compare per kWp.' : ''}</p>`;
       }
-      const n = av[0] ? av[0].a : null;
       body = `<div class="pv-cards">${cards}</div>
         <div id="chart-pv" class="chart-box"></div>
         ${compare}
-        ${total != null ? `<p class="sub pv-total">Lifetime, all strings: <strong>${big(total)}</strong>${pv.list.every((x) => x.energy) ? ", from the inverter's own counters" : ''}.</p>` : ''}
-        <p class="sub">Daily average: the last ${n ? n.dayN : 30} whole days. Monthly average: whole calendar months, leaving out each string's first month (part-month) and this one.</p>`;
+        ${total != null ? `<p class="sub pv-total">Lifetime, all strings: <strong>${big(total)}</strong>${pv.list.every((x) => x.energy) ? ", from the inverter's own counters" : ''}.</p>` : ''}`;
     }
     return `<section class="panel wide pv-panel"><header><h2>Solar strings</h2>${seg}</header>${body}</section>`;
   }

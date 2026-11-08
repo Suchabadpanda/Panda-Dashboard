@@ -111,8 +111,7 @@ window.HD = window.HD || {};
           <div><dt>Running</dt><dd>${mins(s.onMin)} <small>${Math.round((s.onMin / (range * 60)) * 100)}% of the time</small></dd></div>
         </dl>
         <div id="chart-hpc" class="chart-box"></div>
-        <div id="chart-hpc-power" class="chart-box"></div>
-        <p class="sub">Bars: kWh each hour${energyId() ? ' from the heat pump energy counter (the current hour from power)' : ' from the power readings'}; amber hours had 3 or more starts. Line: 5-minute average power — each hump is one run. Runs are worked out from 5-minute averages, so very short stops can merge into one run.</p>`;
+        <div id="chart-hpc-power" class="chart-box"></div>`;
     }
     return `<header><h2>Heat pump cycling</h2>${seg}</header>${body}`;
   }

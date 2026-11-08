@@ -293,8 +293,7 @@ HD.views = HD.views || {};
         <div><dt>Cost</dt><dd>${gbp(m.cost)}</dd></div>
         <div><dt>Per mile</dt><dd>${ppm != null ? `${ppm.toFixed(1)}p` : '–'}<small>${ppm != null ? ` over ${Math.round(m.miles)} mi` : m.odoDays ? ' needs a week of mileage' : ''}</small></dd></div>
       </dl>
-      ${list}
-      <p class="sub">Costs use the tariff rate for each hour, as if it all came from the grid.</p>`;
+      ${list}`;
   }
 
   // ── Charging totals: lifetime and each calendar year, with an estimated cost ──
@@ -404,14 +403,7 @@ HD.views = HD.views || {};
       </dl>
       <table class="years-table"><thead><tr><th>Year</th><th>Charged</th><th>Cost</th><th>Per kWh</th><th>Cheap rate</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="5">No charging recorded yet.</td></tr>'}${beforeRow}</tbody></table>
-    </div>
-    <p class="sub">${{
-      tracker: "Each hour is priced at the rate in force then, from the Energy Tracker's tariff history (VAT included)",
-      mixed: "Each hour is priced at the rate in force then, from the Energy Tracker's tariff history (VAT included), and the dashboard's own tariff where the tracker has none",
-      dashboard: "Each hour is priced at the dashboard's tariff for that hour",
-    }[t.source]}, as if it all came from the grid.${t.before > 1 ? ` The ${kwh(t.before, 0)} the charger counted before Home Assistant started recording (${since}) is estimated at ${t.beforeHow === 'spread'
-      ? `the cheap rate of each day since the charger went in (${HD.u.fmt(t.chargerSince, { month: 'short', year: 'numeric' })}), averaging ${pence(t.beforeRate)}/kWh`
-      : `the cheap rate just before then, ${pence(t.beforeRate)}/kWh. Set ev.chargerSince to when the charger went in to spread it over the rates of the time`}.` : ''}${t.addedKwh > 0.5 ? ` ${kwh(t.addedKwh, 0)} from before ${since} is counted in its own year from the monthly totals in ev.chargedIn, at the cheap rate of those days.` : ''}</p>`;
+    </div>`;
   }
 
   // ── Car state from two sources ──
