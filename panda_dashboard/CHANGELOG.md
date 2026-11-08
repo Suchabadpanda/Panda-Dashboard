@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.110
+- Remove explanatory footnotes (charging totals, recent charging, solar strings averages, heat pump cycling)
+
 ## 0.3.109
 - Car page: time to full at the live charging rate
 
