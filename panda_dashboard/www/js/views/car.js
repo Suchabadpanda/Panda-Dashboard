@@ -115,6 +115,43 @@ HD.views = HD.views || {};
     return `<div class="price-strip" role="img" aria-label="Electricity price for the next 24 hours">${cells.join('')}</div><div class="strip-axis">${labels}</div>`;
   }
 
+  // Time to the charge limit at the live charging power (wall power, ~10% lost), and,
+  // when `ev.chargeStop` ('HH:MM') is set, where it gets to if charging stops then
+  // (an automation ending the cheap window early). Null when not charging or unknown.
+  function chargeEta(ts, soc, limit, liveKw) {
+    if (soc == null || !(liveKw > 0.1)) return null;
+    const ev = C().ev; const pack = ev.batteryKwh || 60;
+    const lim = limit || 100;
+    const needKwh = Math.max(0, ((lim - soc) / 100) * pack) / CHARGE_EFF;
+    const mins = (needKwh / liveKw) * 60;
+    const at = ts + mins * 60e3;
+    const out = { mins, at, limit: lim, done: needKwh < 0.05 };
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(ev.chargeStop || ''));
+    if (m) {
+      const stop = new Date(ts); stop.setHours(+m[1], +m[2], 0, 0);
+      if (stop.getTime() <= ts) stop.setDate(stop.getDate() + 1);
+      if (stop.getTime() < at && stop.getTime() - ts < 12 * 3600e3) {
+        out.stopAt = stop.getTime();
+        out.stopSoc = Math.min(lim, soc + (liveKw * CHARGE_EFF * ((out.stopAt - ts) / 3600e3)) / pack * 100);
+      }
+    } else if (HD.tariff.isOffPeak(ts)) {
+      const w = cheapWindow(ts);
+      if (w.end < at) out.peakFrom = w.end;
+    }
+    return out;
+  }
+
+  function etaHtml(e) {
+    if (!e) return '';
+    if (e.done) return `<p class="car-eta">${icon('clock')}<span>Almost at its ${pct(e.limit)} limit</span></p>`;
+    const what = e.limit >= 100 ? 'Full' : `At ${pct(e.limit)}`;
+    const extra = e.stopAt
+      ? `Charging stops at ${clock(e.stopAt)}, at about ${pct(Math.floor(e.stopSoc))}`
+      : e.peakFrom ? `The cheap rate ends at ${clock(e.peakFrom)} first` : '';
+    return `<p class="car-eta">${icon('clock')}<span>${what} in about ${dur(e.mins)} · around ${clock(e.at)}</span></p>
+      ${extra ? `<p class="sub car-eta-note">${extra}</p>` : ''}`;
+  }
+
   function planHtml() {
     const ev = C().ev; const ts = nowTs();
     const soc = num('soc'); const limit = num('limit') || 100;
@@ -127,14 +164,14 @@ HD.views = HD.views || {};
 
     if (live > 0.1) {
       const sess = S().num(ev.session);
-      const left = needKwh / live;
+      const e = chargeEta(ts, soc, limit, live);
       const rate = HD.tariff.importRate(ts);
       return `<h3 class="sub-head">Charging now</h3>
-        ${priceStrip(ts, { start: ts, end: ts + left * 3600e3 })}
+        ${priceStrip(ts, { start: ts, end: e.stopAt || e.at })}
         <dl class="kv plan-kv">
           <div><dt>Power</dt><dd>${kw(live)}</dd></div>
           <div><dt>Added this session</dt><dd>${kwh(sess)}</dd></div>
-          <div><dt>To ${pct(limit)}</dt><dd>${needKwh > 0.05 ? `${dur(left * 60)} · about ${clock(ts + left * 3600e3)}` : 'Almost there'}</dd></div>
+          <div><dt>To ${pct(limit)}</dt><dd>${e.done ? 'Almost there' : `${dur(e.mins)} · about ${clock(e.at)}`}</dd></div>
           <div><dt>Cost so far</dt><dd>${sess != null ? `≈ ${gbp(sess * rate)}` : '–'}<small> at ${pence(rate)}</small></dd></div>
         </dl>`;
     }
@@ -755,6 +792,7 @@ HD.views = HD.views || {};
             <div class="car-soc"><p class="big">${pct(soc)}</p>${range != null ? `<p>${Math.round(range)} mi<small>estimated range</small></p>` : ''}</div>
             <div class="soc-bar car"><i style="width:${soc || 0}%"></i>${limit ? `<b style="left:${limit}%" title="Charge limit ${limit}%"></b>` : ''}</div>
             <p class="sub">${statusText}${limit ? ` · limit ${pct(limit)}` : ''}</p>
+            ${etaHtml(chargeEta(nowTs(), soc, limit, power))}
             <div class="car-chips">${chips}</div>
           </div>
         </div>

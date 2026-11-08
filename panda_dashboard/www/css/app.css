@@ -639,6 +639,9 @@ thead th { color: var(--muted); font-weight: 500; }
 .car-soc p:not(.big) { color: var(--muted); }
 .soc-bar.car { position: relative; height: 10px; overflow: visible; }
 .soc-bar.car b { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); }
+.car-eta { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-weight: 500; font-variant-numeric: tabular-nums; }
+.car-eta .ic { width: 16px; height: 16px; flex: none; color: var(--s-battery); }
+.car-eta-note { margin: 2px 0 0 24px; }
 .tyres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
 .tyres div { background: var(--room); border-radius: var(--r-sm); padding: 8px 10px; display: flex; justify-content: space-between; }
 .tyres span { color: var(--muted); font-size: 13px; }

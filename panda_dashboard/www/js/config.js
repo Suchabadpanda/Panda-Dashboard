@@ -180,6 +180,8 @@ HD.config = {
     handleTemp: 'sensor.tesla_wall_connector_handle_temperature',
     voltage: 'sensor.tesla_wall_connector_grid_voltage',
     batteryKwh: 75,              // usable pack size, for "kWh to full" estimates
+    // chargeStop: '05:45',      // when an automation stops home charging: the time-to-full line then
+                                 // also says how full the car will be by then
     // chargerSince: '2025-01-07',  // when the Wall Connector went in: charging from before Home Assistant
                                     // recorded it is then priced at each day's cheap rate (Car → Charging totals)
     // chargedIn: { '2026-01': 240 },  // a month's total charged (kWh, e.g. from the Tesla app) for months
