@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.112
+- Devices: washing machine card (SmartThings) with start/pause/stop and settings
+
 ## 0.3.111
 - Heat pump card: count tank rise only since the water heater switched off
 
