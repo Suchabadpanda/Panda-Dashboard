@@ -321,6 +321,19 @@ actions:
 mode: queued
 ```
 
+## Car picture from Tesla
+
+The Car page can show Tesla's own pictures of your car instead of the drawing. Add `render` to `ev` in `config.js`:
+
+```js
+render: { options: '$MTY62,$PN01,$WY19P,$IPB10', views: ['3qtr', 'side', 'rear'] },
+```
+
+- `options`: Tesla configurator option codes (trim, paint, wheels, interior). Model Y 2025+: paint `PN01` Stealth Grey, `PN00` Quicksilver, `PPSW` Pearl White, `PBSB` Solid Black, `PR01` Ultra Red; wheels `WY19P` 19" Crossflow, `WY20A` 20" Helix 2.0; interior `IPB10` black, `IPW10` white. `model` defaults to `my` (Model Y).
+- `views`: any of `3qtr`, `side`, `rear`, `front`, `interior`. Swipe between them (dots or arrows on a PC).
+- The pictures are rendered live by Tesla and fetched from `static-assets.tesla.com` by the screen showing the page; nothing is stored in the add-on. Charging, frunk/boot open and sentry show as badges on the picture, tyre pressures underneath.
+- If Tesla returns nothing usable (a wrong code gives an error or a shadow-only picture) the drawing is shown instead, and it tries again after 10 minutes. Unofficial: Tesla can change this at any time.
+
 ## Week page
 
 Add a `week` block to config.js (see the example in `js/config.js`) and a **Week** page appears after Home. Remove the block to hide it.

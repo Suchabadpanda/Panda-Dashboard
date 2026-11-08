@@ -187,6 +187,10 @@ HD.config = {
                                        // "before records" into that year (Car → Charging totals)
     tyreTarget: 42,              // recommended tyre pressure, psi (low warning 3 psi under)
     colour: '#5f7fa8',           // paint colour for the car drawing on the Car page (any CSS colour)
+    // Show Tesla's own pictures of the car (rendered live by Tesla's configurator from its option
+    // codes, swipe between views) instead of the drawing. Falls back to the drawing if Tesla
+    // returns nothing. options: model trim, paint, wheels, interior. views: 3qtr side rear front interior
+    // render: { options: '$MTY62,$PN01,$WY19P,$IPB10', views: ['3qtr', 'side', 'rear'] },
     // The car itself: each key uses the first source that has it available, so the
     // Bluetooth bridge wins when the car's on the driveway and Tesla Fleet covers the rest.
     car: {

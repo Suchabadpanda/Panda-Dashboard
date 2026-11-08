@@ -1385,3 +1385,48 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
   .wk-scroll, .wk-legend { display: none; }
   .wk-agenda { display: block; }
 }
+
+/* Car page: Tesla configurator picture (car-render.js) */
+.car-main.has-render { grid-template-columns: minmax(280px, 1.35fr) 1fr; }
+.car-render-slot { min-width: 0; }
+.car-render { position: relative; margin: 0; container-type: inline-size; }
+.car-render .crv-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; border-radius: var(--r-md); outline: none;
+  background: radial-gradient(60% 34% at 50% 80%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 70%); }
+.car-render .crv-track::-webkit-scrollbar { display: none; }
+.car-render .crv-track:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.crv-slide { flex: 0 0 100%; scroll-snap-align: center; display: grid; place-items: center; aspect-ratio: 16 / 9; padding: 34px 6px 6px; box-sizing: border-box; }
+.crv-slide img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; user-select: none; -webkit-user-drag: none; transition: filter .5s; }
+.crv-wait span { color: var(--faint); font-size: 13px; animation: blink 1.6s ease-in-out infinite; }
+.car-render.asleep .crv-slide img { filter: saturate(.7) brightness(.82); }
+.car-render.charging .crv-track { background: radial-gradient(60% 34% at 50% 80%, color-mix(in oklab, var(--s-battery) 22%, transparent), transparent 70%); }
+.car-render.flashing .crv-slide img { animation: crv-flash .5s ease-in-out 6 alternate; }
+@keyframes crv-flash { to { filter: brightness(1.45) drop-shadow(0 0 14px #fff6c8); } }
+.crv-state { position: absolute; top: 6px; left: 6px; right: 6px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.crv-badge { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px; border-radius: 7px; font-size: 12px; color: var(--ink);
+  background: color-mix(in oklab, var(--panel) 82%, transparent); border: 1px solid var(--line); backdrop-filter: blur(4px); }
+.crv-badge .ic { width: 13px; height: 13px; }
+.crv-badge.charge { color: var(--s-battery); border-color: color-mix(in oklab, var(--s-battery) 50%, var(--line)); }
+.crv-badge.charge .ic { animation: blink 1.6s ease-in-out infinite; }
+.crv-badge.plug { color: var(--accent); }
+.crv-badge.warn { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 50%, var(--line)); }
+.crv-badge.sentry { color: var(--critical); }
+.crv-arrow { position: absolute; top: calc(100cqw * 9 / 32); translate: 0 -50%; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--panel) 80%, transparent); color: var(--ink); cursor: pointer; opacity: 0; transition: opacity .2s; }
+.crv-arrow .ic { width: 18px; height: 18px; }
+.crv-arrow.prev { left: 4px; } .crv-arrow.next { right: 4px; }
+.car-render:hover .crv-arrow:not(:disabled), .crv-arrow:focus-visible { opacity: 1; }
+.crv-arrow:disabled { pointer-events: none; }
+.car-render.single .crv-arrow { display: none; }
+@media (hover: none) { .crv-arrow { display: none; } }
+.crv-dots { display: flex; justify-content: center; gap: 4px; margin-top: 4px; min-height: 8px; }
+.crv-dots button { width: 22px; height: 22px; border: 0; padding: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+.crv-dots button::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--line); transition: background .2s, width .2s; }
+.crv-dots button.on::before { width: 18px; border-radius: 4px; background: var(--accent); }
+.crv-tyres { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.crv-tyres div { background: var(--room); border-radius: var(--r-sm); padding: 6px 8px; display: grid; gap: 1px; }
+.crv-tyres span { color: var(--faint); font-size: 11px; }
+.crv-tyres b { font: 600 17px var(--font-num); font-variant-numeric: tabular-nums; }
+.crv-tyres small { font: 400 11px var(--font); color: var(--muted); }
+.crv-tyres .low b { color: var(--critical); }
+@media (max-width: 760px) { .car-main.has-render { grid-template-columns: 1fr; } .crv-tyres { grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) { .car-render *, .car-render { animation: none !important; } }

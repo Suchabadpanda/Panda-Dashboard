@@ -624,6 +624,7 @@ HD.views = HD.views || {};
   // plugged in, doors/frunk/boot/windows open, climate running, sentry on, asleep,
   // lights flashing and low tyres. Tyre pressures sit beside each wheel.
   let flashUntil = 0;
+  let lastRender = null;   // state for the Tesla picture (car-render.js), set by carHtml()
   function carSvg(tyres, target, st) {
     const low = (v) => v != null && v < target - 3;
     const lab = (v, x, y, anchor) => `<text x="${x}" y="${y}" text-anchor="${anchor}" class="tp ${low(v) ? 'low' : ''}">${v == null ? '–' : Math.round(v)}<tspan class="u"> psi</tspan></text>`;
@@ -706,6 +707,17 @@ HD.views = HD.views || {};
     const bleSrc = sources().find((src) => /bluetooth/i.test(src.name || ''));
     const bleDown = bleSrc && bleSrc.soc && !S().available(bleSrc.soc);
     const wake = wakeId();
+    const carState = {
+      asleep: isAsleep === true, charging: power > 0.1, plugged: !!plugged,
+      climate: climate != null && climate !== 'off', sentry: sentry === 'on',
+      frunk: val('frunk') === 'open', trunk: val('trunk') === 'open', windows: windows != null && windows !== 'closed',
+      doors: ['doorFl', 'doorFr', 'doorRl', 'doorRr'].map((k) => val(k) === 'on'),
+      flashing: Date.now() < flashUntil, chargeText: power > 0.1 ? `Charging ${kw(power)}` : '',
+      summary: [statusText, anyDoor ? 'something is open' : '', climate && climate !== 'off' ? 'climate on' : ''].filter(Boolean).join(', '),
+    };
+    HD.carRender.load();
+    const useRender = HD.carRender.ok();
+    lastRender = useRender ? { st: carState, tp, target } : null;
 
     const chips = [
       locked != null ? (locked !== 'locked' && beforeSleep('locked') ? doubt('unlock', 'Unlocked', beforeSleep('locked')) : chip(locked === 'locked', locked === 'locked' ? 'lock' : 'unlock', locked === 'locked' ? 'Locked' : 'Unlocked')) : '',
@@ -737,14 +749,8 @@ HD.views = HD.views || {};
         <span class="pill ${!stale && isAsleep === false ? 'ok' : ''}">${!any ? 'No data' : stale ? `Last seen ${esc(ago(updated))}` : isAsleep ? 'Asleep' : 'Awake'}</span></div></header>
       ${stale || !any ? `<p class="note car-stale">${icon('alert')}<span>No live data from the car${bleDown ? ': the Bluetooth bridge is offline' : ''}${bleDown ? ' and' : ':'} Tesla Fleet has had nothing since ${updated ? HD.u.time(updated) + (Date.now() - Date.parse(updated) > 12 * 3600e3 ? ` on ${HD.u.fmt(updated, { weekday: 'short', day: 'numeric', month: 'short' })}` : '') : 'Home Assistant restarted'} (it doesn't wake a sleeping car). ${any ? 'Showing the last known state.' : ''}</span>${wake ? `<button class="car-btn" data-car="wake" data-entity="${wake.id}">${icon('power')}<span>Wake car</span></button>` : ''}</p>` : ''}
       ${any ? `
-        <div class="car-main">
-          ${carSvg(tp, target, {
-            asleep: isAsleep === true, charging: power > 0.1, plugged: !!plugged,
-            climate: climate != null && climate !== 'off', sentry: sentry === 'on',
-            frunk: val('frunk') === 'open', trunk: val('trunk') === 'open', windows: windows != null && windows !== 'closed',
-            doors: ['doorFl', 'doorFr', 'doorRl', 'doorRr'].map((k) => val(k) === 'on'),
-            summary: [statusText, anyDoor ? 'something is open' : '', climate && climate !== 'off' ? 'climate on' : ''].filter(Boolean).join(', '),
-          })}
+        <div class="car-main${useRender ? ' has-render' : ''}">
+          ${useRender ? '<div class="car-render-slot"></div>' : carSvg(tp, target, carState)}
           <div class="car-side">
             <div class="car-soc"><p class="big">${pct(soc)}</p>${range != null ? `<p>${Math.round(range)} mi<small>estimated range</small></p>` : ''}</div>
             <div class="soc-bar car"><i style="width:${soc || 0}%"></i>${limit ? `<b style="left:${limit}%" title="Charge limit ${limit}%"></b>` : ''}</div>
@@ -823,6 +829,7 @@ HD.views = HD.views || {};
     update() {
       const c = document.getElementById('car-card'); if (!c) return;
       HD.u.setHTML(c, carHtml());
+      if (lastRender) HD.carRender.place(c, lastRender.st, lastRender.tp, lastRender.target);
       HD.u.setHTML(document.getElementById('car-advice'), adviceHtml());
       HD.u.setHTML(document.getElementById('car-plan'), planHtml());
       HD.u.setHTML(document.getElementById('car-solar'), solarHintHtml());
