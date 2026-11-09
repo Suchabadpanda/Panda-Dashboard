@@ -1158,6 +1158,8 @@ body { font-variant-numeric: tabular-nums; }
 .node > p:not(.sub), .node > p.sub, .node.heatpump .hp-note { min-height: 2.9em; min-height: 2lh; }
 .greeting .summary { min-height: 1.6em; align-content: flex-start; }
 .now-block.battery > p:not(.big) { min-height: 1.5em; min-height: 1lh; }
+.now-block.battery > p.bat-mode { min-height: 0; margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+.now-block.battery > p.bat-mode strong { color: var(--ink); font-weight: 600; }
 /* A light coming on shouldn't jump: no pop when the button is redrawn */
 .chip.on { animation: none; }
 .panel .headline, .balance-head p:not(.big) { min-height: 2lh; }

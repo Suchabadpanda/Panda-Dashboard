@@ -523,6 +523,8 @@ HD.views = HD.views || {};
     const soc = S().num(e.soc); const bat = S().num(e.batteryPower) || 0;
     const cap = S().num(e.capacity) || 27.12;
     let batNote = '';
+    const emsRaw = e.emsMode ? S().state(e.emsMode) : null;
+    const emsMode = emsRaw && !['unavailable', 'unknown'].includes(emsRaw) ? HD.u.emsLabel(emsRaw) : '';
     if (soc != null && bat < -0.05) batNote = `Empty in about ${dur(((soc / 100) * cap) / -bat * 60)} at this rate`;
     else if (soc != null && bat > 0.05) batNote = `Full in about ${dur((((100 - soc) / 100) * cap) / bat * 60)}`;
 
@@ -563,7 +565,8 @@ HD.views = HD.views || {};
           <div><dt>${bat > 0.05 ? 'Charging at' : bat < -0.05 ? 'Discharging at' : 'Power'}</dt><dd>${Math.abs(bat) >= 0.05 ? kw(Math.abs(bat)) : 'Idle'}</dd></div>
           <div><dt>Stored</dt><dd>${soc != null ? `${(soc / 100 * cap).toFixed(1)}<small> of ${cap.toFixed(1)} kWh</small>` : '–'}</dd></div>
         </dl>
-        <p>${batNote || esc(HD.u.emsLabel(S().state(e.emsMode)) || '')}</p>
+        <p>${batNote}</p>
+        ${emsMode ? `<p class="bat-mode">Mode: <strong>${esc(emsMode)}</strong></p>` : ''}
         <div class="soc-bar" role="meter" aria-label="Battery charge" aria-valuenow="${soc ?? 0}" aria-valuemin="0" aria-valuemax="100"><i style="width:${soc ?? 0}%"></i></div>
       </section>
       <section class="now-block today">
