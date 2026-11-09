@@ -169,7 +169,6 @@ window.HD = window.HD || {};
     const climbing = flowClimb(now);
     // A water heater switched off after the flow passed 48 °C has ended the reheat
     const climb = climbing && !(whOffAt != null && whOffAt >= climbing.crossed) ? climbing : null;
-    const reported = (wh != null && !OFF.has(wh)) || (running && rise >= 1 && !offAfterRise) || !!climb;
     // A fresh flow reading that's low and sitting near the heating's own target says the
     // radiators are being heated, whatever the climate mode says (6 Nov 2026: climate "off"
     // from 17:38 while the flow climbed 22 → 31 °C on a 30 °C target at 0.7 kW, and the card
@@ -179,6 +178,11 @@ window.HD = window.HD || {};
     const flowFresh = flowAt != null && (S().mode === 'demo' || now - flowAt <= 15 * 60e3);
     const radiatorFlow = flowFresh && Number.isFinite(flow) && flow < REHEAT_FLOW - 3 &&
       (!Number.isFinite(flowTarget) || flow <= flowTarget + 5);
+    // The tank-rise backup doesn't count while the flow says it's the radiators: with a cold
+    // tank below the radiator flow the cylinder warms a little anyway (9 Nov 2026: tank 13°,
+    // radiators on at 33° flow, water heater off, tank crept 22 → 24.5° and the card said
+    // "Hot water + heating"). A real reheat drives the flow well past the heating's target.
+    const reported = (wh != null && !OFF.has(wh)) || (running && rise >= 1 && !offAfterRise && !radiatorFlow) || !!climb;
     // Heating off, yet a long heavy run: it's reheating the tank, whatever Samsung says —
     // unless the flow says it's the radiators
     const heavy = !reported && !heatingOn && sustained(now, c.hotWaterAbove ?? 0.5, 10);
