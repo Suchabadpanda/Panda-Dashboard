@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.116
+- Show readable EMS mode with Sigenergy 2.0 status keys
+
 ## 0.3.115
 - Car: cabin temperature setting on the car card
 
