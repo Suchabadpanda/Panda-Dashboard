@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.3.114
+- Damp watch, vacuum parts, dishwasher supplies, car charging schedule
+
+## 0.3.114
 - Rooms: damp and condensation panel (dew point, cold-corner humidity, 7-day humid hours) and Attention alerts
 - Rooms → Vacuum: parts and cleaning reminders with reset, Attention when due
 - Dishwasher: salt, rinse aid, filter and machine care status from Home Connect's event sensors
