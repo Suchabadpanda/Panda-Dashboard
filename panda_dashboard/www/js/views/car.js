@@ -867,7 +867,7 @@ HD.views = HD.views || {};
             <div class="car-chips">${chips}</div>
           </div>
         </div>
-        ${stale ? '' : `<div class="car-controls">${controls}</div>`}
+        ${stale ? '' : `<div class="car-controls">${controls}</div>${cabinHtml(climate, inside)}`}
         ${softwareHtml(swu)}
         <p class="sub car-foot">${[odo != null ? `${Math.round(odo).toLocaleString('en-GB')} mi` : '', inside != null ? `${Math.round(inside)}° inside` : '', outside != null ? `${Math.round(outside)}° outside` : '', via ? `via ${via.src}${stale ? ' (last known)' : ''}` : '', updated ? `updated ${ago(updated)}` : ''].filter(Boolean).join(' · ')}</p>`
       : '<p class="note">No car data yet. Tesla Fleet or the Bluetooth bridge needs to be connected in Home Assistant.</p>'}
@@ -877,12 +877,57 @@ HD.views = HD.views || {};
       </dl>`;
   }
 
+  // ── cabin temperature: the climate entity's target, − / + like the AC stepper ──
+  // Taps are gathered for 0.8 s and sent as one climate.set_temperature. Setting it while the
+  // climate is off just stores it in the car; Climate on then warms or cools to it.
+  let cabinPending = null; let cabinTimer = null;
+  function cabinLimits(id) {
+    const a = (k) => Number(S().attr(id, k));
+    const lo = Number.isFinite(a('min_temp')) ? a('min_temp') : 15;
+    const hi = Number.isFinite(a('max_temp')) ? a('max_temp') : 28;
+    const stp = a('target_temp_step') > 0 ? a('target_temp_step') : 0.5;
+    return { lo, hi, stp };
+  }
+  function cabinHtml(climate, inside) {
+    const p = pick('climate'); if (!p || climate == null) return '';
+    const set = S().attr(p.id, 'temperature');
+    if (set == null && cabinPending == null) return '';   // the entity doesn't take a temperature
+    const { lo, hi, stp } = cabinLimits(p.id);
+    const t = cabinPending ?? Number(set);
+    const on = climate !== 'off';
+    const fmt = (v) => (stp < 1 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v)));
+    const note = on ? (inside != null ? `Climate on · ${Math.round(inside)}° inside now` : 'Climate on')
+      : 'Used next time the climate comes on';
+    return `<div class="car-cabin"><div><span class="name">${icon('fan')}Cabin temperature</span><small class="cabin-note">${esc(note)}</small></div>
+      <div class="ac-step" role="group" aria-label="Cabin temperature">
+        <button data-car="temp" data-dir="-1" data-entity="${p.id}" aria-label="Cooler" ${t > lo ? '' : 'disabled'}>−</button>
+        <b class="${cabinPending != null ? 'pending' : ''}">${fmt(t)}<small>°</small></b>
+        <button data-car="temp" data-dir="1" data-entity="${p.id}" aria-label="Warmer" ${t < hi ? '' : 'disabled'}>+</button></div></div>`;
+  }
+  function nudgeCabin(id, dir) {
+    const { lo, hi, stp } = cabinLimits(id);
+    const cur = cabinPending ?? Number(S().attr(id, 'temperature'));
+    if (!Number.isFinite(cur)) return;
+    cabinPending = Math.min(hi, Math.max(lo, Math.round((cur + dir * stp) / stp) * stp));
+    HD.views.car.update();
+    clearTimeout(cabinTimer);
+    cabinTimer = setTimeout(() => {
+      const v = cabinPending;
+      HD.ha.callService('climate', 'set_temperature', { entity_id: id, temperature: v })
+        .then(() => HD.app.toast(`Cabin set to ${v}°. It can take a few seconds if the car was asleep.`))
+        .catch((e) => HD.app.toast(`The car didn't respond: ${e.message}`))
+        // Keep showing the new value until Home Assistant reports it (or give up after 10 s)
+        .finally(() => setTimeout(() => { if (cabinPending === v) { cabinPending = null; HD.views.car.update(); } }, 10e3));
+    }, 800);
+  }
+
   // Car buttons. Opening things and unlocking ask first; everything else just goes.
   const ASK = { unlock: 'Unlock the car?', 'open-frunk': 'Open the frunk?', open: 'Open it?' };
   document.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-car]'); if (!b) return;
     const a = b.dataset.car;
     if (a === 'refresh') { refresh(); return; }
+    if (a === 'temp') { if (!b.disabled) nudgeCabin(b.dataset.entity, Number(b.dataset.dir)); return; }
     const id = b.dataset.entity; const domain = id.split('.')[0];
     if (ASK[a] && !window.confirm(a === 'open' ? `${b.textContent.trim()}?` : ASK[a])) return;
     if (a === 'install' && !window.confirm(b.dataset.ask || 'Install the update now?')) return;

@@ -671,6 +671,12 @@ thead th { color: var(--muted); font-weight: 500; }
 .car-btn .ic { width: 22px; height: 22px; }
 .car-btn:hover:not(:disabled) { border-color: var(--accent); }
 .car-btn:disabled { opacity: .5; cursor: progress; }
+.car-cabin { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--room); }
+.car-cabin > div:first-child { min-width: 0; }
+.car-cabin .name { white-space: nowrap; display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.car-cabin .name .ic { width: 18px; height: 18px; color: var(--accent); }
+.car-cabin .cabin-note { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.car-cabin .ac-step b { font-size: 24px; }
 .car-foot { margin-top: 12px; }
 @media (max-width: 760px) { .car-main { grid-template-columns: 1fr; } .car-top { max-width: 260px; margin: 0 auto; } }
 .car-kv { margin-top: 14px; }

@@ -221,7 +221,7 @@ window.HD = window.HD || {};
     car('sensor.model_y_charger_power', '0', { unit_of_measurement: 'kW' });
     car('lock.model_y_lock', 'locked'); car('switch.model_y_sentry_mode', 'off'); car('cover.model_y_windows', 'closed');
     car('cover.model_y_froot', 'closed'); car('cover.model_y_boot', 'closed'); car('cover.model_y_charge_port_door', 'closed');
-    car('climate.model_y_climate', 'off', { current_temperature: 14.5 }); car('button.model_y_flash_lights', 'unknown');
+    car('climate.model_y_climate', 'off', { current_temperature: 14.5, temperature: 21, min_temp: 15, max_temp: 28, target_temp_step: 0.5, hvac_modes: ['off', 'heat_cool'] }); car('button.model_y_flash_lights', 'unknown');
     // Fleet's schedule sensors (disabled by default in HA): a charge is scheduled for tonight
     car('binary_sensor.model_y_scheduled_charging_pending', 'on'); car('binary_sensor.model_y_preconditioning_enabled', 'on');
     car('binary_sensor.model_y_preconditioning', 'off'); car('binary_sensor.model_y_battery_heater', 'off');

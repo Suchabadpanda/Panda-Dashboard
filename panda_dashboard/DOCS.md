@@ -419,6 +419,10 @@ Parts at 10% or less turn red and appear in Attention. Change the threshold with
 
 Home Connect's event sensors for salt, rinse aid, filter cleaning and machine care are **disabled in Home Assistant by default**. Enable them (Settings → Devices → the dishwasher → the hidden sensors), and the Devices card shows Salt / Rinse aid / Filter / Machine care. Attention on Home says when one is low, empty or due. No config is needed: they're found by name next to the operation state sensor.
 
+## Car: cabin temperature
+
+Under the car buttons, **Cabin temperature** has − / + to set the car's climate target (`climate.set_temperature` on the car's `climate` entity, in its own steps and limits, usually 15–28 °C in 0.5° steps). Taps are gathered for a moment and sent once. Setting it while the climate is off stores it in the car; **Climate on** then warms or cools the cabin to it. It's hidden when the car has no live data and is inert on view-only screens.
+
 ## Car: charging schedule
 
 Enable Tesla Fleet's disabled sensors *Scheduled charging pending*, *Preconditioning enabled*, *Preconditioning* and *Battery heater*. The car card then shows a "Charges at 00:15" chip, plus chips while it preconditions or warms its battery. Tonight's plan uses the car's own start time and shows its departure and preconditioning.
