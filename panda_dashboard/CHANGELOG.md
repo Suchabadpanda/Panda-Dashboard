@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.115
+- Car: cabin temperature setting on the car card
+
 ## 0.3.114
 - Damp watch, vacuum parts, dishwasher supplies, car charging schedule
 
