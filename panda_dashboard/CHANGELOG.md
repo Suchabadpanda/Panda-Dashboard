@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.117
+- Battery card: always show the Sigen EMS mode
+
 ## 0.3.116
 - Show readable EMS mode with Sigenergy 2.0 status keys
 
