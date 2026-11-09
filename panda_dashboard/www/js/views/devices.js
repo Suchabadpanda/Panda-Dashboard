@@ -220,7 +220,7 @@ HD.views = HD.views || {};
         ${HD.washer ? HD.washer.cardHtml() : ''}
         <section class="panel"><header><h2>Solar and battery hardware</h2></header>
           <dl class="kv">
-            <div><dt>EMS mode</dt><dd>${esc(S().state(e.emsMode) || '–')}</dd></div>
+            <div><dt>EMS mode</dt><dd>${esc(HD.u.emsLabel(S().state(e.emsMode)) || '–')}</dd></div>
             <div><dt>Battery health</dt><dd>${pct(S().num(e.soh))}</dd></div>
             <div><dt>Cell temp</dt><dd>${S().num(e.cellTemp) ?? '–'}°C</dd></div>
             <div><dt>Inverter temp</dt><dd>${S().num(e.inverterTemp) ?? '–'}°C</dd></div>

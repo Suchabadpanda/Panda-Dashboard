@@ -113,5 +113,9 @@ window.HD = window.HD || {};
     const u = String(HD.store.attr(id, 'unit_of_measurement') || 'kWh').toLowerCase();
     return v * (ENERGY[u] ?? 1);
   }
-  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate, stateKwh };
+  // Sigenergy 2.0 stores EMS work mode keys (ai_mode); 1.x stored labels (AI Mode)
+  const EMS_LABELS = { max_self_consumption: 'Maximum Self Consumption', ai_mode: 'AI Mode', tou: 'Time of Use',
+    full_feed_in_to_grid: 'Full Feed-In to Grid', vpp_scheduling: 'VPP Scheduling', remote_ems: 'Remote EMS', custom: 'Custom' };
+  const emsLabel = (s) => (s && EMS_LABELS[s]) || s;
+  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate, stateKwh, emsLabel };
 })();
