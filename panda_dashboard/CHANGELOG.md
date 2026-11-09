@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.113
+- Heat pump card: a tank rise with radiator-level flow is heating, not hot water
+
 ## 0.3.112
 - Devices: washing machine card (SmartThings) with start/pause/stop and settings
 
