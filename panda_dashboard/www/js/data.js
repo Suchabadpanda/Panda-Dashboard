@@ -97,6 +97,7 @@ window.HD = window.HD || {};
     if (data.loading) return;
     data.loading = true;
     const jobs = [loadToday, loadYesterday, loadDaily, loadTemps];
+    if (HD.damp && HD.damp.enabled()) jobs.push(function loadDamp() { return HD.damp.load(); });
     await Promise.all(jobs.map((j) => j().catch((e) => console.warn(j.name, e))));
     data.loading = false;
     emit();

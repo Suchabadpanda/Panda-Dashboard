@@ -542,6 +542,8 @@ HD.views = HD.views || {};
     if (S().state(HD.config.heatPump.legionella) === 'on') alerts.push(['flame', 'Legionella cycle running', 'info']);
     if (HD.doorbell) alerts.push(...HD.doorbell.alerts());
     if (HD.dishwasher) alerts.push(...HD.dishwasher.alerts());
+    if (HD.vacuum && HD.vacuum.alerts) alerts.push(...HD.vacuum.alerts());
+    if (HD.damp && HD.damp.enabled()) alerts.push(...HD.damp.alerts());
     if (HD.washer) alerts.push(...HD.washer.alerts());
     // Battery-powered sensors running low
     (HD.config.devices.sensorBatteries || []).forEach((id) => {

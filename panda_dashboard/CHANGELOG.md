@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.114
+- Rooms: damp and condensation panel (dew point, cold-corner humidity, 7-day humid hours) and Attention alerts
+- Rooms → Vacuum: parts and cleaning reminders with reset, Attention when due
+- Dishwasher: salt, rinse aid, filter and machine care status from Home Connect's event sensors
+- Car: the car's own charging schedule, departure and preconditioning; warns when it would charge at peak
+
 ## 0.3.113
 - Heat pump card: a tank rise with radiator-level flow is heating, not hot water
 

@@ -157,6 +157,11 @@ window.HD = window.HD || {};
     ['select.dishwasher_selected_programme', 'dishcare_dishwasher_program_eco_50', '', 'Dishwasher Selected programme'],
     ['binary_sensor.dishwasher_remote_start', 'on', '', 'Dishwasher Remote start'],
     ['sensor.dishwasher_rinse_aid_nearly_empty', 'present', '', 'Dishwasher Rinse aid nearly empty', 'enum'],
+    ['sensor.dishwasher_rinse_aid_lack', 'off', '', 'Dishwasher Rinse aid lack', 'enum'],
+    ['sensor.dishwasher_salt_nearly_empty', 'off', '', 'Dishwasher Salt nearly empty', 'enum'],
+    ['sensor.dishwasher_salt_lack', 'off', '', 'Dishwasher Salt lack', 'enum'],
+    ['sensor.dishwasher_machine_care_reminder', 'off', '', 'Dishwasher Machine care reminder', 'enum'],
+    ['sensor.dishwasher_smart_filter_cleaning_reminder', 'present', '', 'Dishwasher Smart filter cleaning reminder', 'enum'],
     ['sensor.washing_machine_completion_time', '2026-10-18T23:58:00+01:00', '', 'Washing machine Completion time', 'timestamp'],
     ['button.wake_on_lan_pc', '2026-10-16T13:15:07+00:00', '', 'Wake on LAN PC'],
     ['button.pandapc_shutdown_pc', 'unknown', '', 'PANDAPC Shutdown_PC'],
@@ -217,6 +222,9 @@ window.HD = window.HD || {};
     car('lock.model_y_lock', 'locked'); car('switch.model_y_sentry_mode', 'off'); car('cover.model_y_windows', 'closed');
     car('cover.model_y_froot', 'closed'); car('cover.model_y_boot', 'closed'); car('cover.model_y_charge_port_door', 'closed');
     car('climate.model_y_climate', 'off', { current_temperature: 14.5 }); car('button.model_y_flash_lights', 'unknown');
+    // Fleet's schedule sensors (disabled by default in HA): a charge is scheduled for tonight
+    car('binary_sensor.model_y_scheduled_charging_pending', 'on'); car('binary_sensor.model_y_preconditioning_enabled', 'on');
+    car('binary_sensor.model_y_preconditioning', 'off'); car('binary_sensor.model_y_battery_heater', 'off');
     car('sensor.model_y_inside_temperature', '14.5', { unit_of_measurement: '°C' }); car('sensor.model_y_outside_temperature', '12.5', { unit_of_measurement: '°C' });
     car('sensor.model_y_odometer', '41250', { unit_of_measurement: 'km' });
     car('update.model_y_update', 'off', { installed_version: '2026.38.3.1', latest_version: '2026.38.3.1' });
@@ -259,6 +267,14 @@ window.HD = window.HD || {};
     wopt('select.washing_machine_water_temperature', { options: ['none', 'cold', '20', '30', '40', '60', '90'] });
     wopt('select.washing_machine_spin_level', { options: ['rinse_hold', 'no_spin', '400', '800', '1000', '1200', '1400'] });
     wopt('number.washing_machine_rinse_cycles', { min: 0, max: 5, step: 1 });
+    // Parts and cleaning reminders (% of life left, cleaning hours or days left, reset buttons)
+    [['main_brush', 55, 167, 'h'], ['side_brush', 33, 67, 'h'], ['filter', 8, 12, 'h'], ['sensor_dirty', 0, 0, 'h', 'sensor'],
+      ['wheel_dirty', 62, 19, 'd', 'wheel'], ['scale_inhibitor', 85, 933, 'd']].forEach(([k, left, t, u, r]) => {
+      const add = (id, state, attributes) => { states[id] = { entity_id: id, state: String(state), last_changed: ts, last_updated: ts, attributes }; };
+      add(`sensor.dreame_vacuum_${k}_left`, left, { unit_of_measurement: '%' });
+      add(`sensor.dreame_vacuum_${k}_time_left`, t, { unit_of_measurement: u, device_class: 'duration' });
+      add(`button.dreame_vacuum_reset_${r || k}`, 'unknown', {});
+    });
     vsel('cleaning_mode', 'mopping_after_sweeping', ['sweeping', 'mopping', 'sweeping_and_mopping', 'mopping_after_sweeping']);
     vsel('cleangenius', 'routine_cleaning', ['off', 'routine_cleaning', 'deep_cleaning']);
     vsel('cleangenius_mode', 'mop_after_vacuum', ['vacuum_and_mop', 'mop_after_vacuum']);
@@ -480,6 +496,18 @@ window.HD = window.HD || {};
     return res;
   }
 
+  // A week of hourly humidity around each sensor's snapshot value; the kitchen steams up at meals
+  function humHistory(id, start) {
+    const base = Number(HD.store.states[id].state) || 55; const out = [];
+    for (let s = Math.ceil(start / 3600e3) * 3600e3; s < SNAP - 3600e3; s += 3600e3) {
+      const h = new Date(s).getHours();
+      let v = base - 3 + 3 * Math.sin(((h - 4) / 24) * 2 * Math.PI) + ((s / 3600e3) % 7) * 0.3;
+      if (/kitchen/.test(id) && (h === 8 || h === 18 || h === 19)) v += 12;
+      out.push({ start: s, end: s + 3600e3, mean: Math.round(v * 10) / 10 });
+    }
+    return out;
+  }
+
   function callWS(msg) {
     if (msg.type === 'call_service' && msg.domain === 'calendar' && msg.service === 'get_events') return Promise.resolve({ response: demoEvents(msg.service_data) });
     if (msg.type === 'supervisor/api' && msg.endpoint === '/host/info') return Promise.resolve({ disk_total: 28, disk_used: 14.2, disk_free: 12.6 });
@@ -490,6 +518,7 @@ window.HD = window.HD || {};
       const pvn = (id.match(/pv([12])_accumulated_energy$/) || [])[1];
       if (pvn) res[id] = pvRows(Number(pvn), start, msg.period);
       else if (msg.period === '5minute') res[id] = fiveMinute(id);
+      else if (msg.period === 'hour' && /humidity$/.test(id) && HD.store.states[id]) res[id] = humHistory(id, start);
       else if (msg.period === 'hour' && TEMPS[id]) res[id] = TEMPS[id].map((v, i) => ({ start: T0 + i * 3600e3, end: T0 + (i + 1) * 3600e3, mean: v }));
       else if (msg.period === 'hour' && id === HD.config.energy.totals.import) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(1) : start === DAY0 - 864e5 ? yesterdayGrid(id) : null;
       else if (msg.period === 'hour' && id === HD.config.energy.totals.export) res[id] = start >= DAY0 - 3600e3 ? hourlyGrid(-1) : start === DAY0 - 864e5 ? yesterdayGrid(id) : null;
@@ -504,6 +533,7 @@ window.HD = window.HD || {};
 
   HD.demo = {
     snapshotTime: SNAP,
+    carSchedule: { mode: 'StartAt', startMin: 15, pending: true, departMin: 780, precond: true, precondTimes: 'weekdays', offPeak: false },
     washerLast: { start: SNAP - 864e5 - 3 * 3600e3, end: SNAP - 864e5 - 3 * 3600e3 + 68 * 60e3 },   // yesterday's wash; this one is still running
     trackerIncomeYesterday: { gbp: 3.10, entries: 1, pending: 0, estimated: false },
     trackerIncome: { gbp: 1.85, entries: 1, pending: 0, estimated: true, netAfter: null },
@@ -538,6 +568,12 @@ window.HD = window.HD || {};
           if (service === 'start') s.attributes.active_segments = (s.attributes.rooms[s.attributes.selected_map] || []).map((r) => r.id);
           s.state = { vacuum_clean_segment: 'cleaning', start: 'cleaning', pause: 'paused', return_to_base: 'returning' }[service] || s.state;
           if (s.state !== 'cleaning') s.attributes.active_segments = [];
+        }
+        // Vacuum part reset: its count goes back to 100%
+        const reset = domain === 'button' && service === 'press' && id.match(/^button\.dreame_vacuum_reset_(\w+)$/);
+        if (reset) {
+          const k = { sensor: 'sensor_dirty', wheel: 'wheel_dirty' }[reset[1]] || reset[1];
+          const l = HD.store.states[`sensor.dreame_vacuum_${k}_left`]; if (l) { l.state = '100'; HD.store.emit(l.entity_id); }
         }
         // PC power button: shutdown → HASS.Agent goes offline; wake → back online, a few seconds later
         if (domain === 'button' && service === 'press' && /^button\.(pandapc_shutdown_pc|wake_on_lan_pc)$/.test(id)) {

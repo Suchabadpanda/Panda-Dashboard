@@ -394,3 +394,33 @@ input_datetime:
 
 View-only screens see everything but can't change start times.
 
+
+## Damp and condensation
+
+Rooms has a **Damp and condensation** panel for every room with both a temperature and a humidity sensor. For each room it shows:
+
+- humidity and dew point now
+- **Cold corners:** the humidity against the coldest parts of the outside walls. The surface is taken as outside + 0.75 × (room − outside), the UK design line for avoiding mould. Under 75% is fine, 75–80% is worth keeping an eye on, and 80% or more is a mould risk.
+- the hours in the last 7 days with the room at 65% or more
+
+The outside temperature and dew point come from the weather entity. The panel also says whether airing out will help, which it does when the outside air is drier.
+
+Attention on Home flags a room whose cold corners have been at 80%+ (or the room itself at 70%+) for 3 hours.
+
+Options (all optional): `damp: { f: 0.75, high: 65, watch: 75, risk: 80, alertHours: 3, rooms: ['Kitchen'], outdoor: 'sensor.…', outdoorHumidity: 'sensor.…' }`. `damp: false` turns it off.
+
+## Robot vacuum: parts and cleaning
+
+Rooms → Vacuum lists each part the Dreame integration reports (`sensor.<vacuum>_<part>_left` and `_time_left`): brushes, filter, sensors, wheel, descaler and others, depending on the model. Each shows the % left and the cleaning hours (or days) left. **Reset** presses `button.<vacuum>_reset_<part>` after you fit a new part or clean it. Sensors and wheel are cleaning reminders: 0% means clean them now.
+
+Parts at 10% or less turn red and appear in Attention. Change the threshold with `vacuum.partsDue`.
+
+## Dishwasher: salt, rinse aid and filter
+
+Home Connect's event sensors for salt, rinse aid, filter cleaning and machine care are **disabled in Home Assistant by default**. Enable them (Settings → Devices → the dishwasher → the hidden sensors), and the Devices card shows Salt / Rinse aid / Filter / Machine care. Attention on Home says when one is low, empty or due. No config is needed: they're found by name next to the operation state sensor.
+
+## Car: charging schedule
+
+Enable Tesla Fleet's disabled sensors *Scheduled charging pending*, *Preconditioning enabled*, *Preconditioning* and *Battery heater*. The car card then shows a "Charges at 00:15" chip, plus chips while it preconditions or warms its battery. Tonight's plan uses the car's own start time and shows its departure and preconditioning.
+
+The start and departure times are read from the Tesla Fleet diagnostics, so they need an admin login. The car card warns when the car has no schedule, because it would then start charging, at the peak rate, as soon as it's plugged in. It also warns when the schedule starts outside the cheap hours. `ev.schedule: false` hides all of this.

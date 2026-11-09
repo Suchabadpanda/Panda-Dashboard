@@ -131,6 +131,7 @@ window.HD = window.HD || {};
     if (HD.ac) HD.ac.extraIds().forEach((id) => ids.add(id));
     if (HD.car && HD.car.extraIds) HD.car.extraIds().forEach((id) => ids.add(id));
     if (HD.washer) HD.washer.extraIds().forEach((id) => ids.add(id));
+    if (HD.dishwasher && HD.dishwasher.extraIds) HD.dishwasher.extraIds().forEach((id) => ids.add(id));
     if (HD.trv) HD.trv.extraIds().forEach((id) => ids.add(id));
     if (HD.week) HD.week.extraIds().forEach((id) => ids.add(id));
     return [...ids].filter((id) => !/^(js|css|data)\./.test(id));

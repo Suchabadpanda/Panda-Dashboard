@@ -11,6 +11,8 @@
  *   active, selected,                // select entities: active and selected programme
  *   remoteStart, power, stop,        // binary_sensor / switch / button
  *   saltLow, rinseLow, careDue,      // optional event sensors ('present' = needs attention)
+ *   saltOut, rinseOut, filterDue,    // optional too; when left out they're found by name next to the others
+ *                                    // (sensor.<name>_salt_lack, _rinse_aid_lack, _smart_filter_cleaning_reminder …)
  *   program,                         // fallback programme if the machine doesn't offer Auto
  *   options,                         // optional { half_load: 'switch.…', … }; found from the entity names if left out
  * }
@@ -78,6 +80,21 @@ window.HD = window.HD || {};
   const st = () => String(S().state(cfg().state) || '').toLowerCase();
   const running = () => ['run', 'delayedstart', 'pause'].includes(st());
   const present = (id) => id && S().state(id) === 'present';
+  // Supplies and care reminders. Home Connect's event sensors are 'present' while the machine
+  // is asking, 'confirmed' once acknowledged at the machine, 'off' otherwise. Most are disabled
+  // in Home Assistant until switched on; the ones that exist are used, by config or by name.
+  const named = (key, suffixes) => [cfg()[key], ...suffixes.map((x) => `sensor.${prefix()}_${x}`)].filter((id) => id && S().get(id));
+  function supplies() {
+    const any = (ids) => ids.some(present);
+    const salt = { out: named('saltOut', ['salt_lack', 'program_blocked_salt_lack']), low: named('saltLow', ['salt_nearly_empty']) };
+    const rinse = { out: named('rinseOut', ['rinse_aid_lack']), low: named('rinseLow', ['rinse_aid_nearly_empty']) };
+    const care = named('careDue', ['machine_care_reminder']);
+    const filter = named('filterDue', ['smart_filter_cleaning_reminder', 'machine_care_and_filter_cleaning_reminder', 'machine_care_and_low_maintenance_filter_cleaning_reminder']);
+    const level = (x) => (any(x.out) ? 'empty' : any(x.low) ? 'low' : x.out.length || x.low.length ? 'ok' : null);
+    return { salt: level(salt), rinse: level(rinse), care: care.length ? (any(care) ? 'due' : 'ok') : null,
+      filter: filter.length ? (any(filter) ? 'due' : 'ok') : null, ids: [...salt.out, ...salt.low, ...rinse.out, ...rinse.low, ...care, ...filter] };
+  }
+  const SUP_TEXT = { ok: 'OK', low: 'Running low', empty: 'Empty', due: 'Due' };
   const time = (id) => { const v = id && S().state(id); return v && !['unknown', 'unavailable'].includes(v) ? HD.u.time(v) : ''; };
 
   function summary() {
@@ -126,11 +143,14 @@ window.HD = window.HD || {};
     const picks = chosenExtras();
     const ex = extras();
     const progs = programmes();
+    const sup = supplies();
     const warn = [
-      present(c.saltLow) ? 'Salt is running low' : '',
-      present(c.rinseLow) ? 'Rinse aid is running low' : '',
-      present(c.careDue) ? 'Machine care is due' : '',
+      sup.salt === 'empty' ? 'Out of salt' : sup.salt === 'low' ? 'Salt is running low' : '',
+      sup.rinse === 'empty' ? 'Out of rinse aid' : sup.rinse === 'low' ? 'Rinse aid is running low' : '',
+      sup.filter === 'due' ? 'Clean the filter' : '',
+      sup.care === 'due' ? 'Machine care is due' : '',
     ].filter(Boolean);
+    const supRow = [['Salt', sup.salt], ['Rinse aid', sup.rinse], ['Filter', sup.filter], ['Machine care', sup.care]].filter(([, v]) => v);
     const canStart = S().mode === 'live' ? remote && !running() && door !== 'open' && S().available(c.state) : !running();
     const why = !S().available(c.state) ? 'The dishwasher is offline.'
       : running() ? '' : door === 'open' ? 'Close the door to start it from here.'
@@ -151,6 +171,7 @@ window.HD = window.HD || {};
           <div><dt>Finishes</dt><dd>${time(c.finish) || '–'}</dd></div>
           <div><dt>Remote start</dt><dd>${remote ? 'On' : 'Off'}</dd></div>
         </dl>
+        ${supRow.length ? `<dl class="kv dw-kv dw-supplies">${supRow.map(([k, v]) => `<div class="${v === 'ok' ? '' : v === 'low' ? 'low' : 'bad'}"><dt>${k}</dt><dd>${SUP_TEXT[v]}</dd></div>`).join('')}</dl>` : ''}
         ${!running() && progs.length ? `
         <p class="dw-label">Programme</p><div class="dw-pick" role="radiogroup" aria-label="Programme">
           ${progs.map((p) => `<button class="chip ${p === pick ? 'on' : ''}" role="radio" aria-checked="${p === pick}" data-dw-prog="${esc(p)}">${esc(progName(p))}</button>`).join('')}
@@ -176,8 +197,13 @@ window.HD = window.HD || {};
     if (s === 'finished' && S().state(c.door) !== 'open') out.push(['dish', `${name} finished${time(c.finish) ? ` at ${time(c.finish)}` : ''}: ready to unload`, 'info']);
     if (s === 'actionrequired') out.push(['alert', `${name} needs attention`, 'warning']);
     if (s === 'error') out.push(['alert', `${name} reports an error`, 'critical']);
-    if (present(c.saltLow)) out.push(['dish', `${name}: salt is running low`, 'info']);
-    if (present(c.rinseLow)) out.push(['dish', `${name}: rinse aid is running low`, 'info']);
+    const sup = supplies();
+    if (sup.salt === 'empty') out.push(['dish', `${name} is out of salt: refill before the next wash`, 'warning']);
+    else if (sup.salt === 'low') out.push(['dish', `${name}: salt is running low`, 'info']);
+    if (sup.rinse === 'empty') out.push(['dish', `${name} is out of rinse aid`, 'warning']);
+    else if (sup.rinse === 'low') out.push(['dish', `${name}: rinse aid is running low`, 'info']);
+    if (sup.filter === 'due') out.push(['dish', `${name}: time to clean the filter`, 'info']);
+    if (sup.care === 'due') out.push(['dish', `${name}: machine care programme is due`, 'info']);
     return out;
   }
 
@@ -235,5 +261,10 @@ window.HD = window.HD || {};
       .finally(() => { b.disabled = false; });
   });
 
-  HD.dishwasher = { enabled, chip, cardHtml, alerts };
+  // Supply sensors found by name, so the filtered subscription includes them
+  const SUP_NAMES = ['salt_lack', 'program_blocked_salt_lack', 'salt_nearly_empty', 'rinse_aid_lack', 'rinse_aid_nearly_empty', 'machine_care_reminder',
+    'smart_filter_cleaning_reminder', 'machine_care_and_filter_cleaning_reminder', 'machine_care_and_low_maintenance_filter_cleaning_reminder'];
+  const extraIds = () => (enabled() ? SUP_NAMES.map((x) => `sensor.${prefix()}_${x}`).filter((id) => S().get(id)) : []);
+
+  HD.dishwasher = { enabled, chip, cardHtml, alerts, supplies, extraIds };
 })();

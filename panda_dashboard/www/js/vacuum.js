@@ -510,6 +510,11 @@ window.HD = window.HD || {};
     else if (a === 'switch') {
       const id = sid('switch', t.dataset.key);
       send(id, () => HD.ha.callService('switch', S().state(id) === 'on' ? 'turn_off' : 'turn_on', { entity_id: id }));
+    } else if (a === 'reset') {
+      const id = t.dataset.key; if (!/^button\./.test(id)) return;
+      const what = t.dataset.verb === 'clean' ? `Cleaned the ${t.dataset.label.toLowerCase()}?` : `Fitted a new ${t.dataset.label.toLowerCase()}?`;
+      if (!window.confirm(`${what} This starts its count again at 100%.`)) return;
+      send(id, () => HD.ha.callService('button', 'press', { entity_id: id }).then(() => HD.app.toast(`${t.dataset.label}: count reset`)));
     } else if (a === 'press') {
       const id = sid('button', t.dataset.key);
       send(id, () => HD.ha.callService('button', 'press', { entity_id: id }).then(() => HD.app.toast(`${t.textContent.trim()}: sent`)));
@@ -520,6 +525,56 @@ window.HD = window.HD || {};
     const id = sid('select', t.dataset.vacSelect);
     send(id, () => HD.ha.callService('select', 'select_option', { entity_id: id, option: t.value }));
   });
+
+  // ── Parts and cleaning (consumables) ──
+  // The Dreame integration has sensor.<vacuum>_<part>_left (% of life left) and
+  // _<part>_time_left (cleaning hours or days left), plus button.<vacuum>_reset_<part> to start
+  // the count again after a new part is fitted or the part is cleaned. "Dirty" parts (sensors,
+  // wheel) are cleaning reminders: 0% means clean it now. Only parts this model reports show.
+  const PARTS = [
+    ['main_brush', 'Main brush', 'replace'], ['side_brush', 'Side brush', 'replace'], ['filter', 'Filter', 'replace'],
+    ['mop_pad', 'Mop pads', 'replace'], ['sensor_dirty', 'Sensors', 'clean', 'sensor'], ['wheel_dirty', 'Wheel', 'clean', 'wheel'],
+    ['silver_ion', 'Silver ion', 'replace'], ['scale_inhibitor', 'Descaler', 'replace'], ['detergent', 'Detergent', 'replace'],
+    ['squeegee', 'Squeegee', 'clean'], ['tank_filter', 'Tank filter', 'replace'], ['deodorizer', 'Deodoriser', 'replace'],
+  ];
+  const partDue = () => (cfg().partsDue ?? 10);   // % at or under which a part is flagged
+  function parts() {
+    if (!configured()) return [];
+    return PARTS.map(([key, label, verb, reset]) => {
+      const id = sid('sensor', `${key}_left`);
+      const left = S().num(id); if (left == null) return null;
+      const tId = sid('sensor', `${key}_time_left`);
+      const t = S().num(tId); const unit = String(S().attr(tId, 'unit_of_measurement') || 'h');
+      const resetId = sid('button', `reset_${reset || key}`);
+      return { key, label, verb, left, id, time: t, unit, resetId: S().get(resetId) ? resetId : null, due: left <= partDue() };
+    }).filter(Boolean);
+  }
+  function leftText(p) {
+    if (p.time == null) return '';
+    // Hours are hours of cleaning (not calendar time); days are calendar days
+    if (p.time <= 0) return p.verb === 'clean' ? 'clean now' : 'replace now';
+    if (/^d/i.test(p.unit)) return `${Math.round(p.time)} day${Math.round(p.time) === 1 ? '' : 's'} left`;
+    const h = /^min/i.test(p.unit) ? p.time / 60 : p.time;
+    return `${Math.round(h)} h of cleaning left`;
+  }
+  function partsHtml() {
+    const { esc } = HD.u;
+    const list = parts(); if (!list.length) return '';
+    const due = list.filter((p) => p.due);
+    return `<p class="eyebrow-label">Parts and cleaning${due.length ? ` <span class="vac-due-count">${due.length} due</span>` : ''}</p>
+      <ul class="vac-parts">${list.map((p) => `<li class="${p.due ? 'due' : p.left <= 30 ? 'low' : ''}">
+        <span class="vp-name">${esc(p.label)}</span><span class="vp-pct">${Math.round(p.left)}%</span>
+        <span class="vp-bar"><i style="width:${Math.max(2, Math.min(100, p.left))}%"></i></span>
+        <span class="vp-left">${esc(leftText(p))}</span>
+        ${p.resetId ? `<button class="vp-reset" data-vac="reset" data-key="${esc(p.resetId)}" data-label="${esc(p.label)}" data-verb="${p.verb}" title="${p.verb === 'clean' ? 'Cleaned it' : 'Fitted a new one'}: start the count again">Reset</button>` : ''}
+      </li>`).join('')}</ul>`;
+  }
+  // Attention items on Home: parts at or under partsDue
+  function alerts() {
+    return parts().filter((p) => p.due).map((p) => ['alert', p.verb === 'clean'
+      ? `Robot vacuum: clean the ${p.label.toLowerCase()}${p.left > 0 ? ` (${Math.round(p.left)}% left)` : ''}`
+      : `Robot vacuum: ${p.label.toLowerCase()} needs replacing soon (${Math.round(p.left)}% left)`, p.left <= 0 ? 'warning' : 'info']);
+  }
 
   const STATE_TEXT = { cleaning: 'Cleaning', returning: 'Heading back to the dock', docked: 'Docked', paused: 'Paused', idle: 'Idle', error: 'Needs attention' };
 
@@ -554,6 +609,7 @@ window.HD = window.HD || {};
           ${v.state !== 'docked' ? `<button class="btn ghost" data-vac="dock" ${v.available ? '' : 'disabled'}>Dock</button>` : ''}
           ${sel.length ? '<button class="btn ghost" data-vac="clear">Clear</button>' : ''}
         </div>
+        ${partsHtml()}
       </div>
       <figure class="vac-map">${pic ? `<img src="${pic}" alt="Dreame map: rooms and where the robot is" draggable="false">
         <div class="vac-zoom" role="group" aria-label="Map zoom">
@@ -570,8 +626,9 @@ window.HD = window.HD || {};
     if (HD.config.vacuum === false || !entity()) return [];
     const keys = ['cleaning_mode', 'cleangenius', 'cleangenius_mode', ...PICKS.map((p) => p[0]), ...MORE_SELECTS.map((p) => p[0])];
     const ids = [...keys.map((k) => sid('select', k)), ...SWITCHES.map(([k]) => sid('switch', k)), ...BUTTONS.map(([k]) => sid('button', k))];
+    PARTS.forEach(([k, , , r]) => ids.push(sid('sensor', `${k}_left`), sid('sensor', `${k}_time_left`), sid('button', `reset_${r || k}`)));
     return [entity(), mapCamera(), ...ids.filter((id) => S().get(id))].filter(Boolean);
   }
 
-  HD.vacuum = { configured, entity, info, rooms, planRoomFor, segmentFor, planFloor, selected, panelHtml, toggleRoom, extraIds };
+  HD.vacuum = { configured, entity, info, parts, alerts, rooms, planRoomFor, segmentFor, planFloor, selected, panelHtml, toggleRoom, extraIds };
 })();

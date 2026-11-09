@@ -178,6 +178,13 @@ HD.views = HD.views || {};
     if (needKwh < 0.5) return `<h3 class="sub-head">Tonight's plan</h3>${priceStrip(ts, null)}<p class="sub">Already at its ${pct(limit)} limit. Nothing to charge tonight.</p>`;
 
     const w = cheapWindow(ts);
+    const sc = schedule();
+    // The car's own start time, when it's inside tonight's cheap window
+    if (sc && sc.startMin != null && cheapAt(sc.startMin) && w.start > ts) {
+      const s = new Date(w.start); s.setHours(0, 0, 0, 0); s.setMinutes(sc.startMin);
+      if (s.getTime() < w.start) s.setDate(s.getDate() + 1);
+      if (s.getTime() < w.end) w.start = s.getTime();
+    }
     const hours = needKwh / rateKw;
     const windowH = (w.end - w.start) / 3600e3;
     const cheapKwh = Math.min(needKwh, windowH * rateKw);
@@ -192,7 +199,8 @@ HD.views = HD.views || {};
       ${priceStrip(ts, { start: Math.max(ts, w.start), end: finish })}
       <p class="plan-line"><strong>${lead}:</strong> ${pct(soc)} → ${pct(limit)} by about ${clock(finish)}, roughly ${kwh(needKwh, 0)} for ≈ ${gbp(cost)}.</p>
       ${peakKwh > 0.5 ? `<p class="sub">That's more than the cheap window holds, so ${kwh(peakKwh, 0)} would be at the ${pence(w.t.peak)} peak rate. Lower the limit or top up across two nights to avoid it.</p>` : ''}
-      <p class="sub">Assumes ${kw(rateKw)} from the Wall Connector, about 10% lost charging, and the car's schedule starting at ${hh(w.t.offPeakStart)}.</p>`;
+      <p class="sub">Assumes ${kw(rateKw)} from the Wall Connector and about 10% lost charging${sc && sc.startMin != null ? '' : `, starting at ${hh(w.t.offPeakStart)}`}.</p>
+      ${schedHtml(sc, plugged)}`;
   }
 
   // ── Solar top-up hint (forecast) ──
@@ -554,7 +562,7 @@ HD.views = HD.views || {};
   const updateCands = () => sources().flatMap((src) => [src.update, src.flash && src.flash.replace(/^button\.(.+)_flash_lights$/, 'update.$1_update')])
     .filter((c) => c && c.startsWith('update.'));
   const updateId = () => updateCands().find((c) => S().get(c)) || null;
-  let sw = null; let swAt = 0; let swBusy = false;
+  let sw = null; let swAt = 0; let swBusy = false; let diagSched = null;
   async function loadSoftware(force) {
     if (swBusy || S().mode === 'demo' || !HD.ha.isLive() || (!force && Date.now() - swAt < 10 * 60e3)) return;
     swBusy = true; swAt = Date.now();
@@ -568,6 +576,14 @@ HD.views = HD.views || {};
         const k = (n) => v[`vehicle_state_software_update_${n}`];
         sw = { status: k('status') || '', version: String(k('version') || '').split(' ')[0], scheduledAt: k('scheduled_time_ms') || null,
           download: k('download_perc'), install: k('install_perc'), duration: k('expected_duration_sec'), at: v.vehicle_state_timestamp || Date.now() };
+        // The car's own charging schedule and departure (Tesla's legacy charge_state fields)
+        const cs = (n) => v[`charge_state_${n}`];
+        if (cs('scheduled_charging_mode') !== undefined || cs('scheduled_charging_pending') !== undefined) {
+          diagSched = { mode: cs('scheduled_charging_mode') || null, startMin: cs('scheduled_charging_start_time_minutes') ?? null,
+            pending: cs('scheduled_charging_pending') ?? null, departMin: cs('scheduled_departure_time_minutes') ?? null,
+            precond: cs('preconditioning_enabled') ?? null, precondTimes: cs('preconditioning_times') || null,
+            offPeak: cs('off_peak_charging_enabled') ?? null, at: v.charge_state_timestamp || v.vehicle_state_timestamp || Date.now() };
+        }
         break;
       }
       if (HD.views.car && document.getElementById('car-card')) HD.views.car.update();
@@ -616,6 +632,68 @@ HD.views = HD.views || {};
     const ask = `Install ${u.version || 'the update'} now? The car can’t be driven for ${mins}.`;
     return `<div class="car-sw">${icon('update')}<p><b>Software ${esc(u.version || 'update')}</b>${u.installed ? ` <small>(now ${esc(u.installed)})</small>` : ''}<br>${esc(say)}</p>
       ${u.canInstall && u.status === 'available' ? `<button class="car-btn" data-car="install" data-entity="${u.id}" data-ask="${esc(ask)}">${icon('update')}<span>Install now</span></button>` : ''}</div>`;
+  }
+
+  // ── The car's charging schedule ──
+  // Tesla Fleet's binary sensors (disabled by default in HA; enable them):
+  // scheduled_charging_pending, preconditioning_enabled, preconditioning, battery_heater,
+  // named after the Fleet source (button.<car>_flash_lights → binary_sensor.<car>_…). The start
+  // and departure times aren't entities, so they come from the diagnostics read above
+  // (admin only, while the car page is open); config.ev.schedule = false hides all of it.
+  const SCHED_KEYS = ['scheduled_charging_pending', 'preconditioning_enabled', 'preconditioning', 'battery_heater'];
+  const fleetPrefixes = () => sources().map((src) => (src.flash || '').match(/^button\.(.+)_flash_lights$/)).filter(Boolean).map((m) => m[1]);
+  const schedIds = () => fleetPrefixes().flatMap((p) => SCHED_KEYS.map((k) => `binary_sensor.${p}_${k}`));
+  function schedEntity(key) {
+    for (const p of fleetPrefixes()) {
+      const id = `binary_sensor.${p}_${key}`;
+      if (S().get(id) && S().available(id)) return S().state(id) === 'on';
+    }
+    return null;
+  }
+  const minClock = (m) => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  function schedule() {
+    if (C().ev && C().ev.schedule === false) return null;
+    const d = diagSched || (S().mode === 'demo' && HD.demo.carSchedule) || {};
+    const out = {
+      pending: schedEntity('scheduled_charging_pending') ?? d.pending ?? null,
+      precondOn: schedEntity('preconditioning_enabled') ?? d.precond ?? null,
+      precondNow: schedEntity('preconditioning'), heater: schedEntity('battery_heater'),
+      mode: d.mode || null, startMin: d.mode === 'StartAt' && d.startMin != null ? d.startMin : null,
+      departMin: d.departMin ?? null, precondTimes: d.precondTimes, offPeak: d.offPeak,
+    };
+    if (out.pending == null && out.precondOn == null && !out.mode) return null;
+    return out;
+  }
+  // Is a minute-of-day inside the cheap window?
+  function cheapAt(min) {
+    const d = new Date(nowTs()); d.setHours(0, 0, 0, 0); d.setMinutes(min + 1);
+    return HD.tariff.isOffPeak(d.getTime());
+  }
+  function schedChips(sc) {
+    if (!sc) return '';
+    return [
+      sc.pending ? chip(true, 'clock', sc.startMin != null ? `Charges at ${minClock(sc.startMin)}` : 'Charge scheduled') : '',
+      sc.precondNow ? `<span class="car-chip ok">${icon('fan')}Preconditioning</span>` : '',
+      sc.heater ? `<span class="car-chip ok">${icon('flame')}Warming battery</span>` : '',
+    ].join('');
+  }
+  // Lines for the plan box: what the car will do by itself, and a warning when that costs money
+  function schedHtml(sc, plugged) {
+    if (!sc) return '';
+    const parts = [];
+    if (sc.mode === 'StartAt' && sc.startMin != null) parts.push(`Car's schedule: starts charging at ${minClock(sc.startMin)}${sc.pending ? ' (set for tonight)' : ''}`);
+    else if (sc.mode === 'DepartBy') parts.push('Car\'s schedule: charges to be ready by its departure time');
+    else if (sc.pending) parts.push('Car\'s schedule: charging is scheduled');
+    if (sc.departMin != null && (sc.precondOn || sc.mode === 'DepartBy')) {
+      const days = sc.precondTimes === 'weekdays' ? ' on weekdays' : sc.precondTimes === 'all_week' ? ' every day' : '';
+      parts.push(`departure ${minClock(sc.departMin)}${sc.precondOn ? `, cabin warmed for it${days}` : ''}`);
+    }
+    let warn = '';
+    if (sc.mode === 'Off') warn = 'The car has no charging schedule, so it starts charging as soon as it\'s plugged in, at the peak rate outside the cheap hours. Set scheduled charging in the car or the Tesla app.';
+    else if (sc.startMin != null && !cheapAt(sc.startMin)) warn = `The car's schedule starts at ${minClock(sc.startMin)}, outside the cheap hours.`;
+    if (!parts.length && !warn) return '';
+    return `${parts.length ? `<p class="sub car-sched">${icon('clock')}<span>${esc(parts.join('; '))}.</span></p>` : ''}
+      ${warn && (plugged || sc.mode !== 'Off') ? `<p class="note car-sched-warn">${icon('alert')}<span>${esc(warn)}</span></p>` : warn ? `<p class="sub car-sched">${icon('alert')}<span>${esc(warn)}</span></p>` : ''}`;
   }
 
   const toMiles = (v, u) => (v == null ? null : /mi/i.test(u || '') ? v : v * 0.621371);
@@ -756,6 +834,7 @@ HD.views = HD.views || {};
       climate != null ? `<span class="car-chip ${climate !== 'off' ? 'ok' : ''}">${icon('fan')}Climate ${climate === 'off' ? 'off' : 'on'}</span>` : '',
       lowTyres ? chip(false, 'alert', `${lowTyres} tyre${lowTyres > 1 ? 's' : ''} low`) : '',
       softwareChip(swu),
+      schedChips(schedule()),
     ].join('');
 
     const btn = (key, label, ic, action, extra = '') => {
@@ -823,7 +902,7 @@ HD.views = HD.views || {};
       .finally(() => { b.disabled = false; });
   });
 
-  HD.car = { pick, val, num, soc: () => num('soc'), software, extraIds: updateCands };
+  HD.car = { pick, val, num, soc: () => num('soc'), software, schedule, extraIds: () => [...updateCands(), ...schedIds().filter((id) => S().get(id))] };
 
   function drawHistory() {
     const d = HD.data.daily; const box = document.getElementById('chart-ev');

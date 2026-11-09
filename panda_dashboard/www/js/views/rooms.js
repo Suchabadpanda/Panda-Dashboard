@@ -90,6 +90,7 @@ HD.views = HD.views || {};
         ${HD.config.floorplan ? `<section class="panel wide plan-panel"><header id="plan-head">${planHeader()}</header><div id="climate-plan"></div></section>` : ''}
         <section class="panel"><header><h2>Balance</h2></header><div id="balance"></div></section>
         <section class="panel wide-2 temps-panel"><header><h2>Last 24 hours</h2><p>Band shows ${HD.config.comfortTarget}° ±${bandWidth()}°.</p></header><div id="chart-temps" class="chart-box fill"></div></section>
+        ${HD.damp && HD.damp.enabled() ? '<section class="panel wide damp-panel"><header><h2>Damp and condensation</h2></header><div id="damp"></div></section>' : ''}
         <section class="panel wide ac-panel"><header><h2>Air conditioning</h2></header><div id="ac"></div></section>
       </div>`;
       this.update(); this.redraw();
@@ -101,6 +102,7 @@ HD.views = HD.views || {};
       // The Dreame map <img> is kept so it only reloads when the map changes
       HD.u.setHTML(document.getElementById('climate-plan'), HD.plan.html(planMode), '.vac-map img');
       HD.u.setHTML(document.getElementById('ac'), HD.ac.html());
+      const damp = document.getElementById('damp'); if (damp) HD.u.setHTML(damp, HD.damp.html());
     },
     redraw: drawCharts,
   };

@@ -1440,3 +1440,57 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .crv-tyres .low b { color: var(--critical); }
 @media (max-width: 760px) { .car-main.has-render { grid-template-columns: 1fr; } .crv-tyres { grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .car-render *, .car-render { animation: none !important; } }
+
+/* Robot vacuum: parts and cleaning reminders */
+.vac-parts { list-style: none; margin: 4px 0 14px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.vac-parts li { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 8px; padding: 8px 10px; border-radius: 10px; background: var(--room); border: 1px solid var(--line); font-size: 13px; }
+.vac-parts .vp-name { font-weight: 600; }
+.vac-parts .vp-pct { font-variant-numeric: tabular-nums; color: var(--muted); }
+.vac-parts .vp-bar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.vac-parts .vp-bar i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.vac-parts .vp-left { font-size: 12px; color: var(--muted); }
+.vac-parts .vp-reset { justify-self: end; font: inherit; font-size: 12px; color: var(--muted); background: none; border: 0; padding: 2px 0; cursor: pointer; text-decoration: underline dotted; }
+.vac-parts .vp-reset:hover, .vac-parts .vp-reset:focus-visible { color: var(--ink); }
+.vac-parts li.low .vp-bar i { background: var(--warning); }
+.vac-parts li.due { border-color: color-mix(in oklab, var(--critical) 55%, var(--line)); }
+.vac-parts li.due .vp-bar i { background: var(--critical); }
+.vac-parts li.due .vp-pct, .vac-parts li.due .vp-left { color: var(--critical); }
+.vac-due-count { margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 11px; background: color-mix(in oklab, var(--critical) 22%, transparent); color: var(--critical); letter-spacing: 0; text-transform: none; }
+
+/* Rooms: damp and condensation */
+.damp-air { display: flex; gap: 6px; align-items: flex-start; margin: -4px 0 12px; }
+.damp-air .ic { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+.damp-table { display: grid; font-size: 14px; }
+.damp-row { display: grid; grid-template-columns: minmax(150px, 1.3fr) 1fr 0.8fr minmax(200px, 2fr) 0.9fr; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.damp-row.head { font-size: 12px; color: var(--muted); padding-top: 0; }
+.damp-row small { color: var(--faint); }
+.damp-tip { text-decoration: underline dotted; cursor: help; }
+.damp-name { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+.damp-name .floor-chip { width: 28px; flex: none; }
+.damp-corner { display: grid; grid-template-columns: 1fr 40px 84px; gap: 8px; align-items: center; }
+.damp-corner em { font-style: normal; font-weight: 600; text-align: right; }
+.damp-bar { position: relative; height: 8px; border-radius: 4px; background: var(--room); }
+.damp-bar i { display: block; height: 100%; border-radius: inherit; background: var(--good); }
+.damp-bar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: 0.35; }
+.damp-level { font-size: 12px; color: var(--muted); }
+.damp-row.watch .damp-bar i { background: var(--warning); }
+.damp-row.watch .damp-level { color: color-mix(in oklab, var(--warning) 70%, var(--ink)); }
+.damp-row.risk .damp-bar i { background: var(--critical); }
+.damp-row.risk .damp-level, .damp-row.risk em { color: var(--critical); }
+.damp-row.dry .damp-level { color: var(--cool); }
+.damp-foot { margin-top: 10px; }
+.damp-wk { display: none; }
+@media (max-width: 760px) {
+  .damp-row { grid-template-columns: 1fr auto; gap: 4px 10px; }
+  .damp-row.head { display: none; }
+  .damp-wk { display: inline; }
+  .damp-row > :nth-child(3) { display: none; }
+  .damp-row > :nth-child(4) { grid-column: 1 / -1; }
+  .damp-row > :nth-child(5) { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+}
+.dw-supplies { margin-top: 2px; }
+.dw-supplies .low dd { color: color-mix(in oklab, var(--warning) 70%, var(--ink)); }
+.dw-supplies .bad dd { color: var(--critical); font-weight: 600; }
+.car-sched { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; }
+.car-sched .ic, .car-sched-warn .ic { width: 15px; height: 15px; flex: none; margin-top: 2px; }
+.car-sched-warn { display: flex; gap: 6px; align-items: flex-start; margin-top: 8px; }
