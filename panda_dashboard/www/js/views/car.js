@@ -325,7 +325,7 @@ HD.views = HD.views || {};
     const ts = nowTs();
     try {
       const [res, periods] = await Promise.all([
-        HD.ha.stats([id], Date.UTC(2015, 0, 1), ts, 'hour', ['change', 'state']),
+        HD.ha.stats([id], Date.UTC(2015, 0, 1), ts, 'hour', ['change', 'state'], Infinity),   // lifetime: every hour Home Assistant has
         HD.tracker && HD.tracker.tariffs ? HD.tracker.tariffs().catch(() => null) : null,
       ]);
       const tr = periods ? HD.tracker.rates(periods) : null;

@@ -32,9 +32,10 @@ window.HD = window.HD || {};
     if (loading || !C().power) return;
     if (!force && data && loadedRange === range && Date.now() - at < 5 * 60e3) return;
     loading = true;
+    const want = range;                         // the range can be switched while this is loading
     const ts = nowTs();
     const end = Math.ceil(ts / H) * H;          // to the end of this hour
-    const start = end - range * H;
+    const start = end - want * H;
     const pid = C().power; const sub = subtractIds(); const eid = energyId();
     try {
       const [fine, hourly] = await Promise.all([
@@ -69,7 +70,7 @@ window.HD = window.HD || {};
         hours.push({ t, kwh: counter.has(t) ? counter.get(t) : est, fromCounter: counter.has(t), starts: hrRuns.length, runMin, current: t <= ts && ts < t + H });
       }
       data = { pts, runs, hours, start, end, ts };
-      loadedRange = range; at = Date.now();
+      loadedRange = want; at = Date.now();
     } catch (e) { console.warn('Heat pump cycling unavailable', e); } finally { loading = false; }
   }
 
@@ -124,8 +125,16 @@ window.HD = window.HD || {};
     const old = IDS.map((id) => host.querySelector(`#${id}`));
     if (HD.u.setHTML(host, html())) IDS.forEach((id, i) => { const fresh = host.querySelector(`#${id}`); if (fresh && old[i]) fresh.replaceWith(old[i]); });
     draw();
-    if (stale()) load().then(() => { if (document.getElementById('hpc')) render(); });
+    // Reload only when no load is running, and after a failed one wait before trying again.
+    // render() runs on every live update: chaining another render onto a load that returned
+    // straight away (one already running, or Home Assistant not connected) made a loop that
+    // never let go of the page, so the answer being waited for could never arrive.
+    if (stale() && !loading && Date.now() - triedAt > RETRY) {
+      triedAt = Date.now();
+      load().then(() => { if (document.getElementById('hpc')) render(); });
+    }
   }
+  const RETRY = 30e3; let triedAt = 0;
   const stale = () => !data || loadedRange !== range || Date.now() - at > 5 * 60e3;
 
   function draw() {
@@ -171,7 +180,7 @@ window.HD = window.HD || {};
   document.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-hpc-range]'); if (!b) return;
     const r = Number(b.dataset.hpcRange); if (r === range) return;
-    range = r;
+    range = r; triedAt = 0;
     render();
   });
 

@@ -90,11 +90,17 @@ window.HD = window.HD || {};
   let retry = 0;
   let authKind = '';
 
-  function send(msg) {
+  // timeoutMs: give up (reject) if Home Assistant hasn't answered by then. Without it a
+  // request it never answers stays pending for good, and so does any "already loading"
+  // guard waiting on it.
+  function send(msg, timeoutMs) {
     return new Promise((resolve, reject) => {
       if (!ws || ws.readyState !== 1) return reject(new Error('Not connected'));
       const id = msgId++;
-      pending.set(id, { resolve, reject });
+      let timer = null;
+      const done = (fn) => (v) => { clearTimeout(timer); fn(v); };
+      pending.set(id, { resolve: done(resolve), reject: done(reject) });
+      if (timeoutMs) timer = setTimeout(() => { if (pending.delete(id)) reject(new Error('Home Assistant took too long to answer')); }, timeoutMs);
       ws.send(JSON.stringify({ ...msg, id }));
     });
   }
@@ -276,6 +282,11 @@ window.HD = window.HD || {};
   HD.access = access;
   const viewOnly = () => Promise.reject(new Error('This screen is view only'));
 
+  // Most days of each statistics period one request may ask for. The widest the dashboard
+  // uses are: 5minute 2 days (heat pump cycling), hour 35 days (car charging sessions),
+  // day 13 months (solar strings). Week and month rows are few enough to leave alone.
+  const STATS_MAX_DAYS = { '5minute': 10, hour: 62, day: 800 };
+
   HD.ha = {
     connect,
     baseUrl,
@@ -313,14 +324,25 @@ window.HD = window.HD || {};
       return this.callService(domain === 'light' || domain === 'switch' || domain === 'input_boolean' || domain === 'climate' ? domain : 'homeassistant',
         on ? 'turn_off' : 'turn_on', { entity_id: entityId });
     },
-    // Long-term statistics (5minute | hour | day | week | month)
-    stats(ids, start, end, period, types) {
-      return this.callWS({
+    // Long-term statistics (5minute | hour | day | week | month).
+    // The range is capped per period (STATS_MAX_DAYS) so a wrong start time can't ask the
+    // recorder for years of fine-grained rows; maxDays overrides the cap for a caller that
+    // really needs more. A request Home Assistant doesn't answer in 30 s is given up on.
+    stats(ids, start, end, period, types, maxDays) {
+      const to = new Date(end || Date.now()).getTime();
+      let from = new Date(start).getTime();
+      const cap = maxDays ?? STATS_MAX_DAYS[period];
+      if (cap && to - from > cap * 864e5) {
+        console.warn(`Statistics request capped to ${cap} days of ${period} data (asked for ${Math.round((to - from) / 864e5)})`);
+        from = to - cap * 864e5;
+      }
+      const msg = {
         type: 'recorder/statistics_during_period',
-        start_time: new Date(start).toISOString(),
-        end_time: new Date(end || Date.now()).toISOString(),
+        start_time: new Date(from).toISOString(),
+        end_time: new Date(to).toISOString(),
         statistic_ids: ids, period, types, units: { energy: 'kWh' },
-      });
+      };
+      return store.mode === 'demo' ? HD.demo.callWS(msg) : send(msg, 30000);
     },
     saveCredentials(url, token) {
       try {

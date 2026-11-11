@@ -98,8 +98,9 @@ window.HD = window.HD || {};
     data.loading = true;
     const jobs = [loadToday, loadYesterday, loadDaily, loadTemps];
     if (HD.damp && HD.damp.enabled()) jobs.push(function loadDamp() { return HD.damp.load(); });
-    await Promise.all(jobs.map((j) => j().catch((e) => console.warn(j.name, e))));
-    data.loading = false;
+    // Each request gives up after 30 s (HD.ha.stats), so this can't stay "loading" for good
+    try { await Promise.all(jobs.map((j) => Promise.resolve().then(j).catch((e) => console.warn(j.name, e)))); }
+    finally { data.loading = false; }
     emit();
   }
 

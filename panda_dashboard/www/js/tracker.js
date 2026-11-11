@@ -36,13 +36,24 @@ window.HD = window.HD || {};
     return base;
   }
 
+  // Given up on after 20 s, so a tracker that's busy or restarting can't leave a load hanging
   async function getJson(path) {
-    const r = await fetch(`${base}${path}`, { credentials: 'same-origin', cache: 'no-store' });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 20000);
+    try {
+      const r = await fetch(`${base}${path}`, { credentials: 'same-origin', cache: 'no-store', signal: ac.signal });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.json();
+    } finally { clearTimeout(timer); }
   }
 
-  async function load() {
+  // One load at a time: a call while one is running joins it instead of starting another
+  let busy = null;
+  function load() {
+    if (!busy) busy = loadNow().finally(() => { busy = null; });
+    return busy;
+  }
+  async function loadNow() {
     if (HD.config.tracker === false) return;
     if (S().mode === 'demo') { state.cop = HD.demo.trackerCop || null; state.income = HD.demo.trackerIncome || null; state.incomeYesterday = HD.demo.trackerIncomeYesterday || null; HD.store.emit(null); return; }
     if (S().mode !== 'live' || !(await findTracker())) return;
@@ -123,9 +134,11 @@ window.HD = window.HD || {};
     };
   }
 
+  let timer = null;
   function init() {
+    if (timer) return;      // one refresh timer, however often this is called
     load();
-    setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000);   // the tracker works in half hours; no need to ask often
+    timer = setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000);   // the tracker works in half hours; no need to ask often
   }
 
   HD.tracker = { init, load, tariffs, rates, get cop() { return state.cop; },

@@ -526,8 +526,18 @@ window.HD = window.HD || {};
     const el = body.querySelector('.live-snap');
     const withQ = (p, k, v) => `${HD.ha.baseUrl()}${p}${p.includes('?') ? '&' : '?'}${k}=${v}`;
     // The camera's picture 500s on a battery doorbell that isn't streaming; fall back to the event image
-    el.onerror = () => { if (evtPic && !el.src.includes(evtPic.split('?')[0])) el.src = withQ(evtPic, 't', Date.now()); };
-    const tick = () => { el.src = camPic ? withQ(camPic, 't', Date.now()) : withQ(evtPic, 't', Date.now()); };
+    // Wait for one picture to arrive (or fail) before asking for the next: on a slow Home
+    // Assistant a new request every 2 s abandons each one before it finishes. Stuck for 10 s → ask again.
+    let asked = 0;
+    el.onload = () => { asked = 0; };
+    el.onerror = () => {
+      if (evtPic && !el.src.includes(evtPic.split('?')[0])) { asked = Date.now(); el.src = withQ(evtPic, 't', Date.now()); } else asked = 0;
+    };
+    const tick = () => {
+      if (asked && Date.now() - asked < 10000) return;
+      asked = Date.now();
+      el.src = camPic ? withQ(camPic, 't', Date.now()) : withQ(evtPic, 't', Date.now());
+    };
     tick(); clearInterval(snapTimer); snapTimer = setInterval(tick, 2000);
     status.textContent = `${status.textContent} Showing the doorbell's picture, refreshed every 2 seconds, instead.`.trim();
   }
@@ -567,8 +577,15 @@ window.HD = window.HD || {};
       else if (id === c.person && S().state(c.person) === 'on') { last.person = Date.now(); if (document.getElementById('doorbell-alert').hidden) HD.app.toast(`Person at the ${(c.name || 'front door').toLowerCase()}`); }
       else if (id === c.motion && S().state(c.motion) === 'on') last.motion = Date.now();
     });
-    loadHistory(); loadBatteryTrend(); loadRings();
-    setInterval(() => { if (!document.hidden) { loadHistory(); loadBatteryTrend(); loadRings(); } }, 15 * 60 * 1000);
+    // One background refresh at a time: the next is skipped while the last is still waiting
+    let refreshing15 = false;
+    const refreshAll = () => {
+      if (refreshing15) return;
+      refreshing15 = true;
+      Promise.all([loadHistory(), loadBatteryTrend(), loadRings()]).finally(() => { refreshing15 = false; });
+    };
+    refreshAll();
+    setInterval(() => { if (!document.hidden) refreshAll(); }, 15 * 60 * 1000);
   }
 
   HD.doorbell = { init, cardHtml, alerts, enabled, showRing, last };
