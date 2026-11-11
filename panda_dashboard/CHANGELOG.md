@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.118
+- Fix Energy page freezing when Home Assistant is slow to answer
+
 ## 0.3.117
 - Battery card: always show the Sigen EMS mode
 
