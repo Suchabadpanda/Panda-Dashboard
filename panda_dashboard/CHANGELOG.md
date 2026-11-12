@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.120
+- Grid card: show On Grid instead of on_grid
+
 ## 0.3.119
 - Wrap the Home summary line on phones
 
