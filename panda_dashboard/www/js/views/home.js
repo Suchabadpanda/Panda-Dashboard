@@ -191,7 +191,7 @@ HD.views = HD.views || {};
           <svg class="pylon" viewBox="0 0 40 48" aria-hidden="true"><path d="M20 2L10 46M20 2l10 44M6 14h28M9 26h22M14 14l12 12M26 14L14 26M12 36h16"/></svg>
           <h4>Grid</h4>
           <p>${grid > 0.05 ? `Importing ${kw(grid)}` : grid < -0.05 ? `Exporting ${kw(grid)}` : 'Balanced'}</p>
-          <p class="sub">${esc(S().state(e.gridStatus) || '')}</p>
+          <p class="sub">${esc(HD.u.gridLabel(S().state(e.gridStatus)) || '')}</p>
         </div>
         ${flow('f-grid', grid, kw(grid))}
         </div>

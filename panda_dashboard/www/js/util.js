@@ -117,5 +117,8 @@ window.HD = window.HD || {};
   const EMS_LABELS = { max_self_consumption: 'Maximum Self Consumption', ai_mode: 'AI Mode', tou: 'Time of Use',
     full_feed_in_to_grid: 'Full Feed-In to Grid', vpp_scheduling: 'VPP Scheduling', remote_ems: 'Remote EMS', custom: 'Custom' };
   const emsLabel = (s) => (s && EMS_LABELS[s]) || s;
-  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate, stateKwh, emsLabel };
+  // Same for the grid connection status (on_grid)
+  const GRID_LABELS = { on_grid: 'On Grid', off_grid_auto: 'Off Grid (Auto)', off_grid_manual: 'Off Grid (Manual)' };
+  const gridLabel = (s) => (s && GRID_LABELS[s]) || s;
+  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate, stateKwh, emsLabel, gridLabel };
 })();
