@@ -500,7 +500,13 @@ thead th { color: var(--muted); font-weight: 500; }
 .greeting .sum { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .greeting .sum + .sum::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--line); margin: 0 12px; }
 .greeting .sum:last-child { white-space: normal; }
-@media (max-width: 700px) { .greeting .summary { gap: 6px 16px; font-size: 14px; } .greeting .sum + .sum::before { display: none; } }
+@media (max-width: 700px) {
+  .greeting .summary { gap: 6px 16px; font-size: 14px; }
+  .greeting .sum + .sum::before { display: none; }
+  /* Phones: long items wrap inside the page instead of pushing it sideways */
+  .greeting .sum { white-space: normal; min-width: 0; max-width: 100%; align-items: flex-start; overflow-wrap: anywhere; }
+  .greeting .sum .ic { flex: none; margin-top: 2px; }
+}
 .greeting .sum .ic { width: 16px; height: 16px; color: var(--muted); }
 .greeting .sum.busy .ic { color: var(--s-solar); }
 
