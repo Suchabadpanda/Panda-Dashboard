@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.119
+- Wrap the Home summary line on phones
+
 ## 0.3.118
 - Fix Energy page freezing when Home Assistant is slow to answer
 
