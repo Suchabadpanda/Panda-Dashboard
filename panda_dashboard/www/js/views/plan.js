@@ -253,7 +253,8 @@ HD.views = HD.views || {};
   function html(mode) {
     const fp = C().floorplan;
     if (!fp || !fp.floors) return '<p class="empty">Add a floor plan in config.js to see it here.</p>';
-    return `${mode === 'temp' ? headline() : ''}<div class="plan-floors">${fp.floors.map((f, i) => floorSvg(f, mode, `-${mode}-${i}`)).join('')}</div>${legend(mode)}`;
+    // Anything mode-specific goes under the floors, so switching mode never moves the plan itself
+    return `<div class="plan-floors">${fp.floors.map((f, i) => floorSvg(f, mode, `-${mode}-${i}`)).join('')}</div>${legend(mode)}${mode === 'temp' ? headline() : ''}`;
   }
 
   // Tapping a room toggles its lights (all off if any is on, else all on)

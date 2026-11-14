@@ -23,14 +23,19 @@ window.HD = window.HD || {};
   const H = 3600e3; const M5 = 5 * 60e3;
 
   let range = 24;            // 'today' (since midnight) | 24 | 48 hours
-  let data = null; let at = 0; let loading = false; let loadedRange = null;
+  // Loaded data per range, so switching back is instant. While a range loads for the first
+  // time the last one shown stays on screen (dimmed): swapping it for a one-line "Loading…"
+  // shrank the page by a few hundred pixels and made everything jump.
+  const cache = {};          // range → { data, at }
+  let data = null;           // what the panel is showing (its own range in data.range)
+  let loading = false;
 
   const energyId = () => C().energy || ((HD.config.energy || {}).totals || {}).heatPump;
   const subtractIds = () => [].concat(C().subtract || []).filter(Boolean);
 
   async function load(force) {
     if (loading || !C().power) return;
-    if (!force && data && loadedRange === range && Date.now() - at < 5 * 60e3) return;
+    if (!force && !stale()) return;
     loading = true;
     const want = range;                         // the range can be switched while this is loading
     const ts = nowTs();
@@ -71,8 +76,8 @@ window.HD = window.HD || {};
         const runMin = p.filter(([, v]) => v > on).length * 5;
         hours.push({ t, kwh: counter.has(t) ? counter.get(t) : est, fromCounter: counter.has(t), starts: hrRuns.length, runMin, current: t <= ts && ts < t + H });
       }
-      data = { pts, runs, hours, start, end, ts };
-      loadedRange = want; at = Date.now();
+      cache[want] = { data: { range: want, pts, runs, hours, start, end, ts }, at: Date.now() };
+      return true;
     } catch (e) { console.warn('Heat pump cycling unavailable', e); } finally { loading = false; }
   }
 
@@ -94,8 +99,8 @@ window.HD = window.HD || {};
   }
 
   // Hours the figures cover: since midnight for Today, else the chosen range
-  const spanHours = () => (range === 'today' ? Math.max((data.ts - data.start) / H, 1 / 12) : range);
-  const period = () => (range === 'today' ? 'today' : `last ${range} hours`);
+  const spanHours = () => (data.range === 'today' ? Math.max((data.ts - data.start) / H, 1 / 12) : data.range);
+  const period = () => (data.range === 'today' ? 'today' : `last ${data.range} hours`);
 
   function html() {
     if (!C().power) return '';
@@ -103,12 +108,13 @@ window.HD = window.HD || {};
     const seg = `<div class="seg pv-range" role="radiogroup" aria-label="Range">${[['today', 'Today'], [24, '24 hours'], [48, '48 hours']].map(([k, t]) =>
       `<button class="${range === k ? 'on' : ''}" role="radio" aria-checked="${range === k}" data-hpc-range="${k}">${t}</button>`).join('')}</div>`;
     let body = '<p class="sub">Loading…</p>';
-    if (data && loadedRange === range) {
+    if (cache[range]) data = cache[range].data;
+    if (data) {
       const s = summary();
       const m = HD.heatpump ? HD.heatpump.mode() : null;
       const span = spanHours();
       const cyc = (s.starts / span).toFixed(1);
-      body = `<dl class="kv hpc-kv">
+      body = `<div class="hpc-body${data.range !== range ? ' is-loading' : ''}" aria-busy="${data.range !== range}"><dl class="kv hpc-kv">
           <div><dt>Now</dt><dd>${m ? esc(m.label) : '–'} <small>${HD.u.kw(HD.heatpump ? HD.heatpump.kw() : S().num(C().power))}</small></dd></div>
           <div><dt>Used</dt><dd>${kwh(s.kwhTotal, 1)}</dd></div>
           <div><dt>Starts</dt><dd>${s.starts} <small>${cyc} an hour</small></dd></div>
@@ -119,7 +125,7 @@ window.HD = window.HD || {};
           <div><dt>Running</dt><dd>${mins(s.onMin)} <small>${Math.round(Math.min(1, s.onMin / (span * 60)) * 100)}% of the time</small></dd></div>
         </dl>
         <div id="chart-hpc" class="chart-box"></div>
-        <div id="chart-hpc-power" class="chart-box"></div>`;
+        <div id="chart-hpc-power" class="chart-box"></div></div>`;
     }
     return `<header><h2>Heat pump cycling</h2>${seg}</header>${body}`;
   }
@@ -138,20 +144,21 @@ window.HD = window.HD || {};
     // never let go of the page, so the answer being waited for could never arrive.
     if (stale() && !loading && Date.now() - triedAt > RETRY) {
       triedAt = Date.now();
-      load().then(() => { if (document.getElementById('hpc')) render(); });
+      // A load that worked but was for a range since switched away from: fetch the new one now
+      load().then((ok) => { if (ok && stale()) triedAt = 0; if (document.getElementById('hpc')) render(); });
     }
   }
   const RETRY = 30e3; let triedAt = 0;
-  const stale = () => !data || loadedRange !== range || Date.now() - at > 5 * 60e3;
+  const stale = () => !cache[range] || Date.now() - cache[range].at > 5 * 60e3;
 
   function draw() {
     const box = document.getElementById('chart-hpc'); const pbox = document.getElementById('chart-hpc-power');
     if (!box || !pbox || !data) return;
-    const key = `${range}|${data.ts}|${at}`;
+    const key = `${data.range}|${data.ts}`;
     if (box._key === key) return;
     box._key = key;
     const hrs = data.hours;
-    const twoDays = range === 48;
+    const twoDays = data.range === 48;
     const cats = hrs.map((h) => HD.u.fmt(h.t, { hour: '2-digit' }));
     const tips = hrs.map((h) => `${HD.u.fmt(h.t, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}–${HD.u.fmt(h.t + H, { hour: '2-digit', minute: '2-digit' })}${h.current ? ' (so far)' : ''}`);
     HD.chart.bars(box, {

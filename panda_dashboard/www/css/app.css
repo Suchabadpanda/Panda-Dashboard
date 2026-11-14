@@ -807,6 +807,7 @@ thead th { color: var(--muted); font-weight: 500; }
 .doorcam circle { fill: var(--accent); stroke: var(--bg); stroke-width: 3; }
 .doorcam.ringing circle { fill: var(--warning); animation: plan-pulse 1.2s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 .plan-scale { margin-top: 14px; }
+#climate-plan > .headline { margin: 12px 0 0; }
 .plan-scale i { display: block; height: 10px; border-radius: 5px; background: linear-gradient(90deg, color-mix(in oklab, var(--cool) 80%, var(--room)), var(--room), color-mix(in oklab, var(--warm) 80%, var(--room))); }
 .plan-scale div { display: flex; justify-content: space-between; font: 600 12px var(--font-num); color: var(--faint); margin-top: 4px; }
 .plan-key { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); }
@@ -1214,6 +1215,9 @@ body { font-variant-numeric: tabular-nums; }
 .hpc-kv { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 14px; }
 .hpc-kv dd small { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
 .hpc-kv .warn dd { color: var(--warning); }
+/* Switching range: the last figures stay, dimmed, until the new ones arrive (no collapse, no jump) */
+.hpc-body { transition: opacity .2s; }
+.hpc-body.is-loading { opacity: .45; }
 @media (max-width: 820px) { .hpc-kv { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .pv-panel header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .pv-range { flex: none; }
