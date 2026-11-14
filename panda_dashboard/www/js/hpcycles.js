@@ -22,7 +22,7 @@ window.HD = window.HD || {};
   const nowTs = () => (S().mode === 'demo' && HD.demo ? HD.demo.snapshotTime : Date.now());
   const H = 3600e3; const M5 = 5 * 60e3;
 
-  let range = 24;            // hours: 24 | 48
+  let range = 24;            // 'today' (since midnight) | 24 | 48 hours
   let data = null; let at = 0; let loading = false; let loadedRange = null;
 
   const energyId = () => C().energy || ((HD.config.energy || {}).totals || {}).heatPump;
@@ -34,8 +34,10 @@ window.HD = window.HD || {};
     loading = true;
     const want = range;                         // the range can be switched while this is loading
     const ts = nowTs();
-    const end = Math.ceil(ts / H) * H;          // to the end of this hour
-    const start = end - want * H;
+    // Today runs midnight to midnight (hours still to come stay empty); 24/48 end with this hour
+    const day = new Date(ts); day.setHours(0, 0, 0, 0);
+    const start = want === 'today' ? day.getTime() : Math.ceil(ts / H) * H - want * H;
+    const end = want === 'today' ? new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime() : Math.ceil(ts / H) * H;
     const pid = C().power; const sub = subtractIds(); const eid = energyId();
     try {
       const [fine, hourly] = await Promise.all([
@@ -91,16 +93,21 @@ window.HD = window.HD || {};
     return { kwhTotal, starts: done.length, avgRun: avg(lens), longest: lens.length ? Math.max(...lens) : null, short, shortRun, avgOff: avg(offs), busiest, onMin: data.hours.reduce((a, h) => a + h.runMin, 0) };
   }
 
+  // Hours the figures cover: since midnight for Today, else the chosen range
+  const spanHours = () => (range === 'today' ? Math.max((data.ts - data.start) / H, 1 / 12) : range);
+  const period = () => (range === 'today' ? 'today' : `last ${range} hours`);
+
   function html() {
     if (!C().power) return '';
     const { esc, kwh } = HD.u;
-    const seg = `<div class="seg pv-range" role="radiogroup" aria-label="Range">${[[24, '24 hours'], [48, '48 hours']].map(([k, t]) =>
+    const seg = `<div class="seg pv-range" role="radiogroup" aria-label="Range">${[['today', 'Today'], [24, '24 hours'], [48, '48 hours']].map(([k, t]) =>
       `<button class="${range === k ? 'on' : ''}" role="radio" aria-checked="${range === k}" data-hpc-range="${k}">${t}</button>`).join('')}</div>`;
     let body = '<p class="sub">Loading…</p>';
     if (data && loadedRange === range) {
       const s = summary();
       const m = HD.heatpump ? HD.heatpump.mode() : null;
-      const cyc = (s.starts / range).toFixed(1);
+      const span = spanHours();
+      const cyc = (s.starts / span).toFixed(1);
       body = `<dl class="kv hpc-kv">
           <div><dt>Now</dt><dd>${m ? esc(m.label) : '–'} <small>${HD.u.kw(HD.heatpump ? HD.heatpump.kw() : S().num(C().power))}</small></dd></div>
           <div><dt>Used</dt><dd>${kwh(s.kwhTotal, 1)}</dd></div>
@@ -109,7 +116,7 @@ window.HD = window.HD || {};
           <div><dt>Longest run</dt><dd>${s.longest != null ? mins(s.longest) : '–'}</dd></div>
           <div><dt>Average rest</dt><dd>${s.avgOff != null ? mins(s.avgOff) : '–'}</dd></div>
           <div class="${s.short >= 3 ? 'warn' : ''}"><dt>Short runs</dt><dd>${s.short} <small>${s.shortRun} min or less</small></dd></div>
-          <div><dt>Running</dt><dd>${mins(s.onMin)} <small>${Math.round((s.onMin / (range * 60)) * 100)}% of the time</small></dd></div>
+          <div><dt>Running</dt><dd>${mins(s.onMin)} <small>${Math.round(Math.min(1, s.onMin / (span * 60)) * 100)}% of the time</small></dd></div>
         </dl>
         <div id="chart-hpc" class="chart-box"></div>
         <div id="chart-hpc-power" class="chart-box"></div>`;
@@ -144,11 +151,11 @@ window.HD = window.HD || {};
     if (box._key === key) return;
     box._key = key;
     const hrs = data.hours;
-    const twoDays = range > 24;
+    const twoDays = range === 48;
     const cats = hrs.map((h) => HD.u.fmt(h.t, { hour: '2-digit' }));
     const tips = hrs.map((h) => `${HD.u.fmt(h.t, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}–${HD.u.fmt(h.t + H, { hour: '2-digit', minute: '2-digit' })}${h.current ? ' (so far)' : ''}`);
     HD.chart.bars(box, {
-      label: `Heat pump energy per hour, last ${range} hours`, height: 190, categories: cats, tipLabels: tips,
+      label: `Heat pump energy per hour, ${period()}`, height: 190, categories: cats, tipLabels: tips,
       format: (v, tick) => (tick ? `${v}` : `${v.toFixed(2)} kWh`),
       series: [{ name: 'Heat pump', values: hrs.map((h) => h.kwh), color: 'var(--c2)',
         colors: hrs.map((h) => (h.starts >= 3 ? 'var(--warning)' : null)),
@@ -160,7 +167,7 @@ window.HD = window.HD || {};
       empty: 'No heat pump data for this period yet.',
     });
     HD.chart.line(pbox, {
-      label: `Heat pump power, 5-minute averages, last ${range} hours`, height: 150, endLabels: false, ticks: 3,
+      label: `Heat pump power, 5-minute averages, ${period()}`, height: 150, endLabels: false, ticks: 3,
       xMin: data.start, xMax: data.end, xTicks: window.innerWidth <= 820 ? 4 : twoDays ? 8 : 6, zero: true,
       xFormat: (t) => HD.u.fmt(t, twoDays ? { weekday: 'short', hour: '2-digit' } : { hour: '2-digit', minute: '2-digit' }),
       tipX: (t) => HD.u.fmt(t, { weekday: 'short', hour: '2-digit', minute: '2-digit' }),
@@ -179,7 +186,7 @@ window.HD = window.HD || {};
 
   document.addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-hpc-range]'); if (!b) return;
-    const r = Number(b.dataset.hpcRange); if (r === range) return;
+    const v = b.dataset.hpcRange; const r = v === 'today' ? 'today' : Number(v); if (r === range) return;
     range = r; triedAt = 0;
     render();
   });
