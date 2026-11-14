@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.123
+- Car: charging totals table fits on phones (no sideways page scroll)
+
 ## 0.3.122
 - Stop the page jumping when switching heat pump cycling range or floor plan mode
 
