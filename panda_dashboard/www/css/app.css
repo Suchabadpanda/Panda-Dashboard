@@ -1208,7 +1208,16 @@ body { font-variant-numeric: tabular-nums; }
 .years-table td:first-child, .years-table th:first-child { text-align: left; }
 .years-table small { color: var(--faint, var(--muted)); font-size: 11px; }
 .years-table tr.est td { color: var(--muted); font-style: italic; }
-@media (max-width: 760px) { .totals { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .totals { grid-template-columns: minmax(0, 1fr); } }
+/* A wide table scrolls inside its card, never the whole page sideways */
+.table-scroll { max-width: 100%; overflow-x: auto; }
+@media (max-width: 520px) {
+  .years-table { font-size: 12px; }
+  .years-table th, .years-table td { padding: 6px 5px; }
+  .years-table th, .years-table td:first-child { white-space: normal; }
+  .years-table th:first-child, .years-table td:first-child { padding-left: 0; }
+  .years-table th:last-child, .years-table td:last-child { padding-right: 0; }
+}
 
 /* ── Devices: solar strings (22 Oct) ── */
 .hpc-panel header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }

@@ -409,8 +409,8 @@ HD.views = HD.views || {};
         <div><dt>${thisYear} so far</dt><dd>${kwh(cur.kwh, 0)}</dd></div>
         <div><dt>${thisYear} cost</dt><dd>${cur.added ? '≈ ' : ''}${gbp(cur.cost, 0)}</dd></div>
       </dl>
-      <table class="years-table"><thead><tr><th>Year</th><th>Charged</th><th>Cost</th><th>Per kWh</th><th>Cheap rate</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="5">No charging recorded yet.</td></tr>'}${beforeRow}</tbody></table>
+      <div class="table-scroll"><table class="years-table"><thead><tr><th>Year</th><th>Charged</th><th>Cost</th><th>Per kWh</th><th>Cheap rate</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5">No charging recorded yet.</td></tr>'}${beforeRow}</tbody></table></div>
     </div>`;
   }
 
