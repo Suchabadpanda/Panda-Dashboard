@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.122
+- Stop the page jumping when switching heat pump cycling range or floor plan mode
+
 ## 0.3.121
 - Heat pump cycling: add Today range (midnight to midnight)
 
