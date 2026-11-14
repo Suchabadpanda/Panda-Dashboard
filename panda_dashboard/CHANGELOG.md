@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.121
+- Heat pump cycling: add Today range (midnight to midnight)
+
 ## 0.3.120
 - Grid card: show On Grid instead of on_grid
 
