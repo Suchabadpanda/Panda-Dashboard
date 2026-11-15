@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.124
+- Energy: hot water tank chart uses 5-minute history and ends at the live reading (was hourly, so it lagged up to 2 hours)
+
 ## 0.3.123
 - Car: charging totals table fits on phones (no sideways page scroll)
 

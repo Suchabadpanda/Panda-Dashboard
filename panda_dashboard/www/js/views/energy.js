@@ -81,13 +81,23 @@ HD.views = HD.views || {};
       ${HD.heatpump ? HD.heatpump.lampsHtml(HD.heatpump.mode()) : ''}`;
   }
 
+  // The statistics lag by 5–10 minutes, so the line ends at the live reading
+  let tankDrawn = null;
+  function tankPoints() {
+    const id = C().heatPump.tankTemp;
+    const pts = (HD.data.temps[id] || []).slice();
+    const now = S().num(id);
+    if (now != null) pts.push([HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now(), now]);
+    return pts;
+  }
   function drawTank() {
     const d = HD.data.temps; const box = document.getElementById('chart-tank');
     if (!d || !box || !hasTank()) return;
+    tankDrawn = S().num(C().heatPump.tankTemp);
     HD.chart.line(box, {
       label: 'Hot water tank, last 24 hours', height: window.innerWidth <= 820 ? 170 : 210, endLabels: false, ticks: 4, xTicks: window.innerWidth <= 820 ? 4 : 8,
       format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`),
-      series: [{ name: 'Tank', points: d[C().heatPump.tankTemp], color: 'var(--c2)', area: true }],
+      series: [{ name: 'Tank', points: tankPoints(), color: 'var(--c2)', area: true }],
     });
   }
 
@@ -179,6 +189,8 @@ HD.views = HD.views || {};
     // Only the tank and heat pump cycling figures follow live states; the other charts redraw on data refresh
     update() {
       const tk = document.getElementById('tank'); if (tk && hasTank()) HD.u.setHTML(tk, tankHtml());
+      // Redraw the tank chart only when the reading itself changes
+      if (tk && hasTank() && S().num(C().heatPump.tankTemp) !== tankDrawn) drawTank();
       if (HD.hpCycles) HD.hpCycles.render();
     },
   };

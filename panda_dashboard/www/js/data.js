@@ -86,11 +86,21 @@ window.HD = window.HD || {};
   async function loadTemps() {
     const ids = [];
     C().floors.forEach((f) => f.rooms.forEach((r) => { if (r.temp) ids.push(r.temp); }));
-    if (C().heatPump && C().heatPump.tankTemp) ids.push(C().heatPump.tankTemp);
+    const tank = C().heatPump && C().heatPump.tankTemp;
     const end = HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now();
-    const res = await HD.ha.stats(ids, end - 24 * 3600e3, end, 'hour', ['mean']);
+    const start = end - 24 * 3600e3;
+    // Rooms change slowly: hourly means. The tank can drop or climb 30° in an hour, and an hourly
+    // mean only appears once its hour is over, so the tank uses 5-minute statistics (HA keeps 10 days).
+    const [res, fine] = await Promise.all([
+      HD.ha.stats(tank ? ids.concat(tank) : ids, start, end, 'hour', ['mean']),
+      tank ? HD.ha.stats([tank], start, end, '5minute', ['mean']).catch(() => null) : null,
+    ]);
     data.temps = {};
     ids.forEach((id) => { data.temps[id] = (res[id] || []).map((r) => [r.start, r.mean]); });
+    if (tank) {
+      const rows = fine && fine[tank] && fine[tank].length ? fine[tank] : (res[tank] || []);
+      data.temps[tank] = rows.filter((r) => r.mean != null).map((r) => [r.start, r.mean]);
+    }
   }
 
   async function refresh() {
