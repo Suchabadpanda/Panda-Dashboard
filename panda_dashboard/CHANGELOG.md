@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.126
+- Room temperature chart: 5-minute history, lines end at live readings
+
 ## 0.3.125
 - Tank chart: 5-minute history, line ends at the live reading
 
