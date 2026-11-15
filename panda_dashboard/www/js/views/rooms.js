@@ -42,13 +42,22 @@ HD.views = HD.views || {};
       </ol>`;
   }
 
+  // Each line ends at the room's live reading (the statistics lag 5–10 minutes)
+  let drawnAt = 0; let drawnKey = '';
+  const liveKey = () => rooms().map((r) => (r.temp ? S().num(r.temp) : '')).join('|');
+  function withLive(id, pts) {
+    const now = S().num(id); if (now == null) return pts;
+    return pts.concat([[HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now(), now]]);
+  }
   function drawCharts() {
     const d = HD.data.temps; if (!d) return;
+    if (!document.getElementById('chart-temps')) return;
+    drawnAt = Date.now(); drawnKey = liveKey();
     const list = rooms().filter((r) => r.temp && d[r.temp]);
     HD.chart.line(document.getElementById('chart-temps'), {
       label: 'Room temperatures, last 24 hours', height: 260, fill: true, band: [HD.config.comfortTarget - bandWidth(), HD.config.comfortTarget + bandWidth()],
       format: (v, tick) => (tick ? `${v}°` : `${v.toFixed(1)}°C`), xTicks: 6,
-      series: list.map((r, i) => ({ name: r.name, short: r.name.replace("'s room", ''), points: d[r.temp], color: ROOM_COLORS[i] })),
+      series: list.map((r, i) => ({ name: r.name, short: r.name.replace("'s room", ''), points: withLive(r.temp, d[r.temp]), color: ROOM_COLORS[i] })),
     });
   }
 
@@ -103,6 +112,8 @@ HD.views = HD.views || {};
       HD.u.setHTML(document.getElementById('climate-plan'), HD.plan.html(planMode), '.vac-map img');
       HD.u.setHTML(document.getElementById('ac'), HD.ac.html());
       const damp = document.getElementById('damp'); if (damp) HD.u.setHTML(damp, HD.damp.html());
+      // Follow live readings, at most once a minute (several sensors report every few seconds)
+      if (Date.now() - drawnAt > 60e3 && liveKey() !== drawnKey) drawCharts();
     },
     redraw: drawCharts,
   };
