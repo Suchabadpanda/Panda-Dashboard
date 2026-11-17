@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.128
+- Hot water tank: remove the estimated hot water left
+
 ## 0.3.127
 - Hot water tank: show estimated hot water left
 
