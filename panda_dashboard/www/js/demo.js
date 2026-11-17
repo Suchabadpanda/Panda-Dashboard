@@ -92,7 +92,6 @@ window.HD = window.HD || {};
     ['sensor.heat_pump_power_kw', '0.01', 'kW', 'Heat pump power (kW)', 'power'],
     ['sensor.heat_pump_energy_today', '11.279', 'kWh', 'Heat pump energy today', 'energy'],
     ['sensor.hot_water_tank_temperature', '19', '°C', 'Hot water tank temperature', 'temperature'],
-    ['sensor.hot_water_remaining', '75', '%', 'Hot water remaining'],
     ['binary_sensor.legionella_cycle', 'off', '', 'Legionella cycle', 'heat'],
     ['water_heater.heat_pump', 'off', '', 'Heat pump'],
     ['climate.heat_pump_indoor1', 'off', '', 'Heat pump INDOOR1'],

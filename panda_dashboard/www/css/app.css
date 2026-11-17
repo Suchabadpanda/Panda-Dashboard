@@ -868,9 +868,6 @@ thead th { color: var(--muted); font-weight: 500; }
 @media (max-width: 760px) { .tank-body { grid-template-columns: 1fr; } }
 .tank-panel .big { margin: 0; }
 .tank-note { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }
-.tank-left { margin: 6px 0 0; font-size: 15px; }
-.tank-left b { font-size: 20px; color: #4aa8e8; }
-.tank-left + .tank-note { max-width: 36ch; }
 
 /* Car: Charge now? — plan, solar hint, recent charging */
 .verdict.mid { color: var(--warning) !important; }
