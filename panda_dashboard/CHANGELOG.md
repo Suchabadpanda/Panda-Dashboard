@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.3.127
+- Hot water tank: show estimated hot water left
+
+## 0.3.127
 - Hot water tank: estimated hot water left (%), on the Energy tank card and the Home heat pump card (from sensor.hot_water_remaining)
 
 ## 0.3.126
