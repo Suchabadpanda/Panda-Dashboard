@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.127
+- Hot water tank: estimated hot water left (%), on the Energy tank card and the Home heat pump card (from sensor.hot_water_remaining)
+
 ## 0.3.126
 - Room temperature chart: 5-minute history, lines end at live readings
 

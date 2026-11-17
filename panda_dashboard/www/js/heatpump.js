@@ -227,5 +227,18 @@ window.HD = window.HD || {};
     </span>`;
   }
 
-  HD.heatpump = { mode, lampsHtml, kw: kwNow, _flow: { noteFlow, flowClimb, reset: () => flowPts.splice(0) } };
+  // Estimated hot water left in the tank (%), from config.heatPump.hotWaterLeft (default
+  // sensor.hot_water_remaining, an HA template sensor). Its "tracking" attribute is false once
+  // the tank sensor, low in the cylinder, has reached cold mains: from there on the sensor
+  // can't see any more use, so the figure is only an upper bound ("up to").
+  // Returns null when the sensor isn't there, so the cards look as before.
+  function waterLeft() {
+    const id = HD.config.heatPump.hotWaterLeft ?? 'sensor.hot_water_remaining';
+    const pct = HD.store.num(id);
+    if (pct == null) return null;
+    const upTo = HD.store.attr(id, 'tracking') === false;
+    return { pct: Math.round(pct), upTo, text: `${upTo ? 'up to ' : '~'}${Math.round(pct)}%` };
+  }
+
+  HD.heatpump = { mode, lampsHtml, waterLeft, kw: kwNow, _flow: { noteFlow, flowClimb, reset: () => flowPts.splice(0) } };
 })();

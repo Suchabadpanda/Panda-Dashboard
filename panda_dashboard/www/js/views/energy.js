@@ -76,7 +76,12 @@ HD.views = HD.views || {};
     const hp = C().heatPump;
     const t = S().num(hp.tankTemp);
     const legion = hp.legionella && S().state(hp.legionella) === 'on';
+    const left = HD.heatpump && HD.heatpump.waterLeft();
     return `<p class="big">${HD.u.temp(t)}<small> now</small></p>
+      ${left ? `<p class="tank-left"><b>${left.text}</b> hot water left</p>
+      <p class="tank-note">${left.upTo
+        ? "Estimate. The tank sensor sits low and has reached cold mains, so it can't see any more use."
+        : 'Estimate from the tank sensor, which sits low in the cylinder: the hot water stays on top.'}</p>` : ''}
       <p class="tank-note">${legion ? 'Legionella cycle running. ' : ''}Heat pump ${HD.u.kw(HD.heatpump.kw())} now · ${S().num(hp.energyToday)?.toFixed(1) ?? '–'} kWh today</p>
       ${HD.heatpump ? HD.heatpump.lampsHtml(HD.heatpump.mode()) : ''}`;
   }

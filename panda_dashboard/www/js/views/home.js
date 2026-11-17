@@ -217,7 +217,7 @@ HD.views = HD.views || {};
           <p>${hpOn ? `${esc(hpm.label)} · ${kw(hpP)}` : `Resting${hpP >= 0.05 ? ` · ${kw(hpP)} standby` : ''}`}</p>
           ${HD.heatpump.lampsHtml(hpm)}
           <p class="sub hp-note">${esc(hpm.note)}</p>
-          <p class="sub">Tank ${temp(tank)} · ${kwh(S().num(HD.config.heatPump.energyToday))} today${S().state(HD.config.heatPump.legionella) === 'on' ? ' · legionella cycle' : ''}</p>
+          <p class="sub">Tank ${temp(tank)}${HD.heatpump.waterLeft() ? ` · ${HD.heatpump.waterLeft().text} left` : ''} · ${kwh(S().num(HD.config.heatPump.energyToday))} today${S().state(HD.config.heatPump.legionella) === 'on' ? ' · legionella cycle' : ''}</p>
         </div>
         </div>
         <div class="link">

@@ -161,6 +161,9 @@ HD.config = {
     // runs found from power's 5-minute statistics; runs of shortRun minutes or less count as short cycles
     // energy: 'sensor.heat_pump_energy', shortRun: 20,
     tankTemp: 'sensor.hot_water_tank_temperature',
+    // Hot water left (%), shown on the tank card and the Home heat pump card. Default
+    // sensor.hot_water_remaining; a "tracking: false" attribute shows it as "up to N%".
+    // hotWaterLeft: 'sensor.hot_water_remaining',
     legionella: 'binary_sensor.legionella_cycle',
     waterHeater: 'water_heater.heat_pump',
     climate: 'climate.heat_pump_indoor1',
