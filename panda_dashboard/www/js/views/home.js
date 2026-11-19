@@ -144,6 +144,10 @@ HD.views = HD.views || {};
     </article>`;
   }
 
+  // A side card's live figure: what it's doing (small) over how much (big). The small line is
+  // always there, so a card doesn't change height when, say, the battery goes idle.
+  const nodeVal = (verb, value) => `<p class="node-val"><small>${esc(verb)}</small>${esc(value)}</p>`;
+
   function houseHtml() {
     const e = HD.config.energy;
     const pv = S().num(e.pvPower) || 0;
@@ -181,16 +185,15 @@ HD.views = HD.views || {};
         <div class="node battery ${bat > 0.05 ? 'charging' : bat < -0.05 ? 'discharging' : ''}">
           <div class="cell" style="--soc:${soc ?? 0}%"><span>${pct(soc)}</span></div>
           <h4>Battery</h4>
-          <p>${bat > 0.05 ? `Charging ${kw(bat)}` : bat < -0.05 ? `Supplying ${kw(bat)}` : 'Idle'}</p>
+          ${nodeVal(bat > 0.05 ? 'Charging' : bat < -0.05 ? 'Supplying' : '', Math.abs(bat) > 0.05 ? kw(bat) : 'Idle')}
           <p class="sub">${soc != null ? `${(soc / 100 * cap).toFixed(1)} of ${cap.toFixed(1)} kWh` : ''}</p>
         </div>
         ${flow('f-battery', -bat, kw(bat))}
         </div>
         <div class="link">
         <div class="node grid ${grid > 0.05 ? 'importing' : grid < -0.05 ? 'exporting' : ''}">
-          <svg class="pylon" viewBox="0 0 40 48" aria-hidden="true"><path d="M20 2L10 46M20 2l10 44M6 14h28M9 26h22M14 14l12 12M26 14L14 26M12 36h16"/></svg>
-          <h4>Grid</h4>
-          <p>${grid > 0.05 ? `Importing ${kw(grid)}` : grid < -0.05 ? `Exporting ${kw(grid)}` : 'Balanced'}</p>
+          <div class="node-head"><svg class="pylon" viewBox="0 0 40 48" aria-hidden="true"><path d="M20 2L10 46M20 2l10 44M6 14h28M9 26h22M14 14l12 12M26 14L14 26M12 36h16"/></svg><h4>Grid</h4></div>
+          ${nodeVal(grid > 0.05 ? 'Importing' : grid < -0.05 ? 'Exporting' : '', Math.abs(grid) > 0.05 ? kw(grid) : 'Balanced')}
           <p class="sub">${esc(HD.u.gridLabel(S().state(e.gridStatus)) || '')}</p>
         </div>
         ${flow('f-grid', grid, kw(grid))}
@@ -212,9 +215,8 @@ HD.views = HD.views || {};
         <div class="link">
         ${flow('f-hp', hpOn ? hpP : 0, kw(hpP))}
         <div class="node heatpump ${hpOn ? 'running' : ''} mode-${hpm.key}">
-          <svg class="fan" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="34" rx="4"/><circle cx="24" cy="24" r="11"/><path d="M24 24c0-6 3-9 6-9M24 24c6 0 9 3 9 6M24 24c0 6-3 9-6 9M24 24c-6 0-9-3-9-6"/></svg>
-          <h4>Heat pump</h4>
-          <p>${hpOn ? `${esc(hpm.label)} · ${kw(hpP)}` : `Resting${hpP >= 0.05 ? ` · ${kw(hpP)} standby` : ''}`}</p>
+          <div class="node-head"><svg class="fan" viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="7" width="42" height="34" rx="4"/><circle cx="24" cy="24" r="11"/><path d="M24 24c0-6 3-9 6-9M24 24c6 0 9 3 9 6M24 24c0 6-3 9-6 9M24 24c-6 0-9-3-9-6"/></svg><h4>Heat pump</h4></div>
+          ${hpOn ? nodeVal(hpm.label, kw(hpP)) : nodeVal(hpP >= 0.05 ? `${kw(hpP)} standby` : '', 'Resting')}
           ${HD.heatpump.lampsHtml(hpm)}
           <p class="sub hp-note">${esc(hpm.note)}</p>
           <p class="sub">Tank ${temp(tank)} · ${kwh(S().num(HD.config.heatPump.energyToday))} today${S().state(HD.config.heatPump.legionella) === 'on' ? ' · legionella cycle' : ''}</p>
@@ -493,6 +495,11 @@ HD.views = HD.views || {};
 
   // Today's net cost, less any extra income the Energy Tracker has recorded for today (Axle
   // events and the like). The dashboard's own live net is used so it matches Bought / Sold.
+  // True when today has earned more than it cost (green), after any extra income
+  function netGood(d) {
+    const inc = HD.tracker && HD.tracker.income;
+    return inc && inc.gbp > 0 ? inc.gbp - d.net >= 0 : d.net <= 0;
+  }
   function netHtml(d) {
     const inc = HD.tracker && HD.tracker.income;
     const standing = `incl. ${gbp(d.standing)} standing charge`;
@@ -550,7 +557,7 @@ HD.views = HD.views || {};
 
     return `
       ${alerts.length ? `<section class="now-block alerts">
-        <h2>Attention</h2>
+        <h2>Attention <span class="count">${alerts.length}</span></h2>
         <ul>${alerts.map(([ic, txt, lvl]) => `<li class="${lvl}">${icon(ic)}${esc(txt)}</li>`).join('')}</ul>
       </section>` : ''}
       <section class="now-block battery">
@@ -567,23 +574,22 @@ HD.views = HD.views || {};
       <section class="now-block today">
         <h2>Today so far</h2>
         <dl>
-          <div><dt>Solar</dt><dd>${kwh(pvT)}</dd></div>
-          <div><dt>House used</dt><dd>${kwh(loadT)}</dd></div>
-          <div><dt>Bought</dt><dd>${kwh(imp)}${d ? `<small>${gbp(d.importCost)}</small>` : ''}</dd></div>
-          <div><dt>Sold</dt><dd>${kwh(exp)}${d ? `<small>${gbp(d.exportCredit)}</small>` : ''}</dd></div>
+          <div class="k-solar"><dt>Solar</dt><dd>${kwh(pvT)}</dd></div>
+          <div class="k-load"><dt>House used</dt><dd>${kwh(loadT)}</dd></div>
+          <div class="k-import"><dt>Bought</dt><dd>${kwh(imp)}${d ? `<small>${gbp(d.importCost)}</small>` : ''}</dd></div>
+          <div class="k-export"><dt>Sold</dt><dd>${kwh(exp)}${d ? `<small>${gbp(d.exportCredit)}</small>` : ''}</dd></div>
         </dl>
-        <p class="net">${d ? netHtml(d) : 'Working out today’s cost…'}</p>
+        <p class="net ${d && netGood(d) ? 'good' : ''}">${d ? netHtml(d) : 'Working out today’s cost…'}</p>
         ${yesterdayHtml()}
         ${importBar(d, t)}
       </section>
-      ${copBlock()}
-      ${HD.doorbell ? HD.doorbell.cardHtml() : ''}`;
+      ${copBlock()}`;
   }
 
   HD.views.home = {
     title: 'Home',
     mount(root) {
-      root.innerHTML = '<div id="greeting"></div><div class="home-grid"><div class="home-main"><div class="house-wrap"><div id="sky-host" aria-hidden="false"></div><div id="house"></div></div><div id="tiles"></div></div><aside id="now" class="now"></aside></div>';
+      root.innerHTML = '<div id="greeting"></div><div class="home-grid"><div class="home-main"><div class="house-wrap"><div id="sky-host" aria-hidden="false"></div><div id="house"></div></div><div id="tiles"></div><div id="door"></div></div><aside id="now" class="now"></aside></div>';
       if (HD.sky) HD.sky.reset();
       this.update();
     },
@@ -593,9 +599,10 @@ HD.views = HD.views || {};
       if (HD.washer) HD.washer.maybeLoad();
       HD.u.setHTML(house, houseHtml());
       if (HD.sky) HD.sky.place(document.getElementById('sky-host'), house);
+      HD.u.setHTML(now, nowHtml());
       // The doorbell picture element is kept so it isn't re-fetched (and the camera isn't
       // asked for a frame) on every update
-      HD.u.setHTML(now, nowHtml(), '.door-pic img');
+      HD.u.setHTML(document.getElementById('door'), HD.doorbell ? HD.doorbell.cardHtml() : '', '.door-pic img');
       HD.u.setHTML(document.getElementById('greeting'), greetingHtml());
       HD.u.setHTML(document.getElementById('tiles'), tilesHtml());
     },

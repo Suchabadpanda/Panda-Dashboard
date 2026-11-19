@@ -6,7 +6,7 @@ window.HD = window.HD || {};
 HD.views = HD.views || {};
 
 (function () {
-  const { esc, pence, gbp, kwh } = HD.u;
+  const { esc, pence, gbp, kwh, kw, pct } = HD.u;
   const C = () => HD.config;
   const S = () => HD.store;
   const hasTank = () => !!(C().heatPump && C().heatPump.tankTemp);
@@ -139,11 +139,33 @@ HD.views = HD.views || {};
     });
   }
 
+  // Headline figures above the charts: today's totals and what's happening now
+  function kpisHtml() {
+    const e = C().energy; const n = (id) => S().num(id);
+    const pv = n(e.pvPower) || 0; const load = n(e.loadPower); const bat = n(e.batteryPower) || 0; const grid = n(e.gridPower) || 0;
+    const soc = n(e.soc); const cap = n(e.capacity) || 27.12;
+    const d = HD.data.today; const ts = HD.u.now(); const t = HD.tariff.tariffAt(ts);
+    const inc = HD.tracker && HD.tracker.income;
+    const income = d && inc && inc.gbp > 0 ? inc.gbp - d.net : null;
+    const net = !d ? null : income != null ? income : -d.net;   // + = earned more than it cost
+    const cheap = d && d.importKwh ? Math.round((d.offPeakKwh / d.importKwh) * 100) : null;
+    const k = (cls, label, value, sub) => `<div class="kpi ${cls}"><span>${label}</span><b>${value}</b><small>${sub}</small></div>`;
+    return k('k-solar', 'Solar today', kwh(n(e.pvToday)), pv > 0.05 ? `${kw(pv)} now` : 'No sun now')
+      + k('k-load', 'House used', kwh(n(e.loadToday)), load != null ? `Using ${kw(load)} now` : '')
+      + k('k-battery', 'Battery', pct(soc), bat > 0.05 ? `Charging ${kw(bat)}` : bat < -0.05 ? `Supplying ${kw(bat)}` : soc != null ? `Idle · ${(soc / 100 * cap).toFixed(1)} kWh stored` : '')
+      + k(grid > 0.05 ? 'k-import' : 'k-export', 'Grid now', Math.abs(grid) > 0.05 ? kw(grid) : 'Balanced',
+        grid < -0.05 ? 'Selling to the grid' : `${grid > 0.05 ? 'Buying at' : 'Rate now'} ${pence(HD.tariff.importRate(ts))}${HD.tariff.isOffPeak(ts) ? ' (cheap)' : ''}`)
+      + k(net == null || net >= 0 ? 'k-good' : 'k-cost', income != null ? 'Net income today' : 'Net cost today',
+        net == null ? '–' : gbp(income != null ? income : d.net),
+        cheap != null ? `${cheap}% bought at ${pence(t.offPeak)}` : '');
+  }
+
   HD.views.energy = {
     title: 'Energy',
     mount(root) {
       const t = HD.tariff.tariffAt(Date.now());
       root.innerHTML = `
+      <div class="kpis" id="kpis"></div>
       <div class="panel-grid energy">
         <section class="panel wide">
           <header><h2>Power today</h2><p>Shaded: ${String(t.offPeakStart).padStart(2, '0')}:00–${String(t.offPeakEnd).padStart(2, '0')}:00 at ${pence(t.offPeak)}. Above zero is power coming in (solar, grid buying, battery supplying); below zero is power going out (the house using it, the battery charging, selling to the grid).</p></header>
@@ -188,6 +210,7 @@ HD.views = HD.views || {};
     },
     // Only the tank and heat pump cycling figures follow live states; the other charts redraw on data refresh
     update() {
+      HD.u.setHTML(document.getElementById('kpis'), kpisHtml());
       const tk = document.getElementById('tank'); if (tk && hasTank()) HD.u.setHTML(tk, tankHtml());
       // Redraw the tank chart only when the reading itself changes
       if (tk && hasTank() && S().num(C().heatPump.tankTemp) !== tankDrawn) drawTank();

@@ -1492,3 +1492,64 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .car-sched { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; }
 .car-sched .ic, .car-sched-warn .ic { width: 15px; height: 15px; flex: none; margin-top: 2px; }
 .car-sched-warn { display: flex; gap: 6px; align-items: flex-start; margin-top: 8px; }
+
+/* ── Look refresh (19 Nov) ── */
+/* Home: shortcuts in one row on a wide screen; the front door sits under them, picture left */
+.info-tiles { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+#door:not(:empty) { margin-top: 16px; }
+@media (min-width: 821px) {
+  #door .doorbell { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 22px; align-items: start; }
+  #door .doorbell > h2 { grid-column: 1 / -1; }
+  #door .door-media { grid-row: 2 / 4; }
+  #door .door-pic { margin-bottom: 0; aspect-ratio: 16 / 9; }
+  #door .door-facts { margin-top: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #door .door-facts .wide { grid-column: auto; }
+  #door .ring-strip { align-self: end; }
+}
+/* One column (tablet, phone): the front door stays last, after the side cards, as before */
+@media (max-width: 1100px) {
+  .home-main { display: contents; }
+  #door { order: 1; }
+  #door:not(:empty) { margin-top: 0; }
+}
+
+/* House-side cards: icon and name on one line, the live figure big */
+.node { box-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 8px 24px -14px rgb(0 0 0 / .22); }
+.node-head { display: flex; align-items: center; gap: 8px; }
+.node-head svg { width: 22px; height: 22px; flex: none; }
+.node-head h4 { margin: 0; font-size: 14px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.node.battery h4 { font-size: 14px; font-weight: 500; color: var(--muted); }
+.node p.node-val { margin-top: 8px; font: 600 24px/1.1 var(--font-num); color: var(--ink); white-space: nowrap; }
+.node p.node-val small { display: block; min-height: 1.4em; font: 500 11px/1.4 var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: normal; }
+.side.right .node p.node-val { font-size: 19px; }
+.side.right .node p.node-val small:empty { display: none; }
+.node.battery.charging .node-val, .node.battery.discharging .node-val { color: var(--s-battery); }
+.node.grid.importing .node-val { color: var(--s-import); }
+.node.grid.exporting .node-val { color: var(--s-export); }
+.node.heatpump:not(.running) .node-val { color: var(--muted); }
+
+/* Attention: a count, and each line tinted by how much it matters */
+.alerts h2 .count { display: inline-block; margin-left: 6px; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--warning); color: #1b1300; font: 600 12px/1.4 var(--font-num); text-align: center; }
+.alerts ul { gap: 6px; margin-top: 8px; }
+.alerts li { padding: 7px 10px; border-radius: var(--r-sm); font-size: 13px; background: color-mix(in oklab, var(--accent) 9%, transparent); }
+.alerts li.warning { background: color-mix(in oklab, var(--warning) 15%, transparent); }
+.alerts li.critical { background: color-mix(in oklab, var(--critical) 14%, transparent); }
+
+/* Today so far: four tiles keyed to the chart colours; net figure tinted when it's a gain */
+.today dl { gap: 8px; }
+.today dl > div { background: var(--room); border-radius: var(--r-sm); padding: 8px 10px; border-left: 4px solid var(--k, var(--line)); }
+.k-solar { --k: var(--s-solar); } .k-load { --k: var(--s-load); } .k-import { --k: var(--s-import); } .k-export { --k: var(--s-export); }
+.k-battery { --k: var(--s-battery); } .k-good { --k: var(--good); } .k-cost { --k: var(--s-cost); }
+.now-block.today p.net.good { background: color-mix(in oklab, var(--good) 13%, transparent); border-radius: var(--r-sm); padding: 5px 10px; }
+
+/* Energy: headline figures above the charts */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--gap); margin-bottom: var(--gap); }
+.kpi { position: relative; overflow: hidden; background: var(--panel); border-radius: var(--r-lg); padding: 14px 16px 14px 20px; min-width: 0; }
+.kpi::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--k); }
+.kpi span { display: block; font-size: 13px; color: var(--muted); }
+.kpi b { display: block; margin-top: 2px; font: 600 28px/1.15 var(--font-num); color: var(--ink); white-space: nowrap; }
+.kpi small { display: block; min-height: 1.4em; font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kpi b { font-size: 22px; }
+}
