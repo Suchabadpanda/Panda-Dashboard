@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.129
+- Tidy-up: shared clock and forecast, drop unused exports, merge duplicate CSS rules
+
 ## 0.3.128
 - Hot water tank: remove the estimated hot water left
 
