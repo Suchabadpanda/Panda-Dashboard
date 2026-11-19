@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.132
+- Front door card: fixed-size picture (16:9, at most 560 px wide)
+
 ## 0.3.131
 - Front door card: bigger picture, facts fill the space beside it
 
