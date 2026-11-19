@@ -10,7 +10,7 @@ HD.views = HD.views || {};
   const { esc, kw, kwh, gbp, pence, pct, dur, icon, ago } = HD.u;
   const S = () => HD.store;
   const C = () => HD.config;
-  const nowTs = () => (S().mode === 'demo' ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
 
   // Minutes until the cheap window starts (or ends, when inside it)
   function minutesToSwitch(ts) {
@@ -204,18 +204,8 @@ HD.views = HD.views || {};
   }
 
   // ── Solar top-up hint (forecast) ──
-  let forecast = null; let forecastAt = 0;
-  async function loadForecast() {
-    if (!C().weather || Date.now() - forecastAt < 30 * 60e3) return;
-    forecastAt = Date.now();
-    try {
-      const r = S().mode === 'demo'
-        ? HD.demo.forecast()
-        : await HD.ha.callWS({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { entity_id: C().weather, type: 'hourly' }, return_response: true });
-      const f = r && r.response && r.response[C().weather];
-      forecast = f && f.forecast ? f.forecast : null;
-    } catch (e) { forecast = null; console.warn('Forecast unavailable', e); }
-  }
+  let forecast = null;
+  async function loadForecast() { forecast = await HD.ha.hourlyForecast(); }
 
   function solarHintHtml() {
     if (!forecast || !forecast.length) return '';
@@ -947,7 +937,7 @@ HD.views = HD.views || {};
       .finally(() => { b.disabled = false; });
   });
 
-  HD.car = { pick, val, num, soc: () => num('soc'), software, schedule, extraIds: () => [...updateCands(), ...schedIds().filter((id) => S().get(id))] };
+  HD.car = { pick, soc: () => num('soc'), extraIds: () => [...updateCands(), ...schedIds().filter((id) => S().get(id))] };
 
   function drawHistory() {
     const d = HD.data.daily; const box = document.getElementById('chart-ev');

@@ -287,6 +287,7 @@ window.HD = window.HD || {};
   // day 13 months (solar strings). Week and month rows are few enough to leave alone.
   const STATS_MAX_DAYS = { '5minute': 10, hour: 62, day: 800 };
 
+  const fc = { at: 0, id: null, p: null };   // hourlyForecast() cache
   HD.ha = {
     connect,
     baseUrl,
@@ -323,6 +324,19 @@ window.HD = window.HD || {};
       }
       return this.callService(domain === 'light' || domain === 'switch' || domain === 'input_boolean' || domain === 'climate' ? domain : 'homeassistant',
         on ? 'turn_off' : 'turn_on', { entity_id: entityId });
+    },
+    // Hourly forecast for config.weather, shared by Home, the battery plan and the car's
+    // solar hint: one service call per 30 min however many pages ask. Null if unavailable.
+    hourlyForecast() {
+      const w = HD.config.weather;
+      if (!w) return Promise.resolve(null);
+      if (fc.at && Date.now() - fc.at < 30 * 60e3 && fc.id === w) return fc.p;
+      fc.at = Date.now(); fc.id = w;
+      fc.p = (store.mode === 'demo' ? Promise.resolve(HD.demo.forecast())
+        : this.callWS({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { entity_id: w, type: 'hourly' }, return_response: true }))
+        .then((r) => { const f = r && r.response && r.response[w]; return f && f.forecast ? f.forecast : null; })
+        .catch((e) => { fc.at = 0; console.warn('Forecast unavailable', e); return null; });
+      return fc.p;
     },
     // Long-term statistics (5minute | hour | day | week | month).
     // The range is capped per period (STATS_MAX_DAYS) so a wrong start time can't ask the

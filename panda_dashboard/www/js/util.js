@@ -19,6 +19,8 @@ window.HD = window.HD || {};
     let f = fmts.get(k); if (!f) { f = new Intl.DateTimeFormat('en-GB', opts); fmts.set(k, f); }
     return f.format(d instanceof Date ? d : new Date(d));
   };
+  // The dashboard's clock: the snapshot's time in demo mode, so demo data always looks current
+  const now = () => (HD.store && HD.store.mode === 'demo' && HD.demo ? HD.demo.snapshotTime : Date.now());
   const time = (d) => fmt(d, { hour: '2-digit', minute: '2-digit' });
   const dur = (mins) => {
     if (mins == null || !Number.isFinite(mins)) return '–';
@@ -120,5 +122,5 @@ window.HD = window.HD || {};
   // Same for the grid connection status (on_grid)
   const GRID_LABELS = { on_grid: 'On Grid', off_grid_auto: 'Off Grid (Auto)', off_grid_manual: 'Off Grid (Manual)' };
   const gridLabel = (s) => (s && GRID_LABELS[s]) || s;
-  HD.u = { fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate, stateKwh, emsLabel, gridLabel };
+  HD.u = { now, fmt, cap, esc, kw, kwh, gbp, pence, temp, pct, time, dur, ago, until, icon, setHTML, invalidate, stateKwh, emsLabel, gridLabel };
 })();

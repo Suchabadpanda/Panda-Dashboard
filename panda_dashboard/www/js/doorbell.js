@@ -202,7 +202,7 @@ window.HD = window.HD || {};
   }
   // Today: the time; this week: the day and time; older: the date
   function shotLabel(ts) {
-    const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const now = HD.u.now();
     const d = new Date(ts); const n = new Date(now);
     if (d.toDateString() === n.toDateString()) return time(ts);
     if (now - ts < 6 * 864e5) return `${HD.u.fmt(ts, { weekday: 'short' })} ${time(ts)}`;
@@ -588,5 +588,5 @@ window.HD = window.HD || {};
     setInterval(() => { if (!document.hidden) refreshAll(); }, 15 * 60 * 1000);
   }
 
-  HD.doorbell = { init, cardHtml, alerts, enabled, showRing, last };
+  HD.doorbell = { init, cardHtml, alerts };
 })();

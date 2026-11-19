@@ -143,7 +143,7 @@ window.HD = window.HD || {};
 
   function mode() {
     const c = HD.config.heatPump || {};
-    const now = S().mode === 'demo' && HD.demo ? HD.demo.snapshotTime : Date.now();
+    const now = HD.u.now();
     noteTank(now); seed();
     const read = (id) => { if (!id || !S().get(id)) return null; const v = String(S().state(id)).toLowerCase(); return UNKNOWN.has(v) ? null : v; };
     const wh = read(c.waterHeater); const cl = read(c.climate);
@@ -227,5 +227,5 @@ window.HD = window.HD || {};
     </span>`;
   }
 
-  HD.heatpump = { mode, lampsHtml, kw: kwNow, _flow: { noteFlow, flowClimb, reset: () => flowPts.splice(0) } };
+  HD.heatpump = { mode, lampsHtml, kw: kwNow };
 })();

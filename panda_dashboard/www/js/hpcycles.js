@@ -19,7 +19,7 @@ window.HD = window.HD || {};
 (function () {
   const S = () => HD.store;
   const C = () => HD.config.heatPump || {};
-  const nowTs = () => (S().mode === 'demo' && HD.demo ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
   const H = 3600e3; const M5 = 5 * 60e3;
 
   let range = 24;            // 'today' (since midnight) | 24 | 48 hours

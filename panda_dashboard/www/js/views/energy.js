@@ -87,7 +87,7 @@ HD.views = HD.views || {};
     const id = C().heatPump.tankTemp;
     const pts = (HD.data.temps[id] || []).slice();
     const now = S().num(id);
-    if (now != null) pts.push([HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now(), now]);
+    if (now != null) pts.push([HD.u.now(), now]);
     return pts;
   }
   function drawTank() {

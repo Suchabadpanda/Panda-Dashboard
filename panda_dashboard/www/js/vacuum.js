@@ -630,5 +630,5 @@ window.HD = window.HD || {};
     return [entity(), mapCamera(), ...ids.filter((id) => S().get(id))].filter(Boolean);
   }
 
-  HD.vacuum = { configured, entity, info, parts, alerts, rooms, planRoomFor, segmentFor, planFloor, selected, panelHtml, toggleRoom, extraIds };
+  HD.vacuum = { configured, info, alerts, rooms, segmentFor, selected, panelHtml, extraIds };
 })();

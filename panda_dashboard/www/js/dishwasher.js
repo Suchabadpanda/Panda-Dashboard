@@ -29,7 +29,7 @@ window.HD = window.HD || {};
   const S = () => HD.store;
   const cfg = () => HD.config.dishwasher;
   const enabled = () => !!(cfg() && cfg().state);
-  const nowTs = () => (S().mode === 'demo' ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
 
   const PROGRAMS = {
     eco_50: 'Eco 50°', auto_2: 'Auto 45–65°', intensiv_70: 'Intensive 70°', quick_65: 'Quick 65°',
@@ -266,5 +266,5 @@ window.HD = window.HD || {};
     'smart_filter_cleaning_reminder', 'machine_care_and_filter_cleaning_reminder', 'machine_care_and_low_maintenance_filter_cleaning_reminder'];
   const extraIds = () => (enabled() ? SUP_NAMES.map((x) => `sensor.${prefix()}_${x}`).filter((id) => S().get(id)) : []);
 
-  HD.dishwasher = { enabled, chip, cardHtml, alerts, supplies, extraIds };
+  HD.dishwasher = { enabled, chip, cardHtml, alerts, extraIds };
 })();

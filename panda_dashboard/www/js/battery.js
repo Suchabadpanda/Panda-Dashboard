@@ -20,7 +20,7 @@ window.HD = window.HD || {};
   const S = () => HD.store;
   const H = 3600e3;
   const EFF = 0.95;
-  const nowTs = () => (S().mode === 'demo' ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
   const midnight = (ts) => { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); };
 
   let hist = null; let histAt = 0;
@@ -44,19 +44,11 @@ window.HD = window.HD || {};
     };
   }
 
-  async function loadForecast() {
-    const r = S().mode === 'demo'
-      ? HD.demo.forecast()
-      : await HD.ha.callWS({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { entity_id: C().weather, type: 'hourly' }, return_response: true });
-    const f = r && r.response && r.response[C().weather];
-    return f && f.forecast ? f.forecast : null;
-  }
-
   function load() {
     if (busy) return busy;
     const jobs = [];
     if (!hist || Date.now() - histAt > 3 * H) jobs.push(loadHistory().then((h) => { hist = h; histAt = Date.now(); }).catch((e) => console.warn('Battery plan history unavailable', e)));
-    if (C().weather && (!forecast || Date.now() - forecastAt > 30 * 60e3)) jobs.push(loadForecast().then((f) => { forecast = f; forecastAt = Date.now(); }).catch((e) => console.warn('Battery plan forecast unavailable', e)));
+    if (C().weather && (!forecast || Date.now() - forecastAt > 30 * 60e3)) jobs.push(HD.ha.hourlyForecast().then((f) => { forecast = f; forecastAt = Date.now(); }));
     busy = Promise.all(jobs).finally(() => { busy = null; });
     return busy;
   }

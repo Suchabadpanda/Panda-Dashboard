@@ -17,7 +17,7 @@ HD.views = HD.views || {};
   // or, with no counter, from the hourly average of its power sensor. config.energy.strings
   // can list them explicitly: [{ name, power, energy, kwp, colour }]. kwp (the string's
   // panel rating) adds kWh per kWp, which compares strings of different sizes fairly.
-  const nowTs = () => (S().mode === 'demo' ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
   function strings() {
     const e = HD.config.energy || {};
     const list = e.strings || [

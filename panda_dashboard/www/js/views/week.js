@@ -314,8 +314,6 @@ HD.views = HD.views || {};
       const w = work();
       return KEYS.flatMap((k) => [helper(w.startHelper, k), helper(w.hoursHelper, k)]).filter(Boolean);
     },
-    // Exposed for tests
-    _dayModel: dayModel,
   };
 
   HD.views.week = {

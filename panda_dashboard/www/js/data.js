@@ -18,7 +18,7 @@ window.HD = window.HD || {};
   HD.data = data;
   const emit = () => listeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
 
-  const startOfDay = () => { const d = HD.store.mode === 'demo' ? new Date(HD.demo.snapshotTime) : new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const startOfDay = () => { const d = new Date(HD.u.now()); d.setHours(0, 0, 0, 0); return d.getTime(); };
 
   async function loadToday() {
     const e = C().energy; const hp = C().heatPump; const ev = C().ev;
@@ -31,7 +31,7 @@ window.HD = window.HD || {};
     const imp = HD.tariff.priceImport(hourly[e.totals.import]);
     const exp = HD.tariff.priceExport(hourly[e.totals.export]);
     // Hourly statistics lag the current hour; price the remainder from today's counters.
-    const nowTs = HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const nowTs = HD.u.now();
     const impToday = HD.store.num(e.importToday); const expToday = HD.store.num(e.exportToday);
     if (impToday != null && impToday > imp.kwh) { const r = impToday - imp.kwh; imp.cost += r * HD.tariff.importRate(nowTs); if (HD.tariff.isOffPeak(nowTs)) imp.offPeakKwh += r; imp.kwh = impToday; }
     if (expToday != null && expToday > exp.kwh) { const r = expToday - exp.kwh; exp.credit += r * HD.tariff.tariffAt(nowTs).export; exp.kwh = expToday; }
@@ -47,7 +47,7 @@ window.HD = window.HD || {};
   let yKey = null; let yRows = null;
   async function loadYesterday() {
     const t = C().energy.totals; const t0 = startOfDay(); const y0 = t0 - 864e5;
-    const nowTs = HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const nowTs = HD.u.now();
     if (yKey !== y0 || !yRows) {
       const r = await HD.ha.stats([t.import, t.export], y0, t0, 'hour', ['change']);
       yRows = { imp: (r[t.import] || []).filter((x) => x.start >= y0 && x.start < t0), exp: (r[t.export] || []).filter((x) => x.start >= y0 && x.start < t0) };
@@ -87,7 +87,7 @@ window.HD = window.HD || {};
     const ids = [];
     C().floors.forEach((f) => f.rooms.forEach((r) => { if (r.temp) ids.push(r.temp); }));
     if (C().heatPump && C().heatPump.tankTemp) ids.push(C().heatPump.tankTemp);
-    const end = HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const end = HD.u.now();
     const start = end - 24 * 3600e3;
     // 5-minute statistics (HA keeps 10 days): an hourly mean only appears once its hour is over,
     // so hourly charts ran up to 2 hours behind. Hourly is the fallback for any sensor without them.

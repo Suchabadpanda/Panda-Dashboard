@@ -104,10 +104,6 @@ button { font: inherit; color: inherit; }
 .status.error::before { background: var(--critical); }
 
 .nav { display: flex; gap: 4px; background: var(--panel); padding: 4px; border-radius: 999px; }
-.nav a {
-  color: var(--muted); text-decoration: none; padding: 8px 18px; border-radius: 999px; font-weight: 500;
-}
-.nav a.active { background: var(--room); color: var(--ink); }
 
 .view { padding: 4px 24px 32px; outline: none; }
 
@@ -196,12 +192,6 @@ button { font: inherit; color: inherit; }
   background: var(--line); display: grid; gap: 2px; overflow: hidden;
 }
 .floor { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
-.room {
-  --tint: var(--room);
-  background: var(--tint); padding: 14px 16px 14px; min-height: 132px;
-  display: flex; flex-direction: column; gap: 2px;
-  transition: background-color .6s;
-}
 .room header { display: flex; justify-content: space-between; align-items: center; }
 .room h3 { font-size: 15px; font-weight: 500; color: var(--muted); }
 .room-temp { font: 600 40px/1.05 var(--font-num); font-variant-numeric: tabular-nums; }
@@ -241,7 +231,6 @@ button { font: inherit; color: inherit; }
 /* Shape says what a control does: lights are pills, appliances are rounded squares, status is read-only */
 .chip.appliance { border-radius: 8px; }
 .chip.status { cursor: default; border-style: dashed; background: transparent; }
-.chip.on { background: var(--s-solar); border-color: var(--s-solar); color: #1b1300; }
 .chip:disabled { opacity: .45; cursor: default; }
 .chip .ic { width: 15px; height: 15px; }
 
@@ -393,7 +382,6 @@ thead th { color: var(--muted); font-weight: 500; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
 .seg button { flex: 1; background: transparent; border: 0; padding: 8px 4px; cursor: pointer; color: var(--muted); font-size: 13px; text-transform: capitalize; min-height: 36px; }
 .seg button + button { border-left: 1px solid var(--line); }
-.seg button.on { background: var(--accent); color: var(--bg); }
 .seg button:disabled { opacity: .5; cursor: default; }
 .ac .chip { justify-self: start; }
 
@@ -437,7 +425,6 @@ thead th { color: var(--muted); font-weight: 500; }
 .chart-tip .tip-note { color: var(--muted); margin-top: 4px; display: block; max-width: 240px; white-space: normal; }
 
 /* ── Dialog / toast ── */
-.settings { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px; width: min(520px, calc(100vw - 32px)); }
 .settings::backdrop { background: rgba(5, 10, 16, .6); }
 .settings form { display: grid; gap: 14px; }
 .settings label { display: grid; gap: 6px; font-size: 14px; }
@@ -513,7 +500,6 @@ thead th { color: var(--muted); font-weight: 500; }
 /* ── Sky behind the roof (js/sky.js) ── */
 .house-wrap { position: relative; }
 #house { position: relative; z-index: 1; }
-#sky-host { position: absolute; z-index: 0; height: 178px; pointer-events: none; }
 .roof, .f-solar, .floors { position: relative; z-index: 1; }
 .sky {
   --sky-a: color-mix(in oklab, var(--cool) 26%, var(--bg)); --sky-b: var(--bg);
@@ -562,7 +548,7 @@ thead th { color: var(--muted); font-weight: 500; }
 .sky.grey-2 .cloud, .sky.grey-3 .cloud { --c: color-mix(in oklab, #7c8794 70%, var(--bg)); }
 .sky .cloud.n { --c: color-mix(in oklab, #4a5566 70%, var(--bg)); opacity: .85; }
 @keyframes drift { from { transform: translateX(-90px) scale(var(--s)); } to { transform: translateX(calc(100cqw + 90px)) scale(var(--s)); } }
-#sky-host { container-type: inline-size; }
+#sky-host { position: absolute; z-index: 0; height: 178px; pointer-events: none; container-type: inline-size; }
 
 /* rain, downpour and hail */
 .sky .precip { position: absolute; inset: -20px -30px 0; transform: skewX(calc(var(--tilt, 0deg) * -1)); }
@@ -598,9 +584,8 @@ thead th { color: var(--muted); font-weight: 500; }
 
 /* lightning */
 .sky .bolt-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: flash 7s infinite; }
-.sky .bolt { position: absolute; left: 22%; top: 30px; width: 16px; height: 32px; fill: #ffe36e; opacity: 0; animation: flash 7s infinite; filter: drop-shadow(0 0 6px #ffe36e); }
 @keyframes flash { 0%, 89%, 93%, 100% { opacity: 0; } 90%, 92% { opacity: .55; } 91% { opacity: .1; } }
-.sky .bolt { animation-name: bolt; }
+.sky .bolt { position: absolute; left: 22%; top: 30px; width: 16px; height: 32px; fill: #ffe36e; opacity: 0; animation: flash 7s infinite; filter: drop-shadow(0 0 6px #ffe36e); animation-name: bolt; }
 @keyframes bolt { 0%, 89%, 94%, 100% { opacity: 0; } 90%, 93% { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -624,7 +609,6 @@ thead th { color: var(--muted); font-weight: 500; }
 .info-tile.good { border-color: color-mix(in oklab, var(--s-battery) 55%, var(--line)); }
 .info-tile.good .ic { color: var(--s-battery); }
 .info-tile.shortcut { font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
-.info-tile.shortcut:hover:not(:disabled) { border-color: var(--accent); }
 .info-tile.shortcut:disabled { opacity: .5; cursor: default; }
 .info-tile.shortcut.danger .ic { color: var(--critical); }
 .info-tile.warn { border-color: color-mix(in oklab, var(--warning) 60%, var(--line)); }
@@ -636,7 +620,6 @@ thead th { color: var(--muted); font-weight: 500; }
 
 /* ── Car ── */
 .car-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
-.car-head h2 { font-size: 20px; }
 .eyebrow-label { font-size: 13px; color: var(--muted); }
 .pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .pill.ok { border-color: var(--s-battery); color: var(--ink); }
@@ -651,18 +634,13 @@ thead th { color: var(--muted); font-weight: 500; }
 .tyres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
 .tyres div { background: var(--room); border-radius: var(--r-sm); padding: 8px 10px; display: flex; justify-content: space-between; }
 .tyres span { color: var(--muted); font-size: 13px; }
-.car-head h2 { display: flex; align-items: center; gap: 8px; }
+.car-head h2 { font-size: 20px; display: flex; align-items: center; gap: 8px; }
 .car-head h2 .ic { width: 20px; height: 20px; color: var(--muted); }
 .car-main { display: grid; grid-template-columns: minmax(200px, 300px) 1fr; gap: 20px; align-items: center; }
-.car-top { width: 100%; height: auto; display: block; }
-.car-top .tp { fill: var(--ink); font: 600 20px var(--font-num); }
-.car-top .tp .u { fill: var(--muted); font: 400 11px var(--font); }
-.car-top .tp.low { fill: var(--warning); }
 .car-soc p small { display: block; font-size: 12px; color: var(--faint); }
 .car-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .car-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; font-size: 13px; color: var(--muted); border: 1px solid var(--line); }
 .car-chip .ic { width: 15px; height: 15px; }
-.car-chip.ok { color: var(--s-battery); border-color: color-mix(in oklab, var(--s-battery) 45%, var(--line)); }
 .car-chip.warn { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 50%, var(--line)); }
 .car-chip.doubt { border-style: dashed; }
 .car-chip.doubt small { font-size: 11px; opacity: .8; }
@@ -674,7 +652,6 @@ thead th { color: var(--muted); font-weight: 500; }
 .car-refresh.busy .ic { animation: spin 1.2s linear infinite; }
 .car-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; margin-top: 16px; }
 .car-btn { display: grid; justify-items: center; gap: 6px; padding: 12px 6px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--room); color: var(--ink); cursor: pointer; font-size: 13px; }
-.car-btn .ic { width: 22px; height: 22px; }
 .car-btn:hover:not(:disabled) { border-color: var(--accent); }
 .car-btn:disabled { opacity: .5; cursor: progress; }
 .car-cabin { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--room); }
@@ -754,7 +731,7 @@ thead th { color: var(--muted); font-weight: 500; }
 .tariff-gas small { flex-basis: 100%; color: var(--muted); }
 .tariff-actions { display: flex; gap: 8px; margin: 8px 0 4px; }
 .tariff-actions .btn { margin-top: 0; }
-.settings { width: min(760px, calc(100vw - 32px)); }
+.settings { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 22px; width: min(760px, calc(100vw - 32px)); }
 .door-facts dd small { display: block; font: 400 12px/1.3 var(--font); color: var(--muted); }
 .live-snap { width: 100%; border-radius: var(--r-md); display: block; aspect-ratio: 4 / 3; object-fit: cover; background: #000; }
 .chip.appliance.on { background: var(--s-load); border-color: var(--s-load); color: #fff; }
@@ -896,7 +873,7 @@ thead th { color: var(--muted); font-weight: 500; }
 .sessions .tag.peak { color: var(--warning); border-color: color-mix(in oklab, var(--warning) 50%, var(--line)); }
 
 /* Car drawing: an original crossover that shows what the car is doing */
-.car-top { overflow: visible; }
+.car-top { width: 100%; height: auto; display: block; overflow: visible; }
 .car-top .paint-a { stop-color: color-mix(in oklab, var(--paint) 70%, #0b1118); }
 .car-top .paint-b { stop-color: color-mix(in oklab, var(--paint) 92%, #fff); }
 .car-top .shadow { fill: #000; opacity: .22; filter: blur(6px); }
@@ -975,13 +952,10 @@ body[data-view="week"] { --view-tint: #c6613f; }
 }
 
 /* Nav: gradient pill for the current page, icons on phones */
-.nav a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .25s, color .25s, transform .15s; }
+.nav a { color: var(--muted); text-decoration: none; padding: 8px 18px; border-radius: 999px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .25s, color .25s, transform .15s; }
 .nav a .ic { display: none; }
 .nav a:hover { color: var(--ink); }
-.nav a.active {
-  background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, var(--c5)), color-mix(in oklab, var(--accent) 70%, var(--s-battery)));
-  color: var(--bg); box-shadow: 0 4px 14px -6px color-mix(in oklab, var(--accent) 70%, transparent);
-}
+.nav a.active { background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 85%, var(--c5)), color-mix(in oklab, var(--accent) 70%, var(--s-battery))); color: var(--bg); box-shadow: 0 4px 14px -6px color-mix(in oklab, var(--accent) 70%, transparent); }
 
 /* Press feedback on anything you can tap */
 button, .nav a, .chip, .info-tile.shortcut, .car-btn, .tile, .seg button {
@@ -1000,12 +974,11 @@ button:active:not(:disabled), .nav a:active, .car-btn:active:not(:disabled), .in
 }
 .info-tile.shortcut:hover:not(:disabled) { border-color: var(--tone, var(--accent)); }
 .info-tile.shortcut.good { border-color: color-mix(in oklab, var(--tone, var(--s-battery)) 60%, var(--line)); background: color-mix(in oklab, var(--tone, var(--s-battery)) 8%, var(--panel)); }
-.car-btn .ic { color: var(--accent); }
+.car-btn .ic { width: 22px; height: 22px; color: var(--accent); }
 
 /* "On" states glow */
-.chip.on { box-shadow: 0 0 0 3px color-mix(in oklab, var(--s-solar) 22%, transparent), 0 4px 14px -4px color-mix(in oklab, var(--s-solar) 70%, transparent); animation: pop .3s ease-out; }
-.seg button.on { background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 70%, var(--c5))); }
-.car-chip.ok { background: color-mix(in oklab, var(--s-battery) 10%, transparent); }
+.seg button.on { color: var(--bg); background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 70%, var(--c5))); }
+.car-chip.ok { color: var(--s-battery); border-color: color-mix(in oklab, var(--s-battery) 45%, var(--line)); background: color-mix(in oklab, var(--s-battery) 10%, transparent); }
 @keyframes pop { 0% { transform: scale(.9); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
 
 /* Gauge needle sweeps in */
@@ -1077,9 +1050,8 @@ a.chip { text-decoration: none; }
 .bat-list li.low strong { color: var(--critical); }
 
 /* Three rooms a floor on a phone: smaller type, chips that shrink rather than spill */
-.room { min-width: 0; }
-.room .chip { max-width: 100%; min-width: 0; }
-.room .chip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room { --tint: var(--room); background: var(--tint); padding: 14px 16px 14px; min-height: 132px; display: flex; flex-direction: column; gap: 2px; transition: background-color .6s; min-width: 0; }
+.room .chip { max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 520px) {
   .room { padding: 10px 8px; }
   .room h3 { font-size: 13px; }
@@ -1168,14 +1140,13 @@ body { font-variant-numeric: tabular-nums; }
 .now-block.battery > p.bat-mode { min-height: 0; margin: 0 0 6px; font-size: 13px; color: var(--muted); }
 .now-block.battery > p.bat-mode strong { color: var(--ink); font-weight: 600; }
 /* A light coming on shouldn't jump: no pop when the button is redrawn */
-.chip.on { animation: none; }
+.chip.on { background: var(--s-solar); border-color: var(--s-solar); color: #1b1300; box-shadow: 0 0 0 3px color-mix(in oklab, var(--s-solar) 22%, transparent), 0 4px 14px -4px color-mix(in oklab, var(--s-solar) 70%, transparent); animation: none; }
 .panel .headline, .balance-head p:not(.big) { min-height: 2lh; }
 
 /* Home: battery tile — rate and energy stored under the percentage */
 .bat-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 6px 0 4px; }
-.bat-facts dt { font-size: 12px; color: var(--muted); }
 .bat-facts dd { font: 600 17px/1.25 var(--font-num); white-space: nowrap; text-align: left; margin: 0; }
-.bat-facts dt { text-align: left; }
+.bat-facts dt { font-size: 12px; color: var(--muted); text-align: left; }
 .bat-facts dd small { font-size: 12px; font-weight: 500; color: var(--muted); }
 .door-facts .wide { grid-column: 1 / -1; }
 .live-body .sub .btn { margin-left: 8px; padding: 4px 10px; }

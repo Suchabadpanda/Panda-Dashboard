@@ -243,5 +243,5 @@ window.HD = window.HD || {};
     });
   }
 
-  HD.chart = { line, bars, niceTicks };
+  HD.chart = { line, bars };
 })();

@@ -12,7 +12,7 @@ window.HD = window.HD || {};
 (function () {
   const C = () => HD.config;
   const S = () => HD.store;
-  const nowTs = () => (S().mode === 'demo' ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
   const HALF = 30 * 60e3;
 
   let data = null; let at = 0; let busy = null; let failed = false;

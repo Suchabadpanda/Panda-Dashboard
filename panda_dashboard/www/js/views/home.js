@@ -244,17 +244,12 @@ HD.views = HD.views || {};
   }
 
   // ── Today's forecast, for the summary line (hourly, refreshed every 30 min) ──
-  let hourly = null; let hourlyAt = 0;
+  let hourly = null; let askedAt = 0;
   async function loadHourly() {
-    if (!HD.config.weather || Date.now() - hourlyAt < 30 * 60e3) return;
-    hourlyAt = Date.now();
-    try {
-      const r = S().mode === 'demo' ? HD.demo.forecast()
-        : await HD.ha.callWS({ type: 'call_service', domain: 'weather', service: 'get_forecasts', service_data: { entity_id: HD.config.weather, type: 'hourly' }, return_response: true });
-      const f = r && r.response && r.response[HD.config.weather];
-      hourly = f && f.forecast ? f.forecast : null;
-    } catch (e) { hourly = null; console.warn('Forecast unavailable', e); }
-    HD.app.refresh();
+    if (Date.now() - askedAt < 60e3) return;   // called on every redraw; the forecast itself is cached 30 min
+    askedAt = Date.now();
+    const f = await HD.ha.hourlyForecast();
+    if (f !== hourly) { hourly = f; HD.app.refresh(); }
   }
   const SKY = { 'clear-night': 'clear', cloudy: 'cloudy', fog: 'foggy', hail: 'hail', lightning: 'thunderstorms', 'lightning-rainy': 'thundery showers',
     partlycloudy: 'sunny spells', pouring: 'heavy rain', rainy: 'rain', snowy: 'snow', 'snowy-rainy': 'sleet', sunny: 'sunny', windy: 'windy', 'windy-variant': 'windy', exceptional: 'unsettled' };
@@ -306,7 +301,7 @@ HD.views = HD.views || {};
 
     // What the energy system is doing, in a few words
     const pv = S().num(e.pvPower) || 0; const bat = S().num(e.batteryPower) || 0; const grid = S().num(e.gridPower) || 0;
-    const soc = S().num(e.soc); const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const soc = S().num(e.soc); const now = HD.u.now();
     const b = soc != null ? `battery ${pct(soc)}` : 'battery';
     let energy = '';
     if (grid > 0.1 && bat > 0.1 && HD.tariff.isOffPeak(now)) energy = `Filling the ${b} on the cheap rate`;
@@ -418,7 +413,7 @@ HD.views = HD.views || {};
     const g = HD.config.heatPump && HD.config.heatPump.gas;
     if (!g || !(g.rate > 0)) return null;
     const eff = g.efficiency > 0 ? g.efficiency : 0.9;
-    const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const now = HD.u.now();
     const t = HD.tariff.tariffAt(now);
     if (!t || !(t.peak > 0)) return null;
     const be = (rate) => (rate * eff) / g.rate;
@@ -517,7 +512,7 @@ HD.views = HD.views || {};
 
   function nowHtml() {
     const e = HD.config.energy;
-    const now = S().mode === 'demo' ? HD.demo.snapshotTime : Date.now();
+    const now = HD.u.now();
     const t = HD.tariff.tariffAt(now);
 
     const soc = S().num(e.soc); const bat = S().num(e.batteryPower) || 0;

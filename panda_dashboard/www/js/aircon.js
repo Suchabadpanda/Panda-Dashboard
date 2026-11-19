@@ -282,5 +282,5 @@ window.HD = window.HD || {};
   // (demo mode has no registry, so it hands over its made-up extras here)
   const setExtras = (map) => Object.assign(extrasFound, map);
 
-  HD.ac = { html, units, resolveExtras, extraIds, setExtras, status, badge, target, follow };
+  HD.ac = { html, resolveExtras, extraIds, setExtras, status, badge, target };
 })();

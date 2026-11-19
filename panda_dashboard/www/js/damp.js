@@ -25,7 +25,7 @@ window.HD = window.HD || {};
 (function () {
   const S = () => HD.store;
   const cfg = () => (HD.config.damp === false ? null : { f: 0.75, high: 65, watch: 75, risk: 80, alertHours: 3, ...(HD.config.damp || {}) });
-  const nowTs = () => (S().mode === 'demo' ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
 
   // Saturation vapour pressure (hPa) and dew point (°C), Magnus with Sonntag's constants
   const es = (t) => 6.112 * Math.exp((17.62 * t) / (243.12 + t));
@@ -149,5 +149,5 @@ window.HD = window.HD || {};
       : ['drop', `${r.name} has been at ${Math.round(r.rh)}% humidity for ${h}+ hours`, 'info']);
   }
 
-  HD.damp = { enabled: () => !!cfg() && rooms().length > 0, load, rows, html, alerts, dewPoint, coldCorner };
+  HD.damp = { enabled: () => !!cfg() && rooms().length > 0, load, html, alerts };
 })();

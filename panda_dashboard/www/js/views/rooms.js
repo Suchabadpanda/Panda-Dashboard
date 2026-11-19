@@ -47,7 +47,7 @@ HD.views = HD.views || {};
   const liveKey = () => rooms().map((r) => (r.temp ? S().num(r.temp) : '')).join('|');
   function withLive(id, pts) {
     const now = S().num(id); if (now == null) return pts;
-    return pts.concat([[HD.store.mode === 'demo' ? HD.demo.snapshotTime : Date.now(), now]]);
+    return pts.concat([[HD.u.now(), now]]);
   }
   function drawCharts() {
     const d = HD.data.temps; if (!d) return;

@@ -28,7 +28,7 @@ window.HD = window.HD || {};
   const S = () => HD.store;
   const raw = () => HD.config.washer;
   const enabled = () => !!(raw() && raw().state);
-  const nowTs = () => (S().mode === 'demo' ? HD.demo.snapshotTime : Date.now());
+  const nowTs = HD.u.now;
 
   // Config with companions filled in from the machine-state id
   function cfg() {
