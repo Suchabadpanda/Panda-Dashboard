@@ -44,11 +44,12 @@ triggers:
     entity_id: binary_sensor.doorbell_ringing
     to: "on"
 actions:
-  # Eufy sends the ring's thumbnail a few seconds after the ring
+  # Eufy sends the ring's thumbnail about a minute after the ring (63 s measured)
   - wait_for_trigger:
       - trigger: state
         entity_id: image.doorbell_event_image
-    timeout: "00:01:00"
+    timeout: "00:02:30"
+    continue_on_timeout: false
   - delay: "00:00:02"
   - action: image.snapshot
     target:
