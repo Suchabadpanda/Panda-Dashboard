@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.131
+- Front door card: bigger picture, facts fill the space beside it
+
 ## 0.3.130
 - Look refresh: Home layout, side cards, Attention, Today tiles, Energy headline figures
 
