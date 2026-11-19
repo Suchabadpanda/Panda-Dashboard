@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.130
+- Look refresh: Home layout, side cards, Attention, Today tiles, Energy headline figures
+
 ## 0.3.129
 - Tidy-up: shared clock and forecast, drop unused exports, merge duplicate CSS rules
 
