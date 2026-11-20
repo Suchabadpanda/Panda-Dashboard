@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.133
+- Home: Motion off button for rooms (Office)
+
 ## 0.3.132
 - Front door card: fixed-size picture (16:9, at most 560 px wide)
 
