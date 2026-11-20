@@ -285,6 +285,29 @@ A **Sleep mode** button (moon icon) on a room's Home tile stops movement from sw
 
 3. In `config.js`, on the room: `sleep: 'input_boolean.living_room_sleep_mode'` (or `sleep: { id, name }` for another label). A moon shows in the room's header while it's on. Until the helper exists the button is greyed out.
 
+## Room motion off
+
+A **Motion off** button (crossed-out motion icon) on a room's Home tile stops movement switching that room's light on, for as long as it's on. It works exactly like Sleep mode: an `input_boolean` the motion-light automation checks.
+
+1. Add the helper:
+
+   ```yaml
+   input_boolean:
+     office_motion_disabled:
+       name: Office motion disabled
+       icon: mdi:motion-sensor-off
+   ```
+
+2. In the office motion-light automation, add this to the condition of the step that turns the light **on** (leave the turn-off part alone):
+
+   ```yaml
+   - condition: state
+     entity_id: input_boolean.office_motion_disabled
+     state: 'off'
+   ```
+
+3. In `config.js`, on the room: `motionOff: 'input_boolean.office_motion_disabled'` (or `{ id, name }`). The chip turns orange and a crossed-out motion icon shows in the room's header while it's on. Until the helper exists the button is greyed out.
+
 ## Radiator valve: day/night schedule
 
 A room's radiator valve dialog (tap the radiator chip) shows a **Schedule** when these helpers

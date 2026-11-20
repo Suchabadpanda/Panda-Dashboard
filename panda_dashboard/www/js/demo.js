@@ -39,6 +39,7 @@ window.HD = window.HD || {};
     ['switch.2f_landing', 'off', '', '2F Landing'],
     ['switch.living_room_light_switch', 'off', '', 'Living room Light'],
     ['input_boolean.living_room_sleep_mode', 'off', '', 'Living room sleep mode'],
+    ['input_boolean.office_motion_disabled', 'off', '', 'Office motion disabled'],
     ['switch.1f_landing', 'on', '', '1F Landing'],
     ['switch.office_light', 'on', '', 'Office Light'],
     ['switch.entrance_light', 'off', '', 'Entrance Light'],

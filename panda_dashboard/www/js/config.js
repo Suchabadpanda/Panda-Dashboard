@@ -82,6 +82,8 @@ HD.config = {
           climate: 'climate.office', acTarget: 'input_number.office_ac_target', light: 'switch.office_light', lightName: 'Light',
           tv: 'media_player.office_tv',
           motion: 'binary_sensor.office_motion_detector_occupancy',
+          // Motion off: an input_boolean the office motion-light automation checks (see DOCS.md "Room motion off")
+          motionOff: 'input_boolean.office_motion_disabled',
           plugPower: 'sensor.sonoff_10026839a2_power', plugName: 'Computer',
           // PC power button: wakes the PC when off, shuts it down (after a confirm) when on.
           // On/off comes from the HASS.Agent entity (state, else shutdown), which is unavailable while the PC is off.

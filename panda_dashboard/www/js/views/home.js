@@ -36,20 +36,29 @@ HD.views = HD.views || {};
     return `<button class="chip light icon-only ${st === 'on' ? 'on' : ''}" data-toggle="${id}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon(lightIcon(name, ic))}</button>`;
   }
 
-  // Sleep mode: an input_boolean that the room's motion-light automation checks, so
-  // people can sleep there without movement switching the light on.
-  // config: room.sleep = 'input_boolean.…' or { id, name }
-  const sleepCfg = (r) => !r.sleep ? null : typeof r.sleep === 'string' ? { id: r.sleep } : r.sleep;
-  function sleepBtn(r) {
-    const c = sleepCfg(r); if (!c || !c.id) return '';
-    const name = c.name || 'Sleep mode';
+  // Sleep mode / motion off: an input_boolean that the room's motion-light automation checks,
+  // so movement doesn't switch the light on (someone sleeping there, or motion simply off).
+  // config: room.sleep / room.motionOff = 'input_boolean.…' or { id, name }
+  const HOLDS = {
+    sleep: { name: 'Sleep mode', icon: 'moon', cls: 'chip-sleep', mark: 'sleep-mark' },
+    motionOff: { name: 'Motion sensor', icon: 'motionOff', cls: 'chip-motion-off', mark: 'motion-off-mark' },
+  };
+  const holdCfg = (r, k) => !r[k] ? null : typeof r[k] === 'string' ? { id: r[k] } : r[k];
+  function holdBtn(r, k) {
+    const c = holdCfg(r, k); if (!c || !c.id) return '';
+    const d = HOLDS[k], name = c.name || d.name;
     const st = S().state(c.id);
     const avail = S().available(c.id);
-    const tip = !avail ? `${name}: not set up in Home Assistant yet` : st === 'on'
-      ? `${name} on: movement won't switch the light on · tap to turn off` : `${name} off · tap so movement won't switch the light on`;
-    return `<button class="chip appliance chip-sleep icon-only ${st === 'on' ? 'on' : ''}" data-toggle="${esc(c.id)}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon('moon')}</button>`;
+    const tip = !avail ? `${name}: not set up in Home Assistant yet` : k === 'motionOff'
+      ? (st === 'on' ? `${name} off: movement won't switch the light on · tap to turn it back on` : `${name} on · tap to stop movement switching the light on`)
+      : (st === 'on' ? `${name} on: movement won't switch the light on · tap to turn off` : `${name} off · tap so movement won't switch the light on`);
+    return `<button class="chip appliance ${d.cls} icon-only ${st === 'on' ? 'on' : ''}" data-toggle="${esc(c.id)}" ${avail ? '' : 'disabled'} aria-pressed="${st === 'on'}" aria-label="${esc(tip)}" title="${esc(tip)}">${icon(d.icon)}</button>`;
   }
-  const sleeping = (r) => { const c = sleepCfg(r); return !!c && S().state(c.id) === 'on'; };
+  const holding = (r, k) => { const c = holdCfg(r, k); return !!c && S().state(c.id) === 'on'; };
+  function holdMarks(r) {
+    return (holding(r, 'sleep') ? `<span class="sleep-mark" title="Sleep mode: movement won't switch the light on">${icon('moon')}</span>` : '')
+      + (holding(r, 'motionOff') ? `<span class="motion-off-mark" title="Motion sensor off: movement won't switch the light on">${icon('motionOff')}</span>` : '');
+  }
 
   function acBtn(id) {
     if (!id) return '';
@@ -132,12 +141,12 @@ HD.views = HD.views || {};
     const t = S().num(r.temp); const h = S().num(r.hum);
     const motion = r.motion && S().state(r.motion) === 'on';
     const lux = r.lux != null ? S().num(r.lux) : null;
-    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name, l.icon)), sleepBtn(r), acBtn(r.climate), HD.trv ? HD.trv.chip(r) : '', tvBtn(r.tv), pcBtn(r), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
+    const lights = [lightBtn(r.light, r.lightName), ...(r.extraLights || []).map((l) => lightBtn(l.id, l.name, l.icon)), holdBtn(r, 'sleep'), holdBtn(r, 'motionOff'), acBtn(r.climate), HD.trv ? HD.trv.chip(r) : '', tvBtn(r.tv), pcBtn(r), washerChip(r), HD.dishwasher ? HD.dishwasher.chip(r.name) : ''].join('');
     const delta = t == null ? '' : (t - HD.config.comfortTarget);
     // A room waiting for its sensor (config has area: but nothing's in that area yet)
     const waiting = t == null && !S().get(r.temp);
     return `<article class="room ${r.slim ? 'slim' : ''}" style="${tint(t)}" aria-label="${esc(r.name)}">
-      <header><h3>${esc(r.name)}</h3><span class="room-icons">${sleeping(r) ? `<span class="sleep-mark" title="Sleep mode: movement won't switch the light on">${icon('moon')}</span>` : ''}${motion ? `<span class="motion" title="Someone here · since ${HD.u.time(S().get(r.motion).last_changed)}">${icon('motion')}</span>` : ''}${HD.ac ? HD.ac.badge(r.climate) : ''}</span></header>
+      <header><h3>${esc(r.name)}</h3><span class="room-icons">${holdMarks(r)}${motion ? `<span class="motion" title="Someone here · since ${HD.u.time(S().get(r.motion).last_changed)}">${icon('motion')}</span>` : ''}${HD.ac ? HD.ac.badge(r.climate) : ''}</span></header>
       ${waiting ? '<p class="room-wait">Sensor not set up yet</p>' : `<p class="room-temp">${temp(t)}<small>${delta === '' ? '' : `${delta >= 0 ? '+' : '−'}${Math.abs(delta).toFixed(1)}`}</small></p>
       <p class="room-meta">${icon('drop')}${pct(h)}${lux != null ? ` <span class="lux" title="Light level">${icon('lux')}${Math.round(lux)} lx</span>` : ''}</p>`}
       ${lights ? `<div class="room-controls">${lights}</div>` : ''}
