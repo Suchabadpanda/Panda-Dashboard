@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.134
+- Rooms: page no longer jumps while the robot vacuum runs
+
 ## 0.3.133
 - Home: Motion off button for rooms (Office)
 
