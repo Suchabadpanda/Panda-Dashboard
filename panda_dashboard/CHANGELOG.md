@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.135
+- Front door: smaller ring thumbnails on PC (fixed 140 px instead of stretching)
+
 ## 0.3.134
 - Rooms: page no longer jumps while the robot vacuum runs
 
