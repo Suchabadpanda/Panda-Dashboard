@@ -65,6 +65,8 @@
 /* Elements toggled with the hidden attribute must stay hidden whatever their display rule */
 [hidden] { display: none !important; }
 html, body { margin: 0; }
+/* Scroll anchoring is done by the app on live updates (app.js steady) */
+html { overflow-anchor: none; }
 body {
   background: var(--bg);
   color: var(--ink);

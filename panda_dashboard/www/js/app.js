@@ -67,6 +67,29 @@ window.HD = window.HD || {};
   // inverter's report every few seconds, and nothing on screen needs to be quicker.
   // While the page is hidden (a minimised tray window, a closed panel, the tablet asleep)
   // nothing is redrawn; the store keeps up and the page catches up when shown again.
+  // Live updates rewrite panels in place. When a panel above the one being read changes
+  // height (the robot vacuum's panel does, every second while it cleans), the page under the
+  // reader would slide. Browsers' own scroll anchoring doesn't cope with it: Safari has none,
+  // and Chrome's picks an anchor inside content that is about to be replaced. So it's done
+  // here: the panel at the middle of the screen stays where it was. (overflow-anchor: none in the CSS.)
+  function steady(fn) {
+    const mid = window.innerHeight / 2;
+    let anchor = null; let top = 0;
+    if (window.scrollY > 0) {
+      for (const p of document.querySelectorAll('#view .panel')) {
+        const r = p.getBoundingClientRect();
+        if (r.bottom <= 0 || r.height === 0) continue;
+        if (!anchor) { anchor = p; top = r.top; }   // fallback: the topmost one on screen
+        if (r.top <= mid && r.bottom > mid) { anchor = p; top = r.top; break; }
+        if (r.top > mid) break;
+      }
+    }
+    fn();
+    if (!anchor || !anchor.isConnected) return;
+    const d = anchor.getBoundingClientRect().top - top;
+    if (Math.abs(d) >= 1) window.scrollBy(0, d);
+  }
+
   let pendingUpdate = false; let lastUpdate = 0; let missed = false;
   function scheduleUpdate() {
     if (document.hidden) { missed = true; return; }
@@ -76,7 +99,7 @@ window.HD = window.HD || {};
     setTimeout(() => requestAnimationFrame(() => {
       pendingUpdate = false; lastUpdate = Date.now();
       renderHeader();
-      HD.views[current] && HD.views[current].update();
+      steady(() => HD.views[current] && HD.views[current].update());
     }), wait);
   }
 
@@ -386,7 +409,7 @@ window.HD = window.HD || {};
     wireEvents();
     await loadAddonOptions();
     S.on(scheduleUpdate);
-    HD.data.on(() => { const v = HD.views[current]; if (v && v.redraw) v.redraw(); scheduleUpdate(); });
+    HD.data.on(() => { const v = HD.views[current]; if (v && v.redraw) steady(() => v.redraw()); scheduleUpdate(); });
 
     const params = new URLSearchParams(location.search);
     let live = false;
@@ -416,6 +439,6 @@ window.HD = window.HD || {};
     keepAwake();
   }
 
-  HD.app = { start, toast, refresh: () => { const v = HD.views[current]; if (v) v.update(); } };
+  HD.app = { start, toast, refresh: () => { const v = HD.views[current]; if (v) steady(() => v.update()); } };
   document.addEventListener('DOMContentLoaded', start);
 })();

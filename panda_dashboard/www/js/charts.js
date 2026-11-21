@@ -35,7 +35,12 @@ window.HD = window.HD || {};
   // so it is redrawn when either dimension changes
   function mount(container, render, fill) {
     if (container._ro) container._ro.disconnect();
-    const draw = () => { container.innerHTML = ''; if (container.clientWidth > 0) render(container.clientWidth); };
+    // The box keeps its height while it's emptied and redrawn, so the page below doesn't jump up and back
+    const draw = () => {
+      container.style.minHeight = `${container.offsetHeight}px`;
+      container.innerHTML = ''; if (container.clientWidth > 0) render(container.clientWidth);
+      container.style.minHeight = '';
+    };
     draw();
     container._ro = new ResizeObserver(() => {
       const dw = Math.abs((container._w || 0) - container.clientWidth);
