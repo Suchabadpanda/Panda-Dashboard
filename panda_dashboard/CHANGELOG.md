@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.138
+- Front door: × on each ring picture deletes it from the media folder
+
 ## 0.3.137
 - Front door: rings go under the picture when the card is narrow (container query)
 
