@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.136
+- Home: garage building for an outbuilding sensor (config.garage)
+
 ## 0.3.135
 - Front door: smaller ring thumbnails on PC (fixed 140 px instead of stretching)
 
