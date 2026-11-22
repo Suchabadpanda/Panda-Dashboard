@@ -33,6 +33,9 @@ window.HD = window.HD || {};
     ['sensor.office_temp_humidity_humidity', '50.8', '%', 'Office Humidity', 'humidity'],
     ['sensor.temp_humidity_kitchen_temperature', '22.0', '°C', 'Kitchen Temperature', 'temperature'],
     ['sensor.temp_humidity_kitchen_humidity', '55.6', '%', 'Kitchen Humidity', 'humidity'],
+    ['sensor.garage_temperature', '9.4', '°C', 'Garage Temperature', 'temperature'],
+    ['sensor.garage_humidity', '71.0', '%', 'Garage Humidity', 'humidity'],
+    ['sensor.garage_battery', '100', '%', 'Garage Battery', 'battery'],
     ['climate.bedroom_2_ac', 'off', '', 'Bedroom 2 AC'],
     ['climate.living_room', 'off', '', 'Living room'],
     ['climate.office', 'off', '', 'Office'],
@@ -348,6 +351,7 @@ window.HD = window.HD || {};
     'sensor.1f_bedroom_temperature': [20.8, 20.6, 20.5, 20.3, 20.3, 21, 21.4, 21.6, 21.7, 21.7, 21.5, 21.4, 21.3, 21.1, 21, 21, 20.9, 20.9, 20.9, 20.9, 21.2, 21.3, 21],
     'sensor.ewelink_snzb_02p_temperature_2': [22.1, 21.9, 21.7, 21.6, 21.3, 21.7, 22.2, 22.3, 23.1, 24.5, 24.6, 24.3, 23.7, 23.8, 23.5, 22.9, 23, 23.5, 23.8, 23.5, 23.2, 23, 22.5],
     'sensor.office_temp_humidity_temperature': [22.9, 22.8, 22.9, 22.5, 21.5, 21.5, 21.7, 21.7, 21.9, 22.2, 22.5, 22.3, 22, 21.9, 22, 22.1, 22.3, 22.2, 22.4, 22.6, 22.8, 22.9, 22.9],
+    'sensor.garage_temperature': [11.2, 10.9, 10.6, 10.3, 10.1, 9.9, 9.7, 9.6, 9.8, 10.4, 11.1, 11.8, 12.3, 12.6, 12.7, 12.5, 12.1, 11.6, 11.1, 10.7, 10.3, 10, 9.6],
     'sensor.temp_humidity_kitchen_temperature': [21.6, 21.5, 21.1, 21, 21.1, 21.5, 22, 22.2, 23, 24.3, 24, 23.3, 23, 22.6, 22.4, 22.3, 22.1, 21.9, 22.2, 22.2, 22.3, 22.6, 22.3],
     'sensor.hot_water_tank_temperature': [35.5, 37, 55.7, 64.8, 64.7, 64.3, 63.8, 63.4, 62.7, 61.9, 58.4, 54.1, 51.1, 48.3, 46.4, 44.7, 43, 46.7, 46.3, 34.7, 28.5, 28.2, 26.4],
   };

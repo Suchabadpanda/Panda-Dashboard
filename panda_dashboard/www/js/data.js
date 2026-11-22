@@ -87,6 +87,7 @@ window.HD = window.HD || {};
     const ids = [];
     C().floors.forEach((f) => f.rooms.forEach((r) => { if (r.temp) ids.push(r.temp); }));
     if (C().heatPump && C().heatPump.tankTemp) ids.push(C().heatPump.tankTemp);
+    if (HD.garage) ids.push(...HD.garage.ids());
     const end = HD.u.now();
     const start = end - 24 * 3600e3;
     // 5-minute statistics (HA keeps 10 days): an hourly mean only appears once its hour is over,

@@ -433,6 +433,21 @@ Attention on Home flags a room whose cold corners have been at 80%+ (or the room
 
 Options (all optional): `damp: { f: 0.75, high: 65, watch: 75, risk: 80, alertHours: 3, rooms: ['Kitchen'], outdoor: 'sensor.…', outdoorHumidity: 'sensor.…' }`. `damp: false` turns it off.
 
+## Garage
+
+A small building drawn at the top of the left column on Home, beside the house roof, for a garage (or shed) sensor. It shows the temperature, humidity, a line of the last 24 hours and that day's low–high. It's tinted blue as it gets colder (from 12° down to 2°).
+
+```js
+garage: {
+  name: 'Garage',
+  temp: 'sensor.garage_temperature', hum: 'sensor.garage_humidity',
+  frostBelow: 3,      // Attention item (and a snowflake on the building) at or below this °C; false = off
+  dampAbove: false,   // e.g. 85: Attention item at or above this % humidity
+},
+```
+
+The garage isn't heated, so it's left out of the house average in the greeting, the room balance and chart on Rooms, and the damp panel. Add its battery sensor to `devices.sensorBatteries` for the low-battery warning and the Devices list.
+
 ## Robot vacuum: parts and cleaning
 
 Rooms → Vacuum lists each part the Dreame integration reports (`sensor.<vacuum>_<part>_left` and `_time_left`): brushes, filter, sensors, wheel, descaler and others, depending on the model. Each shows the % left and the cleaning hours (or days) left. **Reset** presses `button.<vacuum>_reset_<part>` after you fit a new part or clean it. Sensors and wheel are cleaning reminders: 0% means clean them now.

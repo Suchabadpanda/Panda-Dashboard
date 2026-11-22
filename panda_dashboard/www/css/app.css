@@ -141,6 +141,27 @@ button { font: inherit; color: inherit; }
 }
 .battery .cell span { position: relative; font: 600 20px/1 var(--font-num); }
 
+/* Garage: a small building at the top of the left column, above the battery */
+.garage { width: 128px; flex: none; margin-bottom: auto; display: flex; flex-direction: column; }
+.garage-roof { height: 30px; margin: 0 -6px; background: var(--panel); clip-path: polygon(0 100%, 50% 0, 100% 100%); border-bottom: 2px solid var(--line); }
+.garage-body {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 0;
+  background: var(--tint); border: 2px solid var(--line); border-top: none; border-radius: 0 0 var(--r-md) var(--r-md); overflow: hidden;
+}
+.garage { --tint: var(--room); }
+.garage header { display: flex; justify-content: space-between; align-items: center; }
+.garage h4 { font-size: 15px; font-weight: 500; color: var(--muted); }
+.garage-temp { font: 600 26px/1.1 var(--font-num); font-variant-numeric: tabular-nums; }
+.garage .sub { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+.garage-spark { width: 100%; height: 24px; margin-top: 4px; overflow: visible; }
+.garage-spark polyline { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.garage.frost .garage-spark polyline { stroke: var(--cool); }
+.frost-mark { display: inline-flex; color: var(--cool); }
+.frost-mark .ic { width: 16px; height: 16px; }
+.garage.frost .garage-temp { color: var(--cool); }
+.garage-door { display: grid; gap: 3px; margin: 8px 6px 0; padding: 4px 6px 0; border: 2px solid var(--line); border-bottom: none; border-radius: 3px 3px 0 0; }
+.garage-door i { height: 3px; border-radius: 1px; background: var(--line); }
+
 /* flows */
 .flow {
   --c: var(--line);
@@ -465,6 +486,8 @@ thead th { color: var(--muted); font-weight: 500; }
   .side { justify-content: flex-start; gap: 10px; }
   .link { flex-direction: column; align-items: stretch; }
   .node, .link > .node { width: 100%; }
+  .garage { width: 100%; margin-bottom: 0; }
+  .garage-roof { margin: 0 18%; }
   .flow:not(.f-solar) { display: none; }
   .panel-grid, .panel-grid.climate, .panel-grid.devices { grid-template-columns: 1fr; }
     .now { grid-template-columns: 1fr; }

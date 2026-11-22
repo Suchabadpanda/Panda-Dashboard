@@ -190,6 +190,7 @@ HD.views = HD.views || {};
     return `
     <div class="section-drawing">
       <div class="side left">
+        ${HD.garage ? HD.garage.html() : ''}
         <div class="link">
         <div class="node battery ${bat > 0.05 ? 'charging' : bat < -0.05 ? 'discharging' : ''}">
           <div class="cell" style="--soc:${soc ?? 0}%"><span>${pct(soc)}</span></div>
@@ -557,6 +558,7 @@ HD.views = HD.views || {};
     if (HD.dishwasher) alerts.push(...HD.dishwasher.alerts());
     if (HD.vacuum && HD.vacuum.alerts) alerts.push(...HD.vacuum.alerts());
     if (HD.damp && HD.damp.enabled()) alerts.push(...HD.damp.alerts());
+    if (HD.garage) alerts.push(...HD.garage.alerts());
     if (HD.washer) alerts.push(...HD.washer.alerts());
     // Battery-powered sensors running low
     (HD.config.devices.sensorBatteries || []).forEach((id) => {

@@ -103,6 +103,15 @@ HD.config = {
     },
   ],
 
+  // ── Garage: a small building beside the house on Home (unheated, so kept out of the house
+  // average, room balance and damp watch). Remove the block to hide it.
+  garage: {
+    name: 'Garage',
+    temp: 'sensor.garage_temperature', hum: 'sensor.garage_humidity',
+    frostBelow: 3,      // Attention item at or below this °C (false = off)
+    dampAbove: false,   // e.g. 85: Attention item at or above this % humidity
+  },
+
   // ── Energy: SigenStor EC 6.0 SP (Sigenergy Modbus integration) ──
   // Sign conventions as reported by the integration:
   //   battery_power  + charging   − discharging
@@ -332,7 +341,7 @@ HD.config = {
     backupLast: 'sensor.backup_last_successful_automatic_backup',
     backupNext: 'sensor.backup_next_scheduled_automatic_backup',
     // Battery-powered sensors: listed on Devices, and flagged on Home under 15%
-    sensorBatteries: ['sensor.livingroomsensor_battery', 'sensor.ewelink_snzb_02p_battery', 'sensor.office_temp_humidity_battery', 'sensor.1f_motion_sensor_battery'],
+    sensorBatteries: ['sensor.livingroomsensor_battery', 'sensor.ewelink_snzb_02p_battery', 'sensor.office_temp_humidity_battery', 'sensor.1f_motion_sensor_battery', 'sensor.garage_battery'],
   },
 
   // Washing machine via SmartThings (Samsung): a card on Devices with start / pause / stop and its
