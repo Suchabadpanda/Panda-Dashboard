@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.137
+- Front door: rings go under the picture when the card is narrow (container query)
+
 ## 0.3.136
 - Home: garage building for an outbuilding sensor (config.garage)
 
