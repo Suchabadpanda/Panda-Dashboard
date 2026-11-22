@@ -1539,6 +1539,15 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
   #door .door-facts dd small { font-size: 12px; margin-top: 2px; }
   #door .ring-strip { grid-column: 2; grid-row: 3; grid-template-columns: repeat(auto-fill, 140px); justify-content: start; margin-top: 10px; padding-top: 0; border-top: 0; }
 }
+/* Narrow card (e.g. dashboard on half a 4K screen): too little room beside the picture for the rings, so they go in a row under the picture and facts */
+#door { container-type: inline-size; }
+@media (min-width: 821px) {
+  @container (max-width: 1190px) {
+    #door .doorbell { grid-template-rows: auto auto auto; }
+    #door .door-media { grid-row: 2; }
+    #door .ring-strip { grid-column: 1 / -1; grid-row: 3; margin-top: 12px; }
+  }
+}
 /* One column (tablet, phone): the front door stays last, after the side cards, as before */
 @media (max-width: 1100px) {
   .home-main { display: contents; }
