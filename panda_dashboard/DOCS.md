@@ -59,6 +59,8 @@ actions:
 ```
 
 Pictures stay in `/media/doorbell` (Media → My media) until you delete them; each is small.
+On the card, the × in a picture's corner deletes it from that folder (asks first; people who
+can control the dashboard only).
 
 ## Battery plan and grid carbon
 

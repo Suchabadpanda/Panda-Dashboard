@@ -295,6 +295,7 @@ window.HD = window.HD || {};
     callWS(msg) {
       if (msg.type === 'call_service' && !access.allowed(msg.domain, msg.service)) return viewOnly();
       if (msg.type === 'supervisor/api' && msg.method && msg.method !== 'get' && !access.canControl()) return viewOnly();
+      if (msg.type === 'media_source/local_source/remove' && !access.canControl()) return viewOnly();
       return store.mode === 'demo' ? HD.demo.callWS(msg) : send(msg);
     },
     // Home Assistant's REST API with the same sign-in as the socket (GET, JSON back)

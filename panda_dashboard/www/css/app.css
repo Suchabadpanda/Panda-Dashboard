@@ -1297,6 +1297,13 @@ body.view-only :is(.btn, .car-btn)[data-car], body.view-only .btn:is([data-vac],
 .ring-shot { display: grid; gap: 3px; padding: 0; border: 0; background: none; color: var(--muted); font: 500 11px/1.2 var(--font); cursor: pointer; text-align: center; }
 .ring-shot img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); background: var(--room); }
 .ring-shot:hover img, .ring-shot:focus-visible img { border-color: var(--accent); }
+.ring-item { position: relative; min-width: 0; }
+.ring-item .ring-shot { width: 100%; }
+/* Delete (×) in the picture's top-right corner: faint until the picture is hovered, always there for touch */
+.ring-del { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgb(0 0 0 / .55); color: #fff; font: 600 18px/1 var(--font); cursor: pointer; opacity: .7; transition: opacity .15s, background .15s; }
+.ring-item:hover .ring-del, .ring-del:focus-visible { opacity: 1; }
+.ring-del:hover, .ring-del:focus-visible { background: var(--critical, #d64545); }
+@media (hover: none) { .ring-del { opacity: 1; } }
 .ring-view { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); padding: 14px; max-width: min(92vw, 900px); }
 .ring-view::backdrop { background: rgb(0 0 0 / .6); }
 .ring-view figure { margin: 0 0 10px; }

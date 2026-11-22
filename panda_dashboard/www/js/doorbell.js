@@ -173,6 +173,7 @@ window.HD = window.HD || {};
   // ── Recent rings: files in the snapshots media folder, newest first ──
   // Named ring_YYYYMMDD_HHMMSS.jpg (local time) by the automation; anything else is ordered by name.
   let rings = []; let ringsBusy = false;
+  const demoGone = new Set();   // demo: pictures "deleted" this session
   const ringTime = (name) => {
     const m = /(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/.exec(name || '');
     return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() : null;
@@ -180,7 +181,7 @@ window.HD = window.HD || {};
   async function loadRings() {
     const c = cfg(); const snaps = c && (c.snapshots ?? 'doorbell');   // false turns it off
     if (!c || !snaps || ringsBusy) return;
-    if (S().mode === 'demo') { rings = HD.demo.rings ? HD.demo.rings() : []; HD.app.refresh(); return; }
+    if (S().mode === 'demo') { rings = (HD.demo.rings ? HD.demo.rings() : []).filter((r) => !demoGone.has(r.name)); HD.app.refresh(); return; }
     if (S().mode !== 'live') return;
     ringsBusy = true;
     try {
@@ -191,7 +192,7 @@ window.HD = window.HD || {};
       const out = [];
       for (const f of files) {
         const r = await HD.ha.callWS({ type: 'media_source/resolve_media', media_content_id: f.media_content_id, expires: 24 * 3600 });
-        if (r && r.url) out.push({ url: r.url.startsWith('http') ? r.url : `${HD.ha.baseUrl()}${r.url}`, at: ringTime(f.title), name: f.title });
+        if (r && r.url) out.push({ url: r.url.startsWith('http') ? r.url : `${HD.ha.baseUrl()}${r.url}`, at: ringTime(f.title), name: f.title, id: f.media_content_id });
       }
       rings = out; HD.app.refresh();
     } catch (e) {
@@ -210,11 +211,31 @@ window.HD = window.HD || {};
   }
   function ringsHtml() {
     if (!rings.length) return '';
+    const canDelete = HD.access.canControl();
     return `<div class="ring-strip" aria-label="Recent rings">${rings.map((r, i) => `
-      <button class="ring-shot" data-ring-view="${i}" title="${r.at ? esc(HD.u.fmt(r.at, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : esc(r.name)}">
-        <img src="${esc(r.url)}" alt="" loading="lazy" decoding="async">
-        <span>${r.at ? esc(shotLabel(r.at)) : ''}</span>
-      </button>`).join('')}</div>`;
+      <div class="ring-item">
+        <button class="ring-shot" data-ring-view="${i}" title="${r.at ? esc(HD.u.fmt(r.at, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })) : esc(r.name)}">
+          <img src="${esc(r.url)}" alt="" loading="lazy" decoding="async">
+          <span>${r.at ? esc(shotLabel(r.at)) : ''}</span>
+        </button>
+        ${canDelete ? `<button class="ring-del" data-ring-del="${i}" aria-label="Delete this picture" title="Delete this picture">&times;</button>` : ''}
+      </div>`).join('')}</div>`;
+  }
+  // Delete one ring picture from the media folder (Home Assistant admins only), then
+  // reload the list so the next older picture moves up
+  async function deleteRing(i) {
+    const r = rings[i]; if (!r || !HD.access.canControl()) return;
+    const when = r.at ? HD.u.fmt(r.at, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : r.name;
+    if (!window.confirm(`Delete the ring picture from ${when}? It can't be undone.`)) return;
+    try {
+      if (S().mode === 'demo') demoGone.add(r.name);
+      else await HD.ha.callWS({ type: 'media_source/local_source/remove', media_content_id: r.id });
+      rings = rings.filter((x) => x !== r); HD.app.refresh();
+      loadRings();
+    } catch (e) {
+      console.warn('Could not delete the ring picture', e);
+      window.alert(`Couldn't delete the picture: ${(e && e.message) || e}`);
+    }
   }
   function viewRing(i) {
     const r = rings[i]; if (!r) return;
@@ -566,6 +587,7 @@ window.HD = window.HD || {};
       else if (ev.target.closest('[data-doorbell-dismiss]')) hideRing();
       else if (ev.target.closest('[data-doorbell-close]')) closeLive();
       else if (ev.target.closest('[data-doorbell-refresh]')) refreshPicture();
+      else if (ev.target.closest('[data-ring-del]')) deleteRing(Number(ev.target.closest('[data-ring-del]').dataset.ringDel));
       else if (ev.target.closest('[data-ring-view]')) viewRing(Number(ev.target.closest('[data-ring-view]').dataset.ringView));
     });
     document.getElementById('doorbell-live').addEventListener('close', () => { teardown(); endLive(); clearInterval(snapTimer); });
