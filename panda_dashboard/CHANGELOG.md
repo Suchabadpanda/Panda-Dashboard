@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.139
+- Solar now: add up the roof and ground-mount strings
+
 ## 0.3.138
 - Front door: × on each ring picture deletes it from the media folder
 
