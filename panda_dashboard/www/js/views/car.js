@@ -48,7 +48,7 @@ HD.views = HD.views || {};
     const e = C().energy; const ev = C().ev;
     const ts = nowTs(); const t = HD.tariff.tariffAt(ts); const off = HD.tariff.isOffPeak(ts);
     const rate = off ? t.offPeak : t.peak;
-    const pv = S().num(e.pvPower) || 0; const grid = S().num(e.gridPower) || 0;
+    const pv = HD.data.pvNow() || 0; const grid = S().num(e.gridPower) || 0;
     const spare = pv > 0.1 && grid < -0.1 ? -grid : 0;
     const amps = Math.floor((spare * 1000) / 230);
     const mins = minutesToSwitch(ts);

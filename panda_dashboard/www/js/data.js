@@ -16,6 +16,17 @@ window.HD = window.HD || {};
     on(fn) { listeners.add(fn); return () => listeners.delete(fn); },
   };
   HD.data = data;
+
+  // Solar power right now, in kW. The Sigen plant figure (pvPower) reads well below the strings
+  // in weak light (25 Nov: plant ~0.07 kW vs roof 0.18 + ground 0.06 kW, which is what the Sigen
+  // app shows), so add up the strings when they're configured and reporting; else use pvPower.
+  data.pvNow = function () {
+    const e = C().energy || {};
+    const ids = (e.strings ? e.strings.map((x) => x.power) : [e.pv1Power, e.pv2Power]).filter(Boolean);
+    let sum = null;
+    ids.forEach((id) => { const v = HD.store.num(id); if (v != null) sum = (sum || 0) + v; });
+    return sum != null ? sum : HD.store.num(e.pvPower);
+  };
   const emit = () => listeners.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
 
   const startOfDay = () => { const d = new Date(HD.u.now()); d.setHours(0, 0, 0, 0); return d.getTime(); };

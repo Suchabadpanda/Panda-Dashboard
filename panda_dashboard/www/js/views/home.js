@@ -159,7 +159,7 @@ HD.views = HD.views || {};
 
   function houseHtml() {
     const e = HD.config.energy;
-    const pv = S().num(e.pvPower) || 0;
+    const pv = HD.data.pvNow() || 0;
     const load = S().num(e.loadPower);
     const bat = S().num(e.batteryPower) || 0;   // + charging
     const grid = S().num(e.gridPower) || 0;     // + importing
@@ -312,7 +312,7 @@ HD.views = HD.views || {};
     const headline = busy.length ? `Someone's in ${busy.map(place).join(' and ')}` : 'All quiet';
 
     // What the energy system is doing, in a few words
-    const pv = S().num(e.pvPower) || 0; const bat = S().num(e.batteryPower) || 0; const grid = S().num(e.gridPower) || 0;
+    const pv = HD.data.pvNow() || 0; const bat = S().num(e.batteryPower) || 0; const grid = S().num(e.gridPower) || 0;
     const soc = S().num(e.soc); const now = HD.u.now();
     const b = soc != null ? `battery ${pct(soc)}` : 'battery';
     let energy = '';

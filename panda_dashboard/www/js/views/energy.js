@@ -142,7 +142,7 @@ HD.views = HD.views || {};
   // Headline figures above the charts: today's totals and what's happening now
   function kpisHtml() {
     const e = C().energy; const n = (id) => S().num(id);
-    const pv = n(e.pvPower) || 0; const load = n(e.loadPower); const bat = n(e.batteryPower) || 0; const grid = n(e.gridPower) || 0;
+    const pv = HD.data.pvNow() || 0; const load = n(e.loadPower); const bat = n(e.batteryPower) || 0; const grid = n(e.gridPower) || 0;
     const soc = n(e.soc); const cap = n(e.capacity) || 27.12;
     const d = HD.data.today; const ts = HD.u.now(); const t = HD.tariff.tariffAt(ts);
     const inc = HD.tracker && HD.tracker.income;
