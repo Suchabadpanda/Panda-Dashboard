@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.140
+- Garage: tap the building for a temperature history dialog
+
 ## 0.3.139
 - Solar now: add up the roof and ground-mount strings
 
