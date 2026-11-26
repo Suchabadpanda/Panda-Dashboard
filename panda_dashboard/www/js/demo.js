@@ -513,6 +513,24 @@ window.HD = window.HD || {};
     return out;
   }
 
+  // Garage over weeks: a cooling autumn with a cold snap, daily swing ~3°; hourly or daily rows with min/max
+  function garageHistory(id, start, period) {
+    const hum = /humidity$/.test(id); const step = period === 'day' ? 864e5 : 3600e3; const out = [];
+    const at = (ts) => {
+      const days = (SNAP - ts) / 864e5; const h = new Date(ts).getHours();
+      const base = 10 + Math.min(days, 200) * 0.045 - (days > 3 && days < 6 ? 6 : 0);   // warmer further back, a frosty spell 3-6 days ago
+      return base + 1.6 * Math.sin(((h - 9) / 24) * 2 * Math.PI) + Math.sin(ts / 2.3e8) * 0.8;
+    };
+    for (let s = Math.ceil(start / step) * step; s < SNAP - step; s += step) {
+      const vs = []; for (let t = s; t < s + step; t += step / 12) vs.push(at(t));
+      const h = (v) => Math.min(95, Math.max(35, 82 - v * 1.2));
+      const f = hum ? vs.map(h) : vs;
+      const r = (v) => Math.round(v * 10) / 10;
+      out.push({ start: s, end: s + step, mean: r(f.reduce((a, b) => a + b, 0) / f.length), min: r(Math.min(...f)), max: r(Math.max(...f)) });
+    }
+    return out;
+  }
+
   function callWS(msg) {
     if (msg.type === 'call_service' && msg.domain === 'calendar' && msg.service === 'get_events') return Promise.resolve({ response: demoEvents(msg.service_data) });
     if (msg.type === 'supervisor/api' && msg.endpoint === '/host/info') return Promise.resolve({ disk_total: 28, disk_used: 14.2, disk_free: 12.6 });
@@ -522,6 +540,7 @@ window.HD = window.HD || {};
     msg.statistic_ids.forEach((id) => {
       const pvn = (id.match(/pv([12])_accumulated_energy$/) || [])[1];
       if (pvn) res[id] = pvRows(Number(pvn), start, msg.period);
+      else if (/^sensor\.garage_(temperature|humidity)$/.test(id) && (msg.period === 'day' || (msg.period === 'hour' && start < DAY0 - 864e5))) res[id] = garageHistory(id, start, msg.period);
       else if (msg.period === '5minute') res[id] = fiveMinute(id);
       else if (msg.period === 'hour' && /humidity$/.test(id) && HD.store.states[id]) res[id] = humHistory(id, start);
       else if (msg.period === 'hour' && TEMPS[id]) res[id] = TEMPS[id].map((v, i) => ({ start: T0 + i * 3600e3, end: T0 + (i + 1) * 3600e3, mean: v }));

@@ -439,6 +439,8 @@ Options (all optional): `damp: { f: 0.75, high: 65, watch: 75, risk: 80, alertHo
 
 A small building drawn at the top of the left column on Home, beside the house roof, for a garage (or shed) sensor. It shows the temperature, humidity, a line of the last 24 hours and that day's low–high. It's tinted blue as it gets colder (from 12° down to 2°).
 
+Tap (or click) the building for its history: 24 hours (5-minute readings), 7 days (hourly) and 30 days or a year (each day's high, average and low), with humidity underneath, the low and high with when they happened, the average, and how long it was at or below the frost line. The frost line is drawn when readings come within 3° of it. The chosen range is remembered on each screen.
+
 ```js
 garage: {
   name: 'Garage',
